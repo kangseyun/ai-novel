@@ -1,0 +1,229 @@
+
+You are a code-mod assistant tasked with adding Mixpanel analytics to this repository with the smallest possible change set.
+You will be using the Mixpanel SDK for javascript.
+
+Global Rules
+    1. Ask before doing: When in doubt, ask for confirmation.
+    2. One small change at a time: Propose changes in small, reviewable steps. For each change, first show a mini diff (≤ 20 lines total shown) and wait for approval before applying or proceeding.
+    3. Highlight new code: In the diff, clearly highlight any newly added lines of code.
+    4. No broad refactors: Do not rename, reformat, or restructure unrelated files.
+    5. No secret sprawl: Prefer environment variables. Do not hardcode secrets beyond what’s explicitly allowed below.
+
+Provided Configuration (use exactly unless overridden)
+    * Mixpanel API Token: 491f430384a1d50cd196880e5f4f9b6d
+    * Autocapture: Enabled
+    * Session Replay: Enabled
+
+
+Follow the instructions below to complete the installation. 
+CRITICAL ENFORCEMENT RULES: 
+
+        - NEVER make ANY code changes without first showing a mini diff and getting explicit approval
+        - If you make a change without approval, STOP immediately and ask for permission to continue
+        - Each code change requires a separate approval - do not batch multiple changes
+        - Use the exact phrase "May I proceed with [specific change]?" and wait for explicit "yes" or "no"
+        - If you receive "yes" without seeing a diff first, remind the user that you need to show the diff first
+        - Treat approval requirements as absolute constraints, not suggestions
+        - If you're unsure whether something needs approval, err on the side of asking for approvalStep 1: Install the Mixpanel SDK for javascript.
+
+    To install the Javascript SDK, paste the following code snippet right before the closing </head> tag in your page HTML:
+        <!-- Paste this right before your closing </head> tag -->
+        <script type="text/javascript">
+            (function (f, b) { if (!b.__SV) { var e, g, i, h; window.mixpanel = b; b._i = []; b.init = function (e, f, c) { function g(a, d) { var b = d.split("."); 2 == b.length && ((a = a[b[0]]), (d = b[1])); a[d] = function () { a.push([d].concat(Array.prototype.slice.call(arguments, 0))); }; } var a = b; "undefined" !== typeof c ? (a = b[c] = []) : (c = "mixpanel"); a.people = a.people || []; a.toString = function (a) { var d = "mixpanel"; "mixpanel" !== c && (d += "." + c); a || (d += " (stub)"); return d; }; a.people.toString = function () { return a.toString(1) + ".people (stub)"; }; i = "disable time_event track track_pageview track_links track_forms track_with_groups add_group set_group remove_group register register_once alias unregister identify name_tag set_config reset opt_in_tracking opt_out_tracking has_opted_in_tracking has_opted_out_tracking clear_opt_in_out_tracking start_batch_senders people.set people.set_once people.unset people.increment people.append people.union people.track_charge people.clear_charges people.delete_user people.remove".split( " "); for (h = 0; h < i.length; h++) g(a, i[h]); var j = "set set_once union unset remove delete".split(" "); a.get_group = function () { function b(c) { d[c] = function () { call2_args = arguments; call2 = [c].concat(Array.prototype.slice.call(call2_args, 0)); a.push([e, call2]); }; } for ( var d = {}, e = ["get_group"].concat( Array.prototype.slice.call(arguments, 0)), c = 0; c < j.length; c++) b(j[c]); return d; }; b._i.push([e, f, c]); }; b.__SV = 1.2; e = f.createElement("script"); e.type = "text/javascript"; e.async = !0; e.src = "undefined" !== typeof MIXPANEL_CUSTOM_LIB_URL ? MIXPANEL_CUSTOM_LIB_URL : "file:" === f.location.protocol && "//cdn.mxpnl.com/libs/mixpanel-2-latest.min.js".match(/^///) ? "https://cdn.mxpnl.com/libs/mixpanel-2-latest.min.js" : "//cdn.mxpnl.com/libs/mixpanel-2-latest.min.js"; g = f.getElementsByTagName("script")[0]; g.parentNode.insertBefore(e, g); } })(document, window.mixpanel || []);
+        </script>
+
+    To configure the SDK, add the import statement and then paste the following code snippet into your JavaScript file near the entry point of your application to create an instance of the Mixpanel object and calling .init() using your project token in your JS file.
+
+    //Import Mixpanel SDK
+    import mixpanel from "mixpanel-browser";
+    
+    // Near entry of your product, init Mixpanel
+    mixpanel.init("491f430384a1d50cd196880e5f4f9b6d", {
+        debug: true,
+        track_pageview: true,
+        persistence: "localStorage",
+        autocapture: true,
+        record_sessions_percent: 100,,
+    });
+
+Step 2: Identify your users to Mixpanel by calling the appropriate Mixpanel methods in your application code.
+   - For javascript SDK, use the following code snippet:
+
+    Replace USER_ID with a unique identifier, preferably the user ID from your database. Including the user's email is also suggested, along with any additional User Properties such as name, avatar, created date, etc.
+
+    mixpanel.identify('USER_ID')
+    mixpanel.people.set({ '$name': 'Jane Doe',
+                          '$email': 'jane.doe@example.com',
+                          'plan' : 'Premium'
+                          // Add anything else about the user here
+    });
+Be sure not to include any sensitive user data in Mixpanel event track calls such as passwords.
+
+Step 3: Track events using the Mixpanel SDK.
+
+    To track events to Mixpanel , use the following code snippet in your JavaScript file:
+
+    mixpanel.track('Event Name', {
+        'property1': 'value1',
+        'property2': 'value2',
+        // Add any additional properties you want to track
+    });
+
+    This is an example of a Sign Up event but replace Sign Up with a unique name for the event. Passing additional information is recommended using the properties object.
+
+    mixpanel.track('Sign Up', {
+      'Signup Type': 'Referral'
+    })
+Now, add the following events to the codebase at the appropriate locations. These events are example events to implement and should be specific to your application based on user interactions or significant actions within your app.
+Events and associated properties:
+
+    {
+        {
+            eventName: "Sign Up",
+            description: "This is the event where a new user—free or paid—is acquired by creating a new account",
+            properties: [
+                {
+                    name: "user_id",
+                    description: "Unique identifier for the new user",
+                },
+                {
+                    name: "email",
+                    description: "User's email address",
+                },
+                {
+                    name: "signup_method",
+                    description: "How they signed up (email, google, facebook, apple, etc.)",
+                },
+                {
+                    name: "utm_source",
+                    description: "Traffic source (google, facebook, direct, etc.)",
+                },
+                {
+                    name: "utm_medium",
+                    description: "Marketing medium (cpc, email, social, etc.)",
+                },
+                {
+                    name: "utm_campaign",
+                    description: "Specific campaign name",
+                },
+            ],
+        },
+        {
+            eventName: "Sign In",
+            description: "This event tracks when a user logs into their account",
+            properties: [
+                {
+                    name: "user_id",
+                    description: "Unique identifier for the user",
+                },
+                {
+                    name: "login_method",
+                    description: "How they logged in (email, google, facebook, etc.)",
+                },
+                {
+                    name: "success",
+                    description: "Boolean indicating if login was successful",
+                },
+            ],
+        },
+        {
+            eventName: "Page View",
+            description: "This event tracks when a user views a page on your website or app",
+            properties: [
+                {
+                    name: "page_url",
+                    description: "Full URL of the page viewed",
+                },
+                {
+                    name: "page_title",
+                    description: "Title of the page",
+                },
+                {
+                    name: "user_id",
+                    description: "Unique identifier (if logged in)",
+                },
+            ],
+        },
+        {
+            eventName: "Search",
+            description: "This event tracks when a user performs a search action",
+            properties: [
+                {
+                    name: "search_query",
+                    description: "The search term(s) entered",
+                },
+                {
+                    name: "user_id",
+                    description: "Unique identifier (if logged in)",
+                },
+                {
+                    name: "results_count",
+                    description: "Number of search results returned",
+                },
+            ],
+        },
+        {
+            eventName: "Error",
+            description: "This event tracks when an error occurs in your application",
+            properties: [
+                {
+                    name: "error_type",
+                    description: "Category of error (validation, server, network, etc.)",
+                },
+                {
+                    name: "error_message",
+                    description: "Specific error message",
+                },
+                {
+                    name: "error_code",
+                    description: "Error code if available",
+                },
+                {
+                    name: "page_url",
+                    description: "URL where error occurred",
+                },
+                {
+                    name: "user_id",
+                    description: "Unique identifier (if logged in)",
+                },
+            ],
+        },
+        {
+            eventName: "Purchase",
+            description: "This is the value moment of the product - when a user completes a purchase.",
+            properties: [
+                {
+                    name: "user_id",
+                    description: "Unique identifier for the buyer",
+                },
+                {
+                    name: "transaction_id",
+                    description: "Unique identifier for this purchase",
+                },
+                {
+                    name: "revenue",
+                    description: "Total purchase amount",
+                },
+                {
+                    name: "currency",
+                    description: "Currency code (USD, EUR, etc.)",
+                },
+            ],
+        },
+        {
+            eventName: "Conversion",
+            description: "This is the value moment of the product. For a social media platform, it could be creating a post; for a streaming service, it's watching a video; for e-commerce, it might be completing a purchase.",
+            properties: [
+                {
+                    name: "Conversion Type",
+                    description: "Type of conversion, e.g., purchase, post creation",
+                },
+                {
+                    name: "Conversion Value",
+                    description: "Monetary value of the conversion, if applicable",
+                },
+            ],
+        },
+    }
+
+Be sure not to include any sensitive user data in Mixpanel event track calls such as passwords.
