@@ -9,7 +9,6 @@ import {
   CreditCard,
   FileText,
   Shield,
-  Crown,
 } from 'lucide-react';
 
 interface SettingsModalProps {
@@ -55,15 +54,9 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
               <p className="text-xs text-white/40 mb-2 px-1">결제</p>
               <div className="bg-white/5 rounded-xl overflow-hidden">
                 <SettingItem
-                  icon={<Crown className="w-5 h-5 text-amber-400" />}
-                  label="구독 관리"
-                  onClick={() => window.location.href = '/shop'}
-                />
-                <div className="h-px bg-white/5" />
-                <SettingItem
                   icon={<CreditCard className="w-5 h-5 text-white/60" />}
-                  label="결제 수단"
-                  onClick={() => {}}
+                  label="충전 & 구독 관리"
+                  onClick={() => window.location.href = '/shop'}
                 />
               </div>
             </div>
@@ -155,12 +148,14 @@ function SettingItem({
   icon,
   label,
   labelColor = 'text-white',
+  subLabel,
   onClick,
   hideArrow = false,
 }: {
   icon: React.ReactNode;
   label: string;
   labelColor?: string;
+  subLabel?: React.ReactNode;
   onClick: () => void;
   hideArrow?: boolean;
 }) {
@@ -173,7 +168,10 @@ function SettingItem({
         {icon}
         <span className={`text-sm ${labelColor}`}>{label}</span>
       </div>
-      {!hideArrow && <ChevronRight className="w-4 h-4 text-white/30" />}
+      <div className="flex items-center gap-2">
+        {subLabel}
+        {!hideArrow && <ChevronRight className="w-4 h-4 text-white/30" />}
+      </div>
     </button>
   );
 }
