@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerClient } from '@/lib/supabase';
+import { createServerClient } from '@/lib/supabase-server';
 import { getAuthUser, unauthorized, serverError } from '@/lib/auth';
 
 // PUT /api/feed/events/:eventId/read - 이벤트 읽음 처리
@@ -12,7 +12,7 @@ export async function PUT(
     if (!user) return unauthorized();
 
     const { eventId } = await params;
-    const supabase = createServerClient();
+    const supabase = await createServerClient();
 
     const { error } = await supabase
       .from('feed_events')

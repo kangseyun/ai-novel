@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -14,7 +14,6 @@ import {
   Heart,
   User,
   Plus,
-  Crown,
 } from 'lucide-react';
 import Link from 'next/link';
 import HackedProfile from '@/components/sns/HackedProfile';
@@ -35,12 +34,39 @@ import {
   getVisibleStories,
 } from '@/lib/hacked-sns-data';
 import { useHackerStore } from '@/lib/stores/hacker-store';
+import { useAuthStore } from '@/lib/stores/auth-store';
+import { supabase } from '@/lib/supabase';
 
 type Tab = 'home' | 'dm' | 'create' | 'activity' | 'profile';
 
 export default function MainPage() {
   const router = useRouter();
-  const [currentTab, setCurrentTab] = useState<Tab>('profile');
+
+  // sessionStorage에서 저장된 탭 복원 (뒤로가기 시)
+  const [currentTab, setCurrentTab] = useState<Tab>(() => {
+    if (typeof window !== 'undefined') {
+      const savedTab = sessionStorage.getItem('mainPageTab') as Tab | null;
+      if (savedTab) {
+        return savedTab;
+      }
+    }
+    return 'profile';
+  });
+
+  const feedScrollRef = useRef<number>(0); // 피드 스크롤 위치 저장
+  const prevTabRef = useRef<Tab>(currentTab); // 이전 탭 저장
+
+  // 페이지 로드 시 스크롤 위치 복원 (뒤로가기 시)
+  useEffect(() => {
+    const savedScroll = Number(sessionStorage.getItem('feedScrollY')) || 0;
+    feedScrollRef.current = savedScroll;
+
+    if (currentTab === 'home' && savedScroll > 0) {
+      setTimeout(() => {
+        window.scrollTo(0, savedScroll);
+      }, 100);
+    }
+  }, []);
   const [showBootSequence, setShowBootSequence] = useState(false);
   const [bootStep, setBootStep] = useState(0);
   const [connectionStatus, setConnectionStatus] = useState<'connecting' | 'connected' | 'intercepted'>('connecting');
@@ -48,36 +74,51 @@ export default function MainPage() {
 
   // Story viewer state
   const [showStoryViewer, setShowStoryViewer] = useState(false);
-  const [storyIndex, setStoryIndex] = useState(0);
+  const [storyIndex] = useState(0);
 
   // DM state
   const [showDM, setShowDM] = useState(false);
-  const [activeScenarioId, setActiveScenarioId] = useState<string | null>(null);
+  const [activePersonaId, setActivePersonaId] = useState<string | null>(null);
 
   // Create post modal
   const [showCreatePost, setShowCreatePost] = useState(false);
+
+  // User tokens
+  const [userTokens, setUserTokens] = useState<number | null>(null);
 
   // Zustand store
   const {
     initProfile,
     gainXP,
-    viewStory,
     getProfile,
   } = useHackerStore();
 
-  // 로그인/온보딩 체크
+  // 로그인 체크 - Supabase 세션 확인
   useEffect(() => {
-    // TODO: 실제 로그인 상태 체크 로직으로 교체
-    const isLoggedIn = localStorage.getItem('user_logged_in');
-    const hasCompletedOnboarding = localStorage.getItem('onboarding_completed');
+    const checkAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
 
-    if (!isLoggedIn && !hasCompletedOnboarding) {
-      // 로그인 안됨 + 온보딩 미완료 → 온보딩으로
-      router.replace('/onboarding');
-      return;
-    }
+      if (!session) {
+        // 로그인 안됨 → 온보딩으로 (온보딩에서 로그인으로 유도)
+        router.replace('/onboarding');
+        return;
+      }
 
-    setIsLoading(false);
+      // 사용자 토큰 정보 가져오기
+      const { data: userData } = await supabase
+        .from('users')
+        .select('tokens')
+        .eq('id', session.user.id)
+        .single();
+
+      if (userData) {
+        setUserTokens(userData.tokens);
+      }
+
+      setIsLoading(false);
+    };
+
+    checkAuth();
   }, [router]);
 
   // Initialize profile on mount
@@ -125,27 +166,20 @@ export default function MainPage() {
   // Calculate visible content
   const visibleStories = getVisibleStories(JUN_STORIES, hackLevel);
 
-  const handleStoryClick = (story: Story) => {
-    const index = visibleStories.findIndex(s => s.id === story.id);
-    setStoryIndex(index >= 0 ? index : 0);
-    setShowStoryViewer(true);
-    viewStory('jun', story.id);
-  };
-
   const handleStoryReply = (story: Story, message: string) => {
     console.log('Reply to story:', story.id, message);
     gainXP('jun', 10);
   };
 
-  const handleStartScenario = (scenarioId: string) => {
-    setActiveScenarioId(scenarioId);
+  const handleOpenDM = (personaId: string) => {
+    setActivePersonaId(personaId);
     setShowStoryViewer(false);
     setShowDM(true);
   };
 
   const handleCloseDM = () => {
     setShowDM(false);
-    setActiveScenarioId(null);
+    setActivePersonaId(null);
   };
 
   const handleGainXP = (amount: number) => {
@@ -226,19 +260,27 @@ export default function MainPage() {
           </div>
 
           <div className="flex items-center gap-3">
+            <Link
+              href="/shop"
+              className="flex items-center gap-1.5 px-2 py-1 bg-yellow-500/10 border border-yellow-500/30 rounded hover:bg-yellow-500/20 transition"
+            >
+              <span className="text-yellow-400 text-xs">◆</span>
+              <span className="text-[10px] font-mono text-yellow-400">
+                {userTokens !== null ? userTokens.toLocaleString() : '---'}
+              </span>
+            </Link>
+            <Link
+              href="/shop"
+              className="flex items-center gap-1 px-2 py-1 bg-amber-500/10 border border-amber-500/30 rounded hover:bg-amber-500/20 transition"
+            >
+              <span className="text-[10px] font-bold text-amber-400">VIP</span>
+            </Link>
             <div className="flex items-center gap-1.5 px-2 py-1 bg-red-500/10 border border-red-500/30 rounded">
               <Eye className="w-3 h-3 text-red-400" />
               <span className="text-[10px] font-mono text-red-400">
                 HACK LV.{hackLevel}
               </span>
             </div>
-            <Link
-              href="/shop"
-              className="flex items-center gap-1 px-2 py-1 bg-amber-500/10 border border-amber-500/30 rounded hover:bg-amber-500/20 transition"
-            >
-              <Crown className="w-3 h-3 text-amber-400" />
-              <span className="text-[10px] font-mono text-amber-400">VIP</span>
-            </Link>
             <div className="flex items-center gap-1">
               <Wifi className="w-4 h-4 text-green-400" />
             </div>
@@ -261,25 +303,12 @@ export default function MainPage() {
       {/* Main Content */}
       <main className="pb-20">
         {currentTab === 'home' && (
-          <HomeFeed
-            onOpenProfile={(personaId) => {
-              if (personaId === 'jun') {
-                setCurrentTab('dm'); // Jun은 DM 탭에서
-              }
-            }}
-            onOpenStory={(personaId, story) => {
-              if (personaId === 'jun') {
-                handleStoryClick(story);
-              }
-            }}
-          />
+          <HomeFeed />
         )}
 
         {currentTab === 'dm' && (
           <DMList onOpenChat={(personaId) => {
-            if (personaId === 'jun') {
-              handleStartScenario('jun_ep1_first_contact');
-            }
+            handleOpenDM(personaId);
           }} />
         )}
 
@@ -309,16 +338,16 @@ export default function MainPage() {
             username={JUN_PROFILE.username}
             onClose={() => setShowStoryViewer(false)}
             onReply={handleStoryReply}
-            onStartScenario={handleStartScenario}
+            onStartScenario={() => handleOpenDM('jun')}
           />
         )}
       </AnimatePresence>
 
       {/* DM Chat */}
       <AnimatePresence>
-        {showDM && activeScenarioId && (
+        {showDM && activePersonaId && (
           <DMChat
-            scenarioId={activeScenarioId}
+            personaId={activePersonaId}
             profile={JUN_PROFILE}
             onClose={handleCloseDM}
             onGainXP={handleGainXP}
@@ -342,7 +371,25 @@ export default function MainPage() {
                 if (isCreate) {
                   setShowCreatePost(true);
                 } else {
+                  // 피드에서 다른 탭으로 이동 시 스크롤 위치 저장
+                  if (prevTabRef.current === 'home') {
+                    feedScrollRef.current = window.scrollY;
+                    sessionStorage.setItem('feedScrollY', String(window.scrollY));
+                  }
+
+                  // 탭 전환 및 저장
                   setCurrentTab(id);
+                  prevTabRef.current = id;
+                  sessionStorage.setItem('mainPageTab', id);
+
+                  // 피드로 돌아갈 때는 저장된 위치로, 다른 탭은 상단으로
+                  if (id === 'home') {
+                    setTimeout(() => {
+                      window.scrollTo(0, feedScrollRef.current);
+                    }, 0);
+                  } else {
+                    window.scrollTo(0, 0);
+                  }
                 }
               }}
               className={`relative p-2 ${

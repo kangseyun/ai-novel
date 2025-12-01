@@ -38,12 +38,12 @@ export default function LockScreen({ onUnlock }: LockScreenProps) {
   ];
 
   return (
-    <div className="min-h-screen bg-black text-white flex flex-col relative overflow-hidden">
+    <div className="h-[100dvh] bg-black text-white flex flex-col relative overflow-hidden">
       {/* 배경 그라데이션 */}
       <div className="absolute inset-0 bg-gradient-to-b from-zinc-900/50 to-black" />
 
       {/* 시간 표시 - 상단 */}
-      <div className="relative z-10 flex flex-col items-center pt-20 pb-8">
+      <div className="relative z-10 flex flex-col items-center pt-16 pb-6 shrink-0">
         <motion.p
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -61,7 +61,7 @@ export default function LockScreen({ onUnlock }: LockScreenProps) {
       </div>
 
       {/* DM 알림들 - 시계 아래 */}
-      <div className="relative z-10 px-4 space-y-2">
+      <div className="relative z-10 px-4 space-y-2 overflow-y-auto flex-1 min-h-0">
         <AnimatePresence>
           {notifications.map((idx) => (
             <motion.div
@@ -88,11 +88,8 @@ export default function LockScreen({ onUnlock }: LockScreenProps) {
         </AnimatePresence>
       </div>
 
-      {/* Spacer */}
-      <div className="flex-1" />
-
       {/* 스와이프 힌트 - 하단 */}
-      <div className="relative z-10 px-4 pb-8">
+      <div className="relative z-10 px-4 pb-8 shrink-0">
         <AnimatePresence>
           {showSwipeHint && (
             <motion.button

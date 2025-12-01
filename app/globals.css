@@ -28,10 +28,23 @@ body {
 /* 모바일 확대 방지 */
 html {
   touch-action: manipulation;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
 }
 
 * {
   -webkit-tap-highlight-color: transparent;
+}
+
+/* 모바일 뷰포트 높이 지원 */
+.h-screen-safe {
+  height: 100vh;
+  height: 100dvh;
+}
+
+.min-h-screen-safe {
+  min-height: 100vh;
+  min-height: 100dvh;
 }
 
 input, textarea, select {

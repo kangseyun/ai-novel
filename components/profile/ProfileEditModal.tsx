@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, ChevronRight, Check, Camera } from 'lucide-react';
+import { X, ChevronRight, Check, Camera, Loader2 } from 'lucide-react';
 import {
   useUserPersonaStore,
   PERSONALITY_LABELS,
@@ -27,19 +27,44 @@ type EditSection = 'main' | 'personality' | 'communication' | 'emotional' | 'int
 
 export default function ProfileEditModal({ isOpen, onClose }: ProfileEditModalProps) {
   const [section, setSection] = useState<EditSection>('main');
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+
   const persona = useUserPersonaStore((state) => state.persona);
   const setPersona = useUserPersonaStore((state) => state.setPersona);
   const toggleInterest = useUserPersonaStore((state) => state.toggleInterest);
+  const saveToServer = useUserPersonaStore((state) => state.saveToServer);
 
   const [localNickname, setLocalNickname] = useState(persona.nickname);
   const [localBio, setLocalBio] = useState(persona.bio);
 
-  const handleSave = () => {
+  // 모달 열릴 때 로컬 상태 초기화
+  useEffect(() => {
+    if (isOpen) {
+      setLocalNickname(persona.nickname);
+      setLocalBio(persona.bio);
+      setSaveError(null);
+    }
+  }, [isOpen, persona.nickname, persona.bio]);
+
+  const handleSave = async () => {
+    // 로컬 스토어에 저장
     setPersona({
       nickname: localNickname,
       bio: localBio,
     });
-    onClose();
+
+    // 서버에 저장 (단일 API 호출)
+    setIsSaving(true);
+    setSaveError(null);
+    try {
+      await saveToServer();
+      onClose();
+    } catch (error) {
+      setSaveError(error instanceof Error ? error.message : '저장 중 오류가 발생했습니다');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleBack = () => {
@@ -81,8 +106,19 @@ export default function ProfileEditModal({ isOpen, onClose }: ProfileEditModalPr
               {section === 'attachment' && '관계 성향'}
             </h1>
             {section === 'main' ? (
-              <button onClick={handleSave} className="text-blue-400 font-medium">
-                완료
+              <button
+                onClick={handleSave}
+                disabled={isSaving}
+                className="text-blue-400 font-medium disabled:opacity-50 flex items-center gap-1"
+              >
+                {isSaving ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    저장중
+                  </>
+                ) : (
+                  '완료'
+                )}
               </button>
             ) : (
               <div className="w-10" />
@@ -92,6 +128,13 @@ export default function ProfileEditModal({ isOpen, onClose }: ProfileEditModalPr
 
         {/* Content */}
         <div className="overflow-y-auto h-[calc(100vh-56px)] pb-20">
+          {/* Error Message */}
+          {saveError && (
+            <div className="mx-4 mt-4 p-3 bg-red-500/20 border border-red-500/50 rounded-xl">
+              <p className="text-sm text-red-400">{saveError}</p>
+            </div>
+          )}
+
           <AnimatePresence mode="wait">
             {section === 'main' && (
               <motion.div

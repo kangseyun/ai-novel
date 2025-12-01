@@ -7,15 +7,25 @@ import PersonaSelect from './PersonaSelect';
 import OnboardingScenario, { ScenarioResultData } from './OnboardingScenario';
 import OnboardingSignup from './OnboardingSignup';
 import { getPersonaById } from '@/lib/persona-data';
+// 새로운 재사용 가능한 시나리오 시스템
+import OnboardingScenarioWrapper from '@/components/scenario/OnboardingScenarioWrapper';
+import { ScenarioResult } from '@/components/scenario/ScenarioPlayer';
+import { JUN_FIRST_MEETING_SCENARIO, SCENARIO_CHARACTERS } from '@/lib/scenario-fallback';
 
 interface OnboardingFlowProps {
   onComplete: () => void;
   onSkip?: () => void;
+  /** 새로운 재사용 가능한 시나리오 시스템 사용 여부 */
+  useNewScenarioSystem?: boolean;
 }
 
 type OnboardingStep = 'lockscreen' | 'persona_select' | 'scenario' | 'signup';
 
-export default function OnboardingFlow({ onComplete, onSkip }: OnboardingFlowProps) {
+export default function OnboardingFlow({
+  onComplete,
+  onSkip,
+  useNewScenarioSystem = true,  // 기본값으로 새 시스템 사용
+}: OnboardingFlowProps) {
   const [step, setStep] = useState<OnboardingStep>('lockscreen');
   const [selectedPersonaId, setSelectedPersonaId] = useState<string | null>(null);
   const [affectionGained, setAffectionGained] = useState(0);
@@ -41,10 +51,21 @@ export default function OnboardingFlow({ onComplete, onSkip }: OnboardingFlowPro
     setStep('signup');
   }, []);
 
-  // 시나리오 확정 완료 → 가입 유도
+  // 시나리오 확정 완료 → 가입 유도 (기존 시스템)
   const handleScenarioConfirm = useCallback((result: ScenarioResultData) => {
     setAffectionGained(result.affectionGained);
     setStep('signup');
+  }, []);
+
+  // 새 시나리오 시스템 완료 핸들러
+  const handleNewScenarioComplete = useCallback((result: ScenarioResult) => {
+    setAffectionGained(result.affectionGained);
+    setStep('signup');
+  }, []);
+
+  // 새 시나리오 시스템 호감도 변경 핸들러
+  const handleNewScenarioAffectionChange = useCallback((delta: number, total: number) => {
+    setAffectionGained(total);
   }, []);
 
   // 가입 완료
@@ -56,7 +77,7 @@ export default function OnboardingFlow({ onComplete, onSkip }: OnboardingFlowPro
 
   return (
     <div className="fixed inset-0 z-[100] bg-black flex justify-center">
-      <div className="w-full max-w-[430px] min-h-screen relative bg-black">
+      <div className="w-full max-w-[430px] h-[100dvh] relative bg-black overflow-hidden">
         <AnimatePresence mode="wait">
           {/* Step 1: 잠금화면 */}
           {step === 'lockscreen' && (
@@ -107,12 +128,29 @@ export default function OnboardingFlow({ onComplete, onSkip }: OnboardingFlowPro
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
+              className="h-full"
             >
-              <OnboardingScenario
-                onProgress={handleScenarioProgress}
-                onCliffhanger={handleCliffhanger}
-                onConfirm={handleScenarioConfirm}
-              />
+              {useNewScenarioSystem ? (
+                // 새로운 재사용 가능한 시나리오 시스템
+                <OnboardingScenarioWrapper
+                  personaId={selectedPersonaId || 'jun'}
+                  character={SCENARIO_CHARACTERS.jun}
+                  onAffectionChange={handleNewScenarioAffectionChange}
+                  onPremiumChoice={() => {
+                    // 프리미엄 선택지 클릭 시 처리 (업셀 등)
+                    console.log('[Onboarding] Premium choice clicked');
+                  }}
+                  onComplete={handleNewScenarioComplete}
+                  fallbackScenario={JUN_FIRST_MEETING_SCENARIO}
+                />
+              ) : (
+                // 기존 하드코딩된 시나리오 시스템
+                <OnboardingScenario
+                  onProgress={handleScenarioProgress}
+                  onCliffhanger={handleCliffhanger}
+                  onConfirm={handleScenarioConfirm}
+                />
+              )}
             </motion.div>
           )}
 

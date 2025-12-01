@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import MixpanelProvider from "@/components/MixpanelProvider";
+import { FirebaseProvider } from "@/components/providers/FirebaseProvider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -14,8 +15,16 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Lumina Fiction",
-  description: "Interactive Chat Novel Platform",
+  title: "Luminovel.ai",
+  description: "AI 인터랙티브 채팅 노블 플랫폼",
+  icons: {
+    icon: [
+      { url: '/icon.svg', type: 'image/svg+xml' },
+    ],
+    apple: [
+      { url: '/apple-icon.svg', type: 'image/svg+xml' },
+    ],
+  },
 };
 
 export const viewport: Viewport = {
@@ -36,7 +45,9 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-[#0F172A] text-slate-900`}
       >
         <MixpanelProvider />
-        {children}
+        <FirebaseProvider>
+          {children}
+        </FirebaseProvider>
       </body>
     </html>
   );

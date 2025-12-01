@@ -256,7 +256,7 @@ export default function OnboardingScenario({
 
   return (
     <div
-      className="min-h-screen bg-zinc-950 flex flex-col relative"
+      className="h-[100dvh] bg-zinc-950 flex flex-col relative overflow-hidden"
       onClick={handleTap}
     >
       {/* 상단 UI - 히스토리 버튼 */}
@@ -273,7 +273,7 @@ export default function OnboardingScenario({
       </div>
 
       {/* 메인 콘텐츠 영역 */}
-      <div className="flex-1 flex flex-col items-center justify-center px-8 py-16">
+      <div className="flex-1 flex flex-col items-center justify-center px-8 py-8 min-h-0 overflow-y-auto">
 
         {/* 호감도 이펙트 */}
         <AnimatePresence>
@@ -361,7 +361,7 @@ export default function OnboardingScenario({
           initial={{ opacity: 0 }}
           animate={{ opacity: 0.3 }}
           transition={{ delay: 1 }}
-          className="absolute bottom-8 left-0 right-0 text-center text-xs text-white/30"
+          className="py-4 text-center text-xs text-white/30 shrink-0"
         >
           탭하여 계속
         </motion.p>
@@ -375,7 +375,7 @@ export default function OnboardingScenario({
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.3 }}
-            className="px-6 pb-12 space-y-3"
+            className="px-6 pb-8 space-y-3 shrink-0"
           >
             {currentScene.choices.map((choice, idx) => (
               <motion.button

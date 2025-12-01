@@ -39,7 +39,7 @@ export default function ScenarioResult({
   };
 
   return (
-    <div className="min-h-screen bg-black flex flex-col items-center justify-center px-6">
+    <div className="h-[100dvh] bg-black flex flex-col items-center justify-center px-6 overflow-hidden">
       <AnimatePresence mode="wait">
         {!isConfirming ? (
           <motion.div

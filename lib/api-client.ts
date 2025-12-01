@@ -1,5 +1,5 @@
 /**
- * API Client for AI Novel
+ * API Client for Luminovel.ai
  * 프론트엔드에서 백엔드 API를 호출하는 클라이언트
  */
 
@@ -7,6 +7,9 @@ const API_BASE = '/api';
 
 class ApiClient {
   private accessToken: string | null = null;
+  private isRefreshing = false;
+  private refreshPromise: Promise<boolean> | null = null;
+  private onAuthError: (() => void) | null = null;
 
   setAccessToken(token: string | null) {
     this.accessToken = token;
@@ -25,9 +28,69 @@ class ApiClient {
     return null;
   }
 
+  /**
+   * 인증 에러 발생 시 호출할 콜백 등록
+   * (로그아웃 및 로그인 페이지 리다이렉트 처리용)
+   */
+  setOnAuthError(callback: () => void) {
+    this.onAuthError = callback;
+  }
+
+  private async tryRefreshToken(): Promise<boolean> {
+    // 이미 리프레시 중이면 기존 Promise 반환
+    if (this.isRefreshing && this.refreshPromise) {
+      return this.refreshPromise;
+    }
+
+    const refreshToken = localStorage.getItem('refresh_token');
+    if (!refreshToken) {
+      return false;
+    }
+
+    this.isRefreshing = true;
+    this.refreshPromise = (async () => {
+      try {
+        const response = await fetch(`${API_BASE}/auth/refresh`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ refresh_token: refreshToken }),
+        });
+
+        if (!response.ok) {
+          return false;
+        }
+
+        const data = await response.json();
+        if (data.session?.access_token) {
+          this.setAccessToken(data.session.access_token);
+          localStorage.setItem('refresh_token', data.session.refresh_token);
+          return true;
+        }
+        return false;
+      } catch {
+        return false;
+      } finally {
+        this.isRefreshing = false;
+        this.refreshPromise = null;
+      }
+    })();
+
+    return this.refreshPromise;
+  }
+
+  private handleAuthFailure() {
+    this.setAccessToken(null);
+    localStorage.removeItem('refresh_token');
+
+    if (this.onAuthError) {
+      this.onAuthError();
+    }
+  }
+
   private async request<T>(
     endpoint: string,
-    options: RequestInit = {}
+    options: RequestInit = {},
+    isRetry = false
   ): Promise<T> {
     const token = this.getAccessToken();
 
@@ -45,6 +108,25 @@ class ApiClient {
       headers,
     });
 
+    // 401 에러 시 토큰 갱신 시도
+    if (response.status === 401 && !isRetry) {
+      // refresh 엔드포인트 자체에서 401이면 리프레시 시도하지 않음
+      if (endpoint === '/auth/refresh') {
+        this.handleAuthFailure();
+        throw new ApiError('Session expired', 401);
+      }
+
+      const refreshed = await this.tryRefreshToken();
+      if (refreshed) {
+        // 토큰 갱신 성공 시 원래 요청 재시도
+        return this.request<T>(endpoint, options, true);
+      } else {
+        // 갱신 실패 시 로그아웃 처리
+        this.handleAuthFailure();
+        throw new ApiError('Session expired', 401);
+      }
+    }
+
     const data = await response.json();
 
     if (!response.ok) {
@@ -55,45 +137,7 @@ class ApiClient {
   }
 
   // ============ Auth API ============
-  async register(email: string, password: string, nickname?: string) {
-    const data = await this.request<{
-      user: { id: string; email: string; nickname: string | null };
-      session: { access_token: string; refresh_token: string } | null;
-    }>('/auth/register', {
-      method: 'POST',
-      body: JSON.stringify({ email, password, nickname }),
-    });
-
-    if (data.session) {
-      this.setAccessToken(data.session.access_token);
-      localStorage.setItem('refresh_token', data.session.refresh_token);
-    }
-
-    return data;
-  }
-
-  async login(email: string, password: string) {
-    const data = await this.request<{
-      user: {
-        id: string;
-        email: string;
-        nickname: string | null;
-        gems: number;
-        onboarding_completed: boolean;
-      };
-      session: { access_token: string; refresh_token: string };
-    }>('/auth/login', {
-      method: 'POST',
-      body: JSON.stringify({ email, password }),
-    });
-
-    this.setAccessToken(data.session.access_token);
-    localStorage.setItem('refresh_token', data.session.refresh_token);
-
-    return data;
-  }
-
-  async oauthLogin(provider: 'google' | 'apple') {
+  async oauthLogin(provider: 'google' | 'discord') {
     return this.request<{ url: string }>('/auth/oauth', {
       method: 'POST',
       body: JSON.stringify({ provider }),
@@ -134,20 +178,16 @@ class ApiClient {
       nickname: string | null;
       profile_image: string | null;
       bio: string | null;
-      gems: number;
+      tokens: number;
       onboarding_completed: boolean;
       subscription: { plan: string; expires_at: string | null };
     }>('/user/profile');
   }
 
-  async updateProfile(data: { nickname?: string; profile_image?: string; bio?: string }) {
-    return this.request('/user/profile', {
-      method: 'PUT',
-      body: JSON.stringify(data),
-    });
-  }
-
-  async savePersona(data: {
+  async updateProfile(data: {
+    nickname?: string;
+    profile_image?: string;
+    bio?: string;
     personality_type?: string;
     communication_style?: string;
     emotional_tendency?: string;
@@ -155,8 +195,8 @@ class ApiClient {
     love_language?: string;
     attachment_style?: string;
   }) {
-    return this.request('/user/persona', {
-      method: 'POST',
+    return this.request('/user/profile', {
+      method: 'PUT',
       body: JSON.stringify(data),
     });
   }
@@ -215,7 +255,7 @@ class ApiClient {
         is_locked: boolean;
         can_unlock: boolean;
         thumbnail: string;
-        unlock_requirements?: { min_affection?: number; gem_cost?: number };
+        unlock_requirements?: { min_affection?: number; token_cost?: number };
       }>;
     }>(`/personas/${personaId}/episodes`);
   }
@@ -389,6 +429,448 @@ class ApiClient {
   async markEventRead(eventId: string) {
     return this.request(`/feed/events/${eventId}/read`, {
       method: 'PUT',
+    });
+  }
+
+  // ============ Payments API ============
+  async getTokenPackages() {
+    return this.request<{
+      packages: Array<{
+        id: string;
+        tokens: number;
+        price: number;
+        name: string;
+        originalPrice: number;
+        discount: number;
+      }>;
+    }>('/payments/checkout');
+  }
+
+  async purchaseTokens(packageId: string) {
+    return this.request<{ url: string }>('/payments/checkout', {
+      method: 'POST',
+      body: JSON.stringify({ package_id: packageId }),
+    });
+  }
+
+  // ============ Subscriptions API ============
+  async getSubscriptionPlans() {
+    return this.request<{
+      plans: Array<{
+        id: string;
+        name: string;
+        price: number;
+        interval: 'month' | 'year';
+        features: string[];
+      }>;
+    }>('/subscriptions/checkout');
+  }
+
+  async subscribeToVIP(planId: string) {
+    return this.request<{ url: string }>('/subscriptions/checkout', {
+      method: 'POST',
+      body: JSON.stringify({ plan_id: planId }),
+    });
+  }
+
+  async getSubscriptionStatus() {
+    return this.request<{
+      subscription: {
+        plan: string;
+        status: string;
+        currentPeriodEnd: string;
+        cancelAtPeriodEnd: boolean;
+      } | null;
+      isActive: boolean;
+    }>('/subscriptions/manage');
+  }
+
+  async cancelSubscription() {
+    return this.request<{ success: boolean; message: string }>('/subscriptions/manage', {
+      method: 'DELETE',
+    });
+  }
+
+  async reactivateSubscription() {
+    return this.request<{ success: boolean; message: string }>('/subscriptions/manage', {
+      method: 'PUT',
+    });
+  }
+
+  async openBillingPortal() {
+    return this.request<{ url: string }>('/subscriptions/portal', {
+      method: 'POST',
+    });
+  }
+
+  // ============ AI Agent API ============
+  /**
+   * AI 페르소나와 채팅
+   */
+  async aiChat(data: {
+    personaId: string;
+    message: string;
+    sessionId?: string;
+    choiceData?: {
+      choiceId: string;
+      isPremium: boolean;
+      wasPremium: boolean;
+    };
+  }) {
+    return this.request<{
+      sessionId: string;
+      response: {
+        content: string;
+        emotion: string;
+        innerThought: string | null;
+      };
+      choices: Array<{
+        id: string;
+        text: string;
+        tone: string;
+        isPremium: boolean;
+        affectionHint: number;
+      }>;
+      affectionChange: number;
+      tokenBalance: number;
+      scenarioTrigger?: {
+        shouldStart: boolean;
+        scenarioType: 'meeting' | 'date' | 'confession' | 'conflict' | 'intimate' | 'custom';
+        scenarioContext: string;
+        location?: string;
+        transitionMessage?: string;
+      };
+    }>('/ai/chat', {
+      method: 'POST',
+      body: JSON.stringify({
+        personaId: data.personaId,
+        message: data.message,
+        sessionId: data.sessionId,
+        choiceData: data.choiceData,
+      }),
+    });
+  }
+
+  /**
+   * AI 세션 조회
+   */
+  async getAiSession(personaId: string) {
+    return this.request<{
+      session: {
+        id: string;
+        personaId: string;
+        currentEpisodeId: string | null;
+        currentScene: string;
+        emotionalState: { mood: string; intensity: number };
+        contextSummary: string | null;
+        startedAt: string;
+        lastMessageAt: string;
+      } | null;
+      messages: Array<{
+        id: string;
+        role: 'user' | 'assistant' | 'system';
+        content: string;
+        emotion: string | null;
+        innerThought: string | null;
+        choicesPresented: Array<{
+          id: string;
+          text: string;
+          isPremium: boolean;
+        }> | null;
+        choiceSelected: string | null;
+        createdAt: string;
+      }>;
+    }>(`/ai/session?personaId=${personaId}`);
+  }
+
+  /**
+   * 새 AI 세션 시작
+   */
+  async startAiSession(personaId: string, episodeId?: string) {
+    return this.request<{
+      session: {
+        id: string;
+        personaId: string;
+        currentEpisodeId: string | null;
+        currentScene: string;
+        emotionalState: { mood: string; intensity: number };
+        startedAt: string;
+      };
+    }>('/ai/session', {
+      method: 'POST',
+      body: JSON.stringify({ personaId, episodeId }),
+    });
+  }
+
+  /**
+   * AI 세션 종료
+   */
+  async endAiSession(sessionId: string) {
+    return this.request<{ success: boolean }>(`/ai/session?sessionId=${sessionId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  /**
+   * 대화 히스토리 조회
+   */
+  async getAiHistory(personaId: string, limit = 100) {
+    return this.request<{
+      messages: Array<{
+        id: string;
+        sessionId: string;
+        role: 'user' | 'assistant' | 'system';
+        content: string;
+        emotion: string | null;
+        innerThought: string | null;
+        createdAt: string;
+      }>;
+      totalCount: number;
+    }>(`/ai/history?personaId=${personaId}&limit=${limit}`);
+  }
+
+  /**
+   * 관계 상태 조회
+   */
+  async getRelationship(personaId: string) {
+    return this.request<{
+      personaId: string;
+      stage: 'stranger' | 'acquaintance' | 'close' | 'intimate' | 'lover';
+      affectionLevel: number;
+      trustLevel: number;
+      intimacyLevel: number;
+      totalInteractions: number;
+      unlockedMemories: string[];
+      relationshipMilestones: string[];
+      lastInteractionAt: string | null;
+    }>(`/ai/relationship?personaId=${personaId}`);
+  }
+
+  /**
+   * 대기 중인 이벤트 조회
+   */
+  async getPendingEvents() {
+    return this.request<{
+      events: Array<{
+        id: string;
+        personaId: string;
+        type: string;
+        scheduledFor: string;
+        priority: number;
+        persona: {
+          name: string;
+          display_name: string;
+          avatar_url: string;
+        };
+        preview: string | null;
+      }>;
+    }>('/ai/events/pending');
+  }
+
+  /**
+   * 이벤트 트리거 체크
+   */
+  async checkEventTrigger(personaId: string, actionType?: string, actionData?: Record<string, unknown>) {
+    return this.request<{
+      triggered: boolean;
+      event?: {
+        id: string;
+        type: string;
+        scheduledFor: string;
+        priority: number;
+      };
+    }>('/ai/events/check', {
+      method: 'POST',
+      body: JSON.stringify({ personaId, actionType, actionData }),
+    });
+  }
+
+  /**
+   * 예약된 이벤트 처리
+   */
+  async processEvent(eventId: string) {
+    return this.request<{
+      success: boolean;
+      content?: string;
+      emotion?: string;
+    }>('/ai/events/process', {
+      method: 'POST',
+      body: JSON.stringify({ eventId }),
+    });
+  }
+
+  /**
+   * 사용자 활동 로깅
+   */
+  async logActivity(actionType: string, personaId?: string, actionData?: Record<string, unknown>) {
+    return this.request<{ success: boolean }>('/ai/activity', {
+      method: 'POST',
+      body: JSON.stringify({ actionType, personaId, actionData }),
+    });
+  }
+
+  /**
+   * 활동 로그 조회
+   */
+  async getActivityLog(personaId?: string, limit = 50) {
+    const params = new URLSearchParams({ limit: limit.toString() });
+    if (personaId) params.set('personaId', personaId);
+
+    return this.request<{
+      activities: Array<{
+        id: string;
+        actionType: string;
+        personaId: string | null;
+        actionData: Record<string, unknown>;
+        createdAt: string;
+      }>;
+    }>(`/ai/activity?${params.toString()}`);
+  }
+
+  // ============ DM API ============
+  /**
+   * DM 대화 목록 조회
+   */
+  async getDMList() {
+    return this.request<{
+      conversations: Array<{
+        personaId: string;
+        personaName: string;
+        personaDisplayName: string;
+        personaImage: string;
+        isVerified: boolean;
+        lastMessage: string;
+        lastMessageAt: string;
+        unreadCount: number;
+        isOnline: boolean;
+      }>;
+    }>('/dm/list');
+  }
+
+  // ============ Memory API ============
+  /**
+   * 기억 페이지 - 모든 페르소나 목록
+   */
+  async getMemoryList() {
+    return this.request<{
+      personas: Array<{
+        id: string;
+        name: string;
+        fullName: string;
+        role: string;
+        image: string;
+        affection: number;
+        trust: number;
+        intimacy: number;
+        stage: string;
+        storyProgress: number;
+        totalStories: number;
+        unlockedSecrets: number;
+        totalSecrets: number;
+        memories: Array<{
+          id: string;
+          type: string;
+          title: string;
+          content: string;
+          isLocked: boolean;
+        }>;
+        relationship: string;
+        currentArc: string;
+        userNickname: string | null;
+        personaNickname: string | null;
+        totalMessages: number;
+        firstInteractionAt: string | null;
+        lastInteractionAt: string | null;
+      }>;
+      stats: {
+        totalCharacters: number;
+        totalSecrets: number;
+        totalStories: number;
+      };
+    }>('/memory');
+  }
+
+  /**
+   * 기억 페이지 - 특정 페르소나 상세
+   */
+  async getMemoryDetail(personaId: string) {
+    return this.request<{
+      exists: boolean;
+      persona?: {
+        id: string;
+        name: string;
+        fullName: string;
+        role: string;
+        image: string;
+      };
+      relationship?: {
+        stage: string;
+        stageLabel: string;
+        affection: number;
+        trust: number;
+        intimacy: number;
+        totalMessages: number;
+        firstInteractionAt: string | null;
+        lastInteractionAt: string | null;
+        userNickname: string | null;
+        personaNickname: string | null;
+      };
+      stats?: {
+        trust: number;
+        intimacy: number;
+        mystery: number;
+        chemistry: number;
+        loyalty: number;
+      };
+      progress?: {
+        storyProgress: number;
+        totalStories: number;
+        currentArc: string;
+        unlockedSecrets: number;
+        totalSecrets: number;
+      };
+      memories?: Array<{
+        id: string;
+        type: string;
+        title: string;
+        content: string;
+        details: Record<string, unknown>;
+        emotionalWeight: number;
+        createdAt: string;
+        isLocked: boolean;
+      }>;
+      lockedMemos?: Array<{
+        id: string;
+        type: string;
+        title: string;
+        content: string;
+        isLocked: boolean;
+        unlockCondition: string;
+      }>;
+    }>(`/memory/${personaId}`);
+  }
+
+  /**
+   * 기억 추가
+   */
+  async addMemory(personaId: string, data: {
+    memoryType: string;
+    summary: string;
+    details?: Record<string, unknown>;
+    emotionalWeight?: number;
+  }) {
+    return this.request<{
+      success: boolean;
+      memory?: {
+        id: string;
+        type: string;
+        title: string;
+        content: string;
+      };
+      duplicate?: boolean;
+    }>(`/memory/${personaId}`, {
+      method: 'POST',
+      body: JSON.stringify(data),
     });
   }
 }

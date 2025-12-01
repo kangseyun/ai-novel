@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerClient } from '@/lib/supabase';
+import { createServerClient } from '@/lib/supabase-server';
 import { getAuthUser, unauthorized, serverError } from '@/lib/auth';
 
 // GET /api/game/state/:personaId - 게임 상태 조회
@@ -12,7 +12,7 @@ export async function GET(
     if (!user) return unauthorized();
 
     const { personaId } = await params;
-    const supabase = createServerClient();
+    const supabase = await createServerClient();
 
     // 게임 상태 조회
     let { data: gameState, error } = await supabase

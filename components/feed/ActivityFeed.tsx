@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -19,6 +19,8 @@ import {
 import { useFeedStore } from '@/lib/stores/feed-store';
 import { JUN_PROFILE } from '@/lib/hacked-sns-data';
 import { FeedEvent } from '@/lib/user-feed-system';
+import { useAuthStore } from '@/lib/stores/auth-store';
+import { ActivityListSkeleton } from '@/components/ui/Skeleton';
 
 interface ActivityFeedProps {
   onOpenDM: (scenarioId: string) => void;
@@ -48,6 +50,19 @@ export default function ActivityFeed({ onOpenDM }: ActivityFeedProps) {
   const markEventAsRead = useFeedStore(state => state.markEventAsRead);
   const markAllEventsAsRead = useFeedStore(state => state.markAllEventsAsRead);
   const unreadCount = useFeedStore(state => state.unreadCount);
+  const loadEventsFromServer = useFeedStore(state => state.loadEventsFromServer);
+  const isLoading = useFeedStore(state => state.isLoading);
+
+  const isAuthenticated = useAuthStore(state => state.isAuthenticated);
+
+  // 로그인 상태면 서버에서 이벤트 로드
+  useEffect(() => {
+    if (isAuthenticated) {
+      loadEventsFromServer().catch(() => {
+        // 로드 실패 시 로컬 데이터 사용
+      });
+    }
+  }, [isAuthenticated, loadEventsFromServer]);
 
   // 필터링된 이벤트
   const filteredEvents = events.filter(event => {
@@ -252,7 +267,10 @@ export default function ActivityFeed({ onOpenDM }: ActivityFeedProps) {
 
       {/* Content */}
       <div className="pt-4">
-        {filteredEvents.length === 0 ? (
+        {/* Loading Skeleton */}
+        {isLoading && <ActivityListSkeleton count={5} />}
+
+        {!isLoading && filteredEvents.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 text-center px-6">
             <div className="w-20 h-20 bg-gradient-to-br from-purple-500/20 to-pink-500/20 rounded-full flex items-center justify-center mb-4">
               <Bell className="w-10 h-10 text-white/30" />
@@ -293,7 +311,7 @@ export default function ActivityFeed({ onOpenDM }: ActivityFeedProps) {
               </div>
             </div>
           </div>
-        ) : (
+        ) : !isLoading && (
           <>
             {/* Today's events */}
             {renderSection(

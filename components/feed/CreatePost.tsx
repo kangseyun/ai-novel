@@ -47,8 +47,9 @@ export default function CreatePost({ onClose, onPostCreated }: CreatePostProps) 
   const [customCaption, setCustomCaption] = useState('');
   const [step, setStep] = useState<'category' | 'template' | 'customize'>('category');
   const [isPosting, setIsPosting] = useState(false);
+  const [postError, setPostError] = useState<string | null>(null);
 
-  const createPost = useFeedStore(state => state.createPost);
+  const createPostToServer = useFeedStore(state => state.createPostToServer);
 
   const filteredTemplates = POST_TEMPLATES.filter(t => t.category === selectedCategory);
 
@@ -67,16 +68,26 @@ export default function CreatePost({ onClose, onPostCreated }: CreatePostProps) 
     if (!selectedTemplate) return;
 
     setIsPosting(true);
+    setPostError(null);
 
-    // 포스트 생성
-    createPost(selectedTemplate, customCaption);
+    try {
+      await createPostToServer({
+        type: selectedTemplate.type,
+        mood: selectedTemplate.mood,
+        caption: customCaption,
+        image: selectedTemplate.type === 'photo' ? selectedTemplate.preview : undefined,
+      });
 
-    // 애니메이션 대기
-    await new Promise(resolve => setTimeout(resolve, 1000));
+      // 애니메이션 대기
+      await new Promise(resolve => setTimeout(resolve, 1000));
 
-    setIsPosting(false);
-    onPostCreated?.();
-    onClose();
+      setIsPosting(false);
+      onPostCreated?.();
+      onClose();
+    } catch (error) {
+      setIsPosting(false);
+      setPostError(error instanceof Error ? error.message : '포스트 생성에 실패했습니다');
+    }
   };
 
   return (
@@ -104,6 +115,13 @@ export default function CreatePost({ onClose, onPostCreated }: CreatePostProps) 
         )}
         {step !== 'customize' && <div className="w-16" />}
       </div>
+
+      {/* Error message */}
+      {postError && (
+        <div className="mx-4 mt-4 p-3 bg-red-500/20 border border-red-500/50 rounded-xl">
+          <p className="text-sm text-red-400">{postError}</p>
+        </div>
+      )}
 
       <AnimatePresence mode="wait">
         {/* Step 1: Category Selection */}

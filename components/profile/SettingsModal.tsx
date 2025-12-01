@@ -95,7 +95,7 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
 
             {/* 버전 정보 */}
             <div className="text-center pt-8">
-              <p className="text-xs text-white/20">Lumina Fiction v1.0.0</p>
+              <p className="text-xs text-white/20">Luminovel.ai v1.0.0</p>
             </div>
           </div>
         </div>

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerClient } from '@/lib/supabase';
+import { createServerClient } from '@/lib/supabase-server';
 import { getAuthUser, unauthorized, serverError } from '@/lib/auth';
 
 // GET /api/feed/events - 이벤트/알림 조회
@@ -8,7 +8,7 @@ export async function GET(request: NextRequest) {
     const user = await getAuthUser(request);
     if (!user) return unauthorized();
 
-    const supabase = createServerClient();
+    const supabase = await createServerClient();
 
     const { data: events, error } = await supabase
       .from('feed_events')

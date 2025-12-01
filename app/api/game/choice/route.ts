@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerClient } from '@/lib/supabase';
+import { createServerClient } from '@/lib/supabase-server';
 import { getAuthUser, unauthorized, badRequest, serverError } from '@/lib/auth';
 
 // POST /api/game/choice - 선택지 선택
@@ -14,7 +14,7 @@ export async function POST(request: NextRequest) {
       return badRequest('session_id and choice_id are required');
     }
 
-    const supabase = createServerClient();
+    const supabase = await createServerClient();
 
     // 1. 세션 확인
     const { data: session, error: sessionError } = await supabase
@@ -38,24 +38,24 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 2. 프리미엄 선택지면 젬 차감
+    // 2. 프리미엄 선택지면 토큰 차감
     if (is_premium) {
       const { data: userData } = await supabase
         .from('users')
-        .select('gems')
+        .select('tokens')
         .eq('id', user.id)
         .single();
 
-      if (!userData || userData.gems < 50) {
+      if (!userData || userData.tokens < 50) {
         return NextResponse.json(
-          { error: 'Not enough gems' },
+          { error: 'Not enough tokens' },
           { status: 402 }
         );
       }
 
       await supabase
         .from('users')
-        .update({ gems: userData.gems - 50 })
+        .update({ tokens: userData.tokens - 50 })
         .eq('id', user.id);
     }
 

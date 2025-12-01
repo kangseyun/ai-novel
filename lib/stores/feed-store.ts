@@ -3,22 +3,46 @@ import { persist } from 'zustand/middleware';
 import {
   UserPost,
   FeedEvent,
-  PostTemplate,
   PersonaProgress,
-  ReactionTrigger,
-  findMatchingTriggers,
   getProgressStage,
-  JUN_REACTION_TRIGGERS,
-  JUN_REACTION_SCENARIOS,
 } from '@/lib/user-feed-system';
+import { apiClient } from '../api-client';
 
 // ============================================
 // TYPES
 // ============================================
 
+// 페르소나 포스트 타입
+interface PersonaPost {
+  id: string;
+  type: 'persona_post';
+  persona_id: string;
+  persona: {
+    id: string;
+    name: string;
+    display_name: string;
+    avatar_url: string | null;
+  } | null;
+  content: {
+    images: string[];
+    caption: string;
+    location: string | null;
+    mood: string;
+    hashtags: string[];
+  };
+  likes: number;
+  comments: number;
+  user_liked: boolean;
+  is_premium: boolean;
+  created_at: string;
+}
+
 interface FeedState {
   // 유저 포스트
   userPosts: UserPost[];
+
+  // 페르소나 포스트
+  personaPosts: PersonaPost[];
 
   // 이벤트/알림
   events: FeedEvent[];
@@ -31,8 +55,11 @@ interface FeedState {
   activeDMScenarioId: string | null;
   activeDMPersonaId: string | null;
 
+  // 로딩 상태
+  isLoading: boolean;
+  lastError: string | null;
+
   // Actions
-  createPost: (template: PostTemplate, customCaption?: string) => UserPost;
   addEvent: (event: Omit<FeedEvent, 'id' | 'timestamp' | 'isRead'>) => void;
   markEventAsRead: (eventId: string) => void;
   markAllEventsAsRead: () => void;
@@ -47,8 +74,10 @@ interface FeedState {
   // DM
   setActiveDM: (personaId: string | null, scenarioId: string | null) => void;
 
-  // Process triggers (포스트 후 반응 체크)
-  processPostTriggers: (post: UserPost) => FeedEvent[];
+  // API Actions
+  loadFeedFromServer: (page?: number) => Promise<void>;
+  loadEventsFromServer: () => Promise<void>;
+  createPostToServer: (data: { type: string; mood?: string; caption: string; image?: string }) => Promise<void>;
 
   reset: () => void;
 }
@@ -75,45 +104,14 @@ export const useFeedStore = create<FeedState>()(
   persist(
     (set, get) => ({
       userPosts: [],
+      personaPosts: [],
       events: [],
       unreadCount: 0,
       personaProgress: {},
       activeDMScenarioId: null,
       activeDMPersonaId: null,
-
-      createPost: (template: PostTemplate, customCaption?: string) => {
-        const newPost: UserPost = {
-          id: `post_${Date.now()}`,
-          type: template.type,
-          content: template.preview,
-          caption: customCaption || template.caption,
-          mood: template.mood,
-          timestamp: Date.now(),
-          triggeredEvents: [],
-        };
-
-        set(state => ({
-          userPosts: [newPost, ...state.userPosts],
-        }));
-
-        // 트리거 처리
-        setTimeout(() => {
-          const triggeredEvents = get().processPostTriggers(newPost);
-
-          if (triggeredEvents.length > 0) {
-            // 포스트에 트리거된 이벤트 기록
-            set(state => ({
-              userPosts: state.userPosts.map(p =>
-                p.id === newPost.id
-                  ? { ...p, triggeredEvents: triggeredEvents.map(e => e.id) }
-                  : p
-              ),
-            }));
-          }
-        }, 2000 + Math.random() * 3000); // 2-5초 후 반응
-
-        return newPost;
-      },
+      isLoading: false,
+      lastError: null,
 
       addEvent: (eventData) => {
         const newEvent: FeedEvent = {
@@ -227,63 +225,146 @@ export const useFeedStore = create<FeedState>()(
         });
       },
 
-      processPostTriggers: (post: UserPost) => {
-        const state = get();
-        const triggeredEvents: FeedEvent[] = [];
+      // API: 서버에서 피드 불러오기
+      loadFeedFromServer: async (page = 1) => {
+        set({ isLoading: true, lastError: null });
+        try {
+          const data = await apiClient.getFeed(page);
 
-        // 각 페르소나에 대해 트리거 체크
-        const personas = ['jun']; // 나중에 더 추가
+          // 유저 포스트 변환
+          const serverUserPosts: UserPost[] = data.posts
+            .filter((p: { type: string }) => p.type === 'user_post')
+            .map((p: { id: string; content: { mood?: string; caption?: string; image?: string }; created_at: string }) => ({
+              id: p.id,
+              type: (p.content.mood ? 'mood' : 'text') as UserPost['type'],
+              content: p.content.image || p.content.caption || '',
+              caption: p.content.caption || '',
+              mood: p.content.mood as UserPost['mood'],
+              timestamp: new Date(p.created_at).getTime(),
+              triggeredEvents: [],
+            }));
 
-        for (const personaId of personas) {
-          let progress = state.personaProgress[personaId];
+          // 페르소나 포스트 변환
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const serverPersonaPosts: PersonaPost[] = data.posts
+            .filter((p: { type: string }) => p.type === 'persona_post')
+            .map((p: any) => ({
+              id: p.id,
+              type: 'persona_post' as const,
+              persona_id: p.persona_id,
+              persona: p.persona,
+              content: {
+                images: p.content?.images || [],
+                caption: p.content?.caption || '',
+                location: p.content?.location || null,
+                mood: p.content?.mood || '',
+                hashtags: p.content?.hashtags || [],
+              },
+              likes: p.likes || 0,
+              comments: p.comments || 0,
+              user_liked: p.user_liked || false,
+              is_premium: p.is_premium || false,
+              created_at: p.created_at,
+            }));
 
-          if (!progress) {
-            get().initPersonaProgress(personaId);
-            progress = get().personaProgress[personaId];
-          }
-
-          // Jun의 트리거만 체크 (나중에 확장)
-          const triggers = personaId === 'jun' ? JUN_REACTION_TRIGGERS : [];
-
-          const matchingTriggers = findMatchingTriggers(
-            personaId,
-            post,
-            progress,
-            triggers
-          );
-
-          // 가장 높은 우선순위 트리거만 발동
-          if (matchingTriggers.length > 0) {
-            const trigger = matchingTriggers[0];
-
-            const event: FeedEvent = {
-              id: `event_${Date.now()}_${personaId}`,
-              personaId,
-              type: trigger.notification.type,
-              title: trigger.notification.title,
-              preview: trigger.notification.preview,
-              timestamp: Date.now(),
-              isRead: false,
-              scenarioId: trigger.scenarioId,
-              triggeredBy: post.id,
-            };
-
-            triggeredEvents.push(event);
-            get().addEvent(event);
-          }
+          set((state) => ({
+            userPosts: page === 1 ? serverUserPosts : [...state.userPosts, ...serverUserPosts],
+            personaPosts: page === 1 ? serverPersonaPosts : [...state.personaPosts, ...serverPersonaPosts],
+            isLoading: false,
+          }));
+        } catch (error) {
+          const message = error instanceof Error ? error.message : '피드 로드 실패';
+          set({ isLoading: false, lastError: message });
         }
+      },
 
-        return triggeredEvents;
+      // API: 서버에서 이벤트 불러오기
+      loadEventsFromServer: async () => {
+        set({ isLoading: true, lastError: null });
+        try {
+          const data = await apiClient.getEvents();
+
+          // 서버 이벤트를 로컬 형식으로 변환
+          const serverEvents: FeedEvent[] = data.events.map((e: {
+            id: string;
+            type: string;
+            persona_id: string | null;
+            title: string | null;
+            preview: string | null;
+            read: boolean;
+            created_at: string;
+          }) => ({
+            id: e.id,
+            personaId: e.persona_id || 'unknown',
+            type: e.type as FeedEvent['type'],
+            title: e.title || '',
+            preview: e.preview || '',
+            timestamp: new Date(e.created_at).getTime(),
+            isRead: e.read,
+          }));
+
+          set({
+            events: serverEvents,
+            unreadCount: data.unread_count,
+            isLoading: false,
+          });
+        } catch (error) {
+          const message = error instanceof Error ? error.message : '이벤트 로드 실패';
+          set({ isLoading: false, lastError: message });
+        }
+      },
+
+      // API: 서버에 포스트 생성
+      createPostToServer: async (data) => {
+        set({ isLoading: true, lastError: null });
+        try {
+          const result = await apiClient.createPost(data);
+
+          // 로컬 스토어에도 추가
+          const newPost: UserPost = {
+            id: result.post.id,
+            type: (data.mood ? 'mood' : 'text') as UserPost['type'],
+            content: data.image || data.caption,
+            caption: data.caption,
+            mood: data.mood as UserPost['mood'],
+            timestamp: new Date(result.post.created_at).getTime(),
+            triggeredEvents: result.triggered_events.map((e: { id: string }) => e.id),
+          };
+
+          set((state) => ({
+            userPosts: [newPost, ...state.userPosts],
+            isLoading: false,
+          }));
+
+          // 트리거된 이벤트가 있으면 로컬에도 추가
+          if (result.triggered_events.length > 0) {
+            for (const event of result.triggered_events) {
+              get().addEvent({
+                personaId: event.persona_id,
+                type: event.type as FeedEvent['type'],
+                title: 'Jun님이 DM을 보냈습니다',
+                preview: event.preview,
+              });
+            }
+          }
+        } catch (error) {
+          const message = error instanceof Error ? error.message : '포스트 생성 실패';
+          set({ isLoading: false, lastError: message });
+          throw error;
+        }
       },
 
       reset: () => {
         set({
           userPosts: [],
+          personaPosts: [],
           events: [],
           unreadCount: 0,
           personaProgress: {},
           activeDMScenarioId: null,
           activeDMPersonaId: null,
+          isLoading: false,
+          lastError: null,
         });
       },
     }),
@@ -291,6 +372,7 @@ export const useFeedStore = create<FeedState>()(
       name: 'feed-storage',
       partialize: (state) => ({
         userPosts: state.userPosts,
+        personaPosts: state.personaPosts,
         events: state.events,
         unreadCount: state.unreadCount,
         personaProgress: state.personaProgress,
@@ -308,6 +390,9 @@ export const useUnreadCount = () =>
 
 export const useUserPosts = () =>
   useFeedStore((state) => state.userPosts);
+
+export const usePersonaPosts = () =>
+  useFeedStore((state) => state.personaPosts);
 
 export const useEvents = () =>
   useFeedStore((state) => state.events);

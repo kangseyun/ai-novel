@@ -31,7 +31,7 @@ export default function TermsPage() {
           <section>
             <h2 className="text-white font-semibold text-base mb-3">1. Acceptance of Terms</h2>
             <p>
-              By accessing or using Lumina Fiction ("the App", "Service", "we", "us", or "our"),
+              By accessing or using Luminovel.ai ("the App", "Service", "we", "us", or "our"),
               you agree to be bound by these Terms of Service ("Terms"). If you do not agree to
               these Terms, please do not use the App.
             </p>
@@ -62,7 +62,7 @@ export default function TermsPage() {
           <section>
             <h2 className="text-white font-semibold text-base mb-3">3. Description of Service</h2>
             <p>
-              Lumina Fiction is an interactive fiction application that provides:
+              Luminovel.ai is an interactive fiction application that provides:
             </p>
             <ul className="list-disc list-inside mt-2 space-y-1 text-white/70">
               <li>AI-generated interactive storytelling experiences</li>
@@ -132,7 +132,7 @@ export default function TermsPage() {
             <p>
               All content in the App, including but not limited to text, graphics, logos,
               characters, storylines, audio, and software, is the exclusive property of
-              Lumina Fiction or its licensors and is protected by copyright, trademark,
+              Luminovel.ai or its licensors and is protected by copyright, trademark,
               and other intellectual property laws.
             </p>
             <p className="mt-2">
@@ -184,7 +184,7 @@ export default function TermsPage() {
           <section>
             <h2 className="text-white font-semibold text-base mb-3">11. Indemnification</h2>
             <p>
-              You agree to indemnify, defend, and hold harmless Lumina Fiction and its officers,
+              You agree to indemnify, defend, and hold harmless Luminovel.ai and its officers,
               directors, employees, and agents from any claims, damages, losses, or expenses
               (including reasonable attorneys' fees) arising from your use of the App or
               violation of these Terms.
@@ -233,7 +233,7 @@ export default function TermsPage() {
             </p>
             <p className="mt-2">
               Under California Civil Code Section 1789.3, California users are entitled to
-              the following consumer rights notice: The App is provided by Lumina Fiction.
+              the following consumer rights notice: The App is provided by Luminovel.ai.
               For inquiries, contact us at: support@luminafiction.com
             </p>
           </section>
@@ -250,7 +250,7 @@ export default function TermsPage() {
             <h2 className="text-white font-semibold text-base mb-3">16. Entire Agreement</h2>
             <p>
               These Terms, together with our Privacy Policy, constitute the entire agreement
-              between you and Lumina Fiction regarding your use of the App.
+              between you and Luminovel.ai regarding your use of the App.
             </p>
           </section>
 
@@ -261,13 +261,13 @@ export default function TermsPage() {
             </p>
             <div className="mt-2 p-3 bg-white/5 rounded-lg">
               <p className="text-white/60">Email: support@luminafiction.com</p>
-              <p className="text-white/60 mt-1">Address: Lumina Fiction Inc.</p>
+              <p className="text-white/60 mt-1">Address: Luminovel.ai Inc.</p>
               <p className="text-white/60">Delaware, United States</p>
             </div>
           </section>
 
           <div className="pt-8 pb-4 text-center">
-            <p className="text-xs text-white/30">© 2025 Lumina Fiction. All rights reserved.</p>
+            <p className="text-xs text-white/30">© 2025 Luminovel.ai. All rights reserved.</p>
           </div>
         </div>
       </div>

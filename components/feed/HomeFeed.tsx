@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Heart,
@@ -10,38 +11,67 @@ import {
   Bookmark,
   MoreHorizontal,
   Trash2,
-  Plus,
-  Play,
+  MapPin,
 } from 'lucide-react';
 import { useFeedStore } from '@/lib/stores/feed-store';
-import { JUN_PROFILE, JUN_POSTS, JUN_STORIES, getVisiblePosts, getVisibleStories, Story } from '@/lib/hacked-sns-data';
-import { useHackerStore } from '@/lib/stores/hacker-store';
+import { useAuthStore } from '@/lib/stores/auth-store';
+import { FeedSkeleton } from '@/components/ui/Skeleton';
 
-interface HomeFeedProps {
-  onOpenProfile: (personaId: string) => void;
-  onOpenStory?: (personaId: string, story: Story) => void;
-}
+// 통합 피드 아이템 타입
+type FeedItem = {
+  id: string;
+  type: 'user' | 'persona';
+  timestamp: number;
+  // User post fields
+  content?: string;
+  caption?: string;
+  mood?: string;
+  // Persona post fields
+  persona?: {
+    id: string;
+    name: string;
+    display_name: string;
+    avatar_url: string | null;
+  } | null;
+  personaContent?: {
+    images: string[];
+    caption: string;
+    location: string | null;
+    mood: string;
+    hashtags: string[];
+  };
+  likes?: number;
+  comments?: number;
+  user_liked?: boolean;
+  is_premium?: boolean;
+};
 
-export default function HomeFeed({ onOpenProfile, onOpenStory }: HomeFeedProps) {
+export default function HomeFeed() {
+  const router = useRouter();
   const userPosts = useFeedStore(state => state.userPosts);
+  const personaPosts = useFeedStore(state => state.personaPosts);
   const deletePost = useFeedStore(state => state.deletePost);
-  const personaProgress = useFeedStore(state => state.personaProgress);
+  const loadFeedFromServer = useFeedStore(state => state.loadFeedFromServer);
+  const isLoading = useFeedStore(state => state.isLoading);
   const [likedPosts, setLikedPosts] = useState<Set<string>>(new Set());
   const [showDeleteMenu, setShowDeleteMenu] = useState<string | null>(null);
-  const [viewedStoryIds, setViewedStoryIds] = useState<Set<string>>(new Set());
 
-  const hackLevel = useHackerStore(state => state.profiles['jun']?.hackLevel ?? 1);
-  const junProfile = useHackerStore(state => state.profiles['jun']);
-  const visibleJunPosts = getVisiblePosts(JUN_POSTS, hackLevel);
+  const isAuthenticated = useAuthStore(state => state.isAuthenticated);
 
-  // 페르소나와 관계가 형성되었는지 확인 (첫 시나리오 완료 또는 호감도 > 0)
-  const hasRelationshipWithJun =
-    (junProfile?.completedScenarios?.length ?? 0) > 0 ||
-    (junProfile?.affectionLevel ?? 0) > 0 ||
-    (personaProgress['jun']?.affection ?? 0) > 0;
+  const handleProfileClick = (personaId: string) => {
+    router.push(`/profile/${personaId}`);
+  };
 
-  // 보이는 스토리 (관계 형성 후에만)
-  const visibleJunStories = hasRelationshipWithJun ? getVisibleStories(JUN_STORIES, hackLevel) : [];
+  // 서버에서 피드 로드
+  const hasFetched = useRef(false);
+  useEffect(() => {
+    if (isAuthenticated && !hasFetched.current) {
+      hasFetched.current = true;
+      loadFeedFromServer().catch(() => {
+        console.error('피드 로드 실패');
+      });
+    }
+  }, [isAuthenticated, loadFeedFromServer]);
 
   const handleLike = (postId: string) => {
     setLikedPosts(prev => {
@@ -71,136 +101,39 @@ export default function HomeFeed({ onOpenProfile, onOpenStory }: HomeFeedProps) 
     return '며칠 전';
   };
 
-  // 모든 포스트를 시간순으로 정렬
-  const allPosts = [
-    ...userPosts.map(p => ({ ...p, isUser: true, author: 'me' })),
-    ...visibleJunPosts.map(p => ({
+  // 유저 포스트 + 페르소나 포스트 통합 피드
+  const allPosts: FeedItem[] = useMemo(() => {
+    const userFeedItems: FeedItem[] = userPosts.map(p => ({
       id: p.id,
-      type: p.type,
-      content: p.images[0],
+      type: 'user' as const,
+      timestamp: p.timestamp,
+      content: p.content,
       caption: p.caption,
-      timestamp: Date.now() - Math.random() * 86400000 * 7, // 랜덤 과거 시간
-      isUser: false,
-      author: 'jun',
+      mood: p.mood,
+    }));
+
+    const personaFeedItems: FeedItem[] = personaPosts.map(p => ({
+      id: p.id,
+      type: 'persona' as const,
+      timestamp: new Date(p.created_at).getTime(),
+      persona: p.persona,
+      personaContent: p.content,
       likes: p.likes,
       comments: p.comments,
-    })),
-  ].sort((a, b) => b.timestamp - a.timestamp);
+      user_liked: p.user_liked,
+      is_premium: p.is_premium,
+    }));
 
-  const handleStoryClick = (story: Story) => {
-    setViewedStoryIds(prev => new Set([...prev, story.id]));
-    if (onOpenStory) {
-      onOpenStory('jun', story);
-    }
-  };
-
-  // 스토리 데이터 구성
-  const storyUsers = [];
-
-  // 내 스토리 (추후 구현)
-  storyUsers.push({
-    id: 'me',
-    name: '내 스토리',
-    image: null,
-    isMe: true,
-    hasUnread: false,
-    stories: [],
-  });
-
-  // Jun 스토리 (관계 형성 후에만)
-  if (visibleJunStories.length > 0) {
-    const hasUnreadJunStory = visibleJunStories.some(s => !viewedStoryIds.has(s.id));
-    storyUsers.push({
-      id: 'jun',
-      name: JUN_PROFILE.displayName,
-      image: JUN_PROFILE.profileImage,
-      isMe: false,
-      hasUnread: hasUnreadJunStory,
-      stories: visibleJunStories,
-      isVerified: JUN_PROFILE.isVerified,
-    });
-  }
+    return [...userFeedItems, ...personaFeedItems].sort((a, b) => b.timestamp - a.timestamp);
+  }, [userPosts, personaPosts]);
 
   return (
     <div className="min-h-screen bg-black text-white pb-20">
-      {/* Stories Section */}
-      {storyUsers.length > 0 && (
-        <div className="border-b border-white/10">
-          <div className="flex gap-4 px-4 py-4 overflow-x-auto scrollbar-hide">
-            {storyUsers.map((user) => (
-              <button
-                key={user.id}
-                onClick={() => {
-                  if (user.isMe) {
-                    // 내 스토리 추가 (추후 구현)
-                  } else if (user.stories.length > 0) {
-                    handleStoryClick(user.stories[0]);
-                  }
-                }}
-                className="flex flex-col items-center gap-1 flex-shrink-0"
-              >
-                <div className="relative">
-                  {/* Story ring */}
-                  <div
-                    className={`w-16 h-16 rounded-full p-[2px] ${
-                      user.isMe
-                        ? 'bg-white/20'
-                        : user.hasUnread
-                        ? 'bg-gradient-to-tr from-yellow-400 via-red-500 to-purple-500'
-                        : 'bg-white/30'
-                    }`}
-                  >
-                    <div className="w-full h-full rounded-full bg-black p-[2px]">
-                      {user.isMe ? (
-                        <div className="w-full h-full rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center">
-                          <Plus className="w-6 h-6 text-white" />
-                        </div>
-                      ) : (
-                        <div className="w-full h-full rounded-full overflow-hidden">
-                          <Image
-                            src={user.image!}
-                            alt={user.name}
-                            width={60}
-                            height={60}
-                            className="object-cover"
-                          />
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Video indicator for stories */}
-                  {!user.isMe && user.stories.some(s => s.type === 'video') && (
-                    <div className="absolute bottom-0 right-0 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center border-2 border-black">
-                      <Play className="w-2.5 h-2.5 text-white fill-white" />
-                    </div>
-                  )}
-
-                  {/* Unread count badge */}
-                  {!user.isMe && user.hasUnread && user.stories.length > 1 && (
-                    <div className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center text-[10px] font-bold border-2 border-black">
-                      {user.stories.filter(s => !viewedStoryIds.has(s.id)).length}
-                    </div>
-                  )}
-                </div>
-
-                <span className="text-[11px] text-white/70 max-w-[64px] truncate">
-                  {user.name}
-                </span>
-
-                {/* Verified badge */}
-                {user.isVerified && (
-                  <div className="absolute bottom-6 right-0 w-4 h-4 bg-blue-500 rounded-full flex items-center justify-center">
-                    <span className="text-[8px] text-white">✓</span>
-                  </div>
-                )}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
+      {/* Loading Skeleton */}
+      {isLoading && <FeedSkeleton count={3} />}
 
       {/* Feed */}
+      {!isLoading && (
       <div className="divide-y divide-white/5">
         {allPosts.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 text-center px-6">
@@ -220,73 +153,98 @@ export default function HomeFeed({ onOpenProfile, onOpenStory }: HomeFeedProps) 
             >
               {/* Post Header */}
               <div className="flex items-center justify-between p-3">
-                <button
-                  onClick={() => !post.isUser && onOpenProfile(post.author)}
-                  className="flex items-center gap-3"
-                >
-                  <div className="w-8 h-8 rounded-full overflow-hidden border border-white/20">
-                    {post.isUser ? (
-                      <div className="w-full h-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-xs font-bold">
-                        ME
-                      </div>
-                    ) : (
-                      <Image
-                        src={JUN_PROFILE.profileImage}
-                        alt={JUN_PROFILE.username}
-                        width={32}
-                        height={32}
-                        className="object-cover"
-                      />
-                    )}
-                  </div>
-                  <span className="font-medium text-sm">
-                    {post.isUser ? 'Me' : JUN_PROFILE.username}
-                  </span>
-                </button>
-
-                <div className="relative">
-                  <button
-                    onClick={() => setShowDeleteMenu(showDeleteMenu === post.id ? null : post.id)}
-                    className="p-2"
-                  >
-                    <MoreHorizontal className="w-5 h-5" />
-                  </button>
-
-                  {/* Delete menu for user posts */}
-                  <AnimatePresence>
-                    {showDeleteMenu === post.id && post.isUser && (
-                      <motion.div
-                        initial={{ opacity: 0, scale: 0.95 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        exit={{ opacity: 0, scale: 0.95 }}
-                        className="absolute right-0 top-full mt-1 bg-zinc-900 border border-white/10 rounded-xl overflow-hidden z-10"
+                <div className="flex items-center gap-3">
+                  {post.type === 'persona' && post.persona ? (
+                    <>
+                      <div
+                        className="w-8 h-8 rounded-full overflow-hidden border border-white/20 cursor-pointer"
+                        onClick={() => handleProfileClick(post.persona!.id)}
                       >
-                        <button
-                          onClick={() => handleDelete(post.id)}
-                          className="flex items-center gap-2 px-4 py-3 text-red-400 hover:bg-white/5 w-full"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                          <span className="text-sm">삭제</span>
-                        </button>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
+                        {post.persona.avatar_url ? (
+                          <Image
+                            src={post.persona.avatar_url}
+                            alt={post.persona.display_name}
+                            width={32}
+                            height={32}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-full h-full bg-gradient-to-br from-pink-500 to-purple-500 flex items-center justify-center text-xs font-bold">
+                            {post.persona.name.charAt(0).toUpperCase()}
+                          </div>
+                        )}
+                      </div>
+                      <span
+                        className="font-medium text-sm cursor-pointer hover:underline"
+                        onClick={() => handleProfileClick(post.persona!.id)}
+                      >
+                        {post.persona.display_name}
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      <div className="w-8 h-8 rounded-full overflow-hidden border border-white/20">
+                        <div className="w-full h-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-xs font-bold">
+                          ME
+                        </div>
+                      </div>
+                      <span className="font-medium text-sm">Me</span>
+                    </>
+                  )}
                 </div>
+
+                {/* Only show delete menu for user posts */}
+                {post.type === 'user' && (
+                  <div className="relative">
+                    <button
+                      onClick={() => setShowDeleteMenu(showDeleteMenu === post.id ? null : post.id)}
+                      className="p-2"
+                    >
+                      <MoreHorizontal className="w-5 h-5" />
+                    </button>
+
+                    <AnimatePresence>
+                      {showDeleteMenu === post.id && (
+                        <motion.div
+                          initial={{ opacity: 0, scale: 0.95 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          exit={{ opacity: 0, scale: 0.95 }}
+                          className="absolute right-0 top-full mt-1 bg-zinc-900 border border-white/10 rounded-xl overflow-hidden z-10"
+                        >
+                          <button
+                            onClick={() => handleDelete(post.id)}
+                            className="flex items-center gap-2 px-4 py-3 text-red-400 hover:bg-white/5 w-full"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                            <span className="text-sm">삭제</span>
+                          </button>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                )}
               </div>
 
-              {/* Post Image */}
+              {/* Post Image/Content */}
               <div className="relative aspect-square">
-                {post.type === 'text' || post.type === 'mood' ? (
-                  <div className="w-full h-full bg-gradient-to-br from-purple-600 via-pink-600 to-red-600 flex items-center justify-center p-8">
-                    <p className="text-xl text-center">{post.content}</p>
-                  </div>
-                ) : (
+                {post.type === 'persona' && post.personaContent?.images?.[0] ? (
+                  <Image
+                    src={post.personaContent.images[0]}
+                    alt=""
+                    fill
+                    className="object-cover"
+                  />
+                ) : post.type === 'user' && post.content && !post.mood ? (
                   <Image
                     src={post.content}
                     alt=""
                     fill
                     className="object-cover"
                   />
+                ) : (
+                  <div className="w-full h-full bg-gradient-to-br from-purple-600 via-pink-600 to-red-600 flex items-center justify-center p-8">
+                    <p className="text-xl text-center">{post.content || post.personaContent?.caption}</p>
+                  </div>
                 )}
               </div>
 
@@ -297,7 +255,7 @@ export default function HomeFeed({ onOpenProfile, onOpenStory }: HomeFeedProps) 
                     <button onClick={() => handleLike(post.id)}>
                       <Heart
                         className={`w-6 h-6 transition ${
-                          likedPosts.has(post.id)
+                          likedPosts.has(post.id) || post.user_liked
                             ? 'text-red-500 fill-red-500'
                             : 'text-white'
                         }`}
@@ -315,20 +273,35 @@ export default function HomeFeed({ onOpenProfile, onOpenStory }: HomeFeedProps) 
                   </button>
                 </div>
 
-                {/* Likes */}
-                {!post.isUser && 'likes' in post && (
-                  <div className="text-sm font-medium mb-1">
-                    좋아요 {post.likes}개
+                {/* Likes count for persona posts */}
+                {post.type === 'persona' && post.likes !== undefined && post.likes > 0 && (
+                  <div className="text-sm font-semibold mb-1">
+                    좋아요 {post.likes.toLocaleString()}개
                   </div>
                 )}
 
                 {/* Caption */}
-                {post.caption && (
+                {(post.caption || post.personaContent?.caption) && (
                   <div className="text-sm">
                     <span className="font-medium mr-2">
-                      {post.isUser ? 'Me' : JUN_PROFILE.username}
+                      {post.type === 'persona' ? post.persona?.display_name : 'Me'}
                     </span>
-                    {post.caption}
+                    {post.caption || post.personaContent?.caption}
+                  </div>
+                )}
+
+                {/* Location for persona posts */}
+                {post.type === 'persona' && post.personaContent?.location && (
+                  <div className="flex items-center gap-1 text-xs text-white/50 mt-1">
+                    <MapPin className="w-3 h-3" />
+                    {post.personaContent.location}
+                  </div>
+                )}
+
+                {/* Hashtags for persona posts */}
+                {post.type === 'persona' && post.personaContent?.hashtags && post.personaContent.hashtags.length > 0 && (
+                  <div className="text-sm text-blue-400 mt-1">
+                    {post.personaContent.hashtags.map(tag => `#${tag}`).join(' ')}
                   </div>
                 )}
 
@@ -341,6 +314,7 @@ export default function HomeFeed({ onOpenProfile, onOpenStory }: HomeFeedProps) 
           ))
         )}
       </div>
+      )}
     </div>
   );
 }

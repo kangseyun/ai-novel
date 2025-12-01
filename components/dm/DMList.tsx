@@ -1,12 +1,15 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { MessageCircle, Circle } from 'lucide-react';
+import { MessageCircle } from 'lucide-react';
 import { JUN_PROFILE } from '@/lib/hacked-sns-data';
-import { useFeedStore } from '@/lib/stores/feed-store';
-import { useHackerStore } from '@/lib/stores/hacker-store';
+import { useAuthStore } from '@/lib/stores/auth-store';
+import { apiClient } from '@/lib/api-client';
+import SuggestedFriends from './SuggestedFriends';
+import { DMListSkeleton } from '@/components/ui/Skeleton';
 
 interface DMListProps {
   onOpenChat: (personaId: string) => void;
@@ -14,52 +17,54 @@ interface DMListProps {
 
 interface DMConversation {
   personaId: string;
-  profile: {
-    displayName: string;
-    username: string;
-    profileImage: string;
-    isVerified?: boolean;
-  };
+  personaName: string;
+  personaDisplayName: string;
+  personaImage: string;
+  isVerified: boolean;
   lastMessage: string;
-  timestamp: string;
-  unread: boolean;
+  lastMessageAt: string;
+  unreadCount: number;
   isOnline: boolean;
 }
 
 export default function DMList({ onOpenChat }: DMListProps) {
-  const events = useFeedStore(state => state.events);
-  const personaProgress = useFeedStore(state => state.personaProgress);
-  const hackerProfile = useHackerStore(state => state.profiles['jun']);
+  const router = useRouter();
+  const [conversations, setConversations] = useState<DMConversation[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const isAuthenticated = useAuthStore(state => state.isAuthenticated);
+  const hasFetched = useRef(false);
 
-  // Jun과의 대화 생성
-  const junProgress = personaProgress['jun'];
-  const junEvents = events.filter(e => e.personaId === 'jun');
-  const lastJunEvent = junEvents[0];
-  const hasInteracted = hackerProfile?.completedScenarios?.length > 0 || junEvents.length > 0;
+  // 서버에서 DM 목록 로드
+  useEffect(() => {
+    if (isAuthenticated && !hasFetched.current) {
+      hasFetched.current = true;
+      loadDMList();
+    } else if (!isAuthenticated) {
+      setIsLoading(false);
+    }
+  }, [isAuthenticated]);
 
-  const conversations: DMConversation[] = [];
+  const loadDMList = async () => {
+    try {
+      setIsLoading(true);
+      const data = await apiClient.getDMList();
+      setConversations(data.conversations);
+    } catch (error) {
+      console.error('[DMList] Failed to load:', error);
+      // 에러 시 빈 목록 표시
+      setConversations([]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-  // Jun 대화 추가
-  if (hasInteracted || junProgress) {
-    conversations.push({
-      personaId: 'jun',
-      profile: {
-        displayName: JUN_PROFILE.displayName,
-        username: JUN_PROFILE.username,
-        profileImage: JUN_PROFILE.profileImage,
-        isVerified: JUN_PROFILE.isVerified,
-      },
-      lastMessage: lastJunEvent?.preview || '스토리에 답장해보세요',
-      timestamp: lastJunEvent
-        ? formatTime(lastJunEvent.timestamp)
-        : '최근',
-      unread: lastJunEvent ? !lastJunEvent.isRead : false,
-      isOnline: true,
-    });
-  }
+  const handleProfileClick = (personaId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    router.push(`/profile/${personaId}`);
+  };
 
-  function formatTime(timestamp: number): string {
-    const diff = Date.now() - timestamp;
+  const formatTime = (timestamp: string): string => {
+    const diff = Date.now() - new Date(timestamp).getTime();
     const minutes = Math.floor(diff / 60000);
     const hours = Math.floor(diff / 3600000);
     const days = Math.floor(diff / 86400000);
@@ -69,6 +74,20 @@ export default function DMList({ onOpenChat }: DMListProps) {
     if (hours < 24) return `${hours}시간`;
     if (days < 7) return `${days}일`;
     return '오래전';
+  };
+
+  // 로딩 중 스켈레톤 표시
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-black text-white">
+        {/* Header */}
+        <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
+          <h1 className="text-lg font-bold">메시지</h1>
+          <div className="text-xs text-white/50">로딩 중...</div>
+        </div>
+        <DMListSkeleton count={3} />
+      </div>
+    );
   }
 
   return (
@@ -104,12 +123,15 @@ export default function DMList({ onOpenChat }: DMListProps) {
               onClick={() => onOpenChat(convo.personaId)}
               className="w-full flex items-center gap-3 p-4 hover:bg-white/5 transition text-left"
             >
-              {/* Profile Image */}
-              <div className="relative">
+              {/* Profile Image - 클릭 시 프로필 이동 */}
+              <div
+                className="relative cursor-pointer"
+                onClick={(e) => handleProfileClick(convo.personaId, e)}
+              >
                 <div className="w-14 h-14 rounded-full overflow-hidden border-2 border-white/20">
                   <Image
-                    src={convo.profile.profileImage}
-                    alt={convo.profile.displayName}
+                    src={convo.personaImage}
+                    alt={convo.personaDisplayName}
                     width={56}
                     height={56}
                     className="object-cover"
@@ -123,42 +145,49 @@ export default function DMList({ onOpenChat }: DMListProps) {
               {/* Content */}
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
-                  <span className={`font-medium ${convo.unread ? 'text-white' : 'text-white/80'}`}>
-                    {convo.profile.displayName}
+                  <span
+                    className={`font-medium cursor-pointer hover:underline ${convo.unreadCount > 0 ? 'text-white' : 'text-white/80'}`}
+                    onClick={(e) => handleProfileClick(convo.personaId, e)}
+                  >
+                    {convo.personaDisplayName}
                   </span>
-                  {convo.profile.isVerified && (
+                  {convo.isVerified && (
                     <div className="w-4 h-4 bg-blue-500 rounded-full flex items-center justify-center flex-shrink-0">
                       <span className="text-[8px] text-white">✓</span>
                     </div>
                   )}
-                  <span className="text-xs text-white/40">@{convo.profile.username}</span>
+                  <span className="text-xs text-white/40">@{convo.personaName}</span>
                 </div>
                 <div className="flex items-center gap-2 mt-0.5">
-                  <p className={`text-sm truncate ${convo.unread ? 'text-white' : 'text-white/50'}`}>
+                  <p className={`text-sm truncate ${convo.unreadCount > 0 ? 'text-white' : 'text-white/50'}`}>
                     {convo.lastMessage}
                   </p>
-                  <span className="text-xs text-white/30 flex-shrink-0">· {convo.timestamp}</span>
+                  <span className="text-xs text-white/30 flex-shrink-0">· {formatTime(convo.lastMessageAt)}</span>
                 </div>
               </div>
 
               {/* Unread indicator */}
-              {convo.unread && (
-                <div className="w-3 h-3 bg-blue-500 rounded-full flex-shrink-0" />
+              {convo.unreadCount > 0 && (
+                <div className="w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center flex-shrink-0">
+                  <span className="text-[10px] text-white font-medium">
+                    {convo.unreadCount > 9 ? '9+' : convo.unreadCount}
+                  </span>
+                </div>
               )}
             </motion.button>
           ))
         )}
       </div>
 
-      {/* Suggested Personas */}
+      {/* 대화가 없을 때 Jun 시작 카드 */}
       {conversations.length === 0 && (
         <div className="px-4 pt-6">
-          <h2 className="text-sm font-medium text-white/50 mb-3">추천 페르소나</h2>
-          <button
-            onClick={() => onOpenChat('jun')}
-            className="w-full flex items-center gap-3 p-3 bg-white/5 rounded-xl hover:bg-white/10 transition"
-          >
-            <div className="w-12 h-12 rounded-full overflow-hidden border border-white/20">
+          <h2 className="text-sm font-medium text-white/50 mb-3">대화 시작하기</h2>
+          <div className="flex items-center gap-3 p-3 bg-white/5 rounded-xl">
+            <div
+              className="w-12 h-12 rounded-full overflow-hidden border border-white/20 cursor-pointer"
+              onClick={() => router.push('/profile/jun')}
+            >
               <Image
                 src={JUN_PROFILE.profileImage}
                 alt={JUN_PROFILE.displayName}
@@ -169,19 +198,37 @@ export default function DMList({ onOpenChat }: DMListProps) {
             </div>
             <div className="flex-1 text-left">
               <div className="flex items-center gap-2">
-                <span className="font-medium">{JUN_PROFILE.displayName}</span>
+                <span
+                  className="font-medium cursor-pointer hover:underline"
+                  onClick={() => router.push('/profile/jun')}
+                >
+                  {JUN_PROFILE.displayName}
+                </span>
                 <div className="w-4 h-4 bg-blue-500 rounded-full flex items-center justify-center">
                   <span className="text-[8px] text-white">✓</span>
                 </div>
               </div>
-              <p className="text-sm text-white/50">{JUN_PROFILE.bio}</p>
+              <p className="text-sm text-white/50 line-clamp-1">{JUN_PROFILE.bio}</p>
             </div>
-            <div className="px-3 py-1.5 bg-white/10 rounded-lg text-sm">
+            <button
+              onClick={() => onOpenChat('jun')}
+              className="px-3 py-1.5 bg-white/10 rounded-lg text-sm hover:bg-white/15 transition"
+            >
               대화하기
-            </div>
-          </button>
+            </button>
+          </div>
         </div>
       )}
+
+      {/* 추천 친구 (프리미엄 페르소나 해금) */}
+      <SuggestedFriends
+        onUnlock={(personaId) => {
+          console.log('[DMList] Persona unlocked:', personaId);
+          // 목록 새로고침
+          loadDMList();
+        }}
+        onStartChat={onOpenChat}
+      />
     </div>
   );
 }

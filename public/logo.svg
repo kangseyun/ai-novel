@@ -1,0 +1,14 @@
+<svg width="320" height="70" viewBox="0 0 320 70" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Terminal prompt -->
+  <text x="10" y="45" font-family="Courier New, monospace" font-size="26" font-weight="400" fill="#10b981">$</text>
+  <text x="30" y="45" font-family="Courier New, monospace" font-size="26" font-weight="400" fill="#10b981" opacity="0.6">_</text>
+
+  <!-- Main text - luminovel.ai -->
+  <text x="55" y="45" font-family="Courier New, monospace" font-size="26" font-weight="400" fill="white" letter-spacing="0">luminovel</text>
+  <text x="243" y="45" font-family="Courier New, monospace" font-size="26" font-weight="700" fill="#10b981">.ai</text>
+
+  <!-- Blinking cursor -->
+  <rect x="275" y="25" width="12" height="26" fill="#10b981">
+    <animate attributeName="opacity" values="1;0;1" dur="1s" repeatCount="indefinite"/>
+  </rect>
+</svg>

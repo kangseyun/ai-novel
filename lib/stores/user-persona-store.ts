@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { apiClient } from '../api-client';
 
 // 유저 페르소나 타입
 export interface UserPersona {
@@ -112,6 +113,11 @@ export const INTEREST_OPTIONS = [
 interface UserPersonaState {
   persona: UserPersona;
   isOnboarded: boolean;
+  isSyncing: boolean;
+  lastSyncError: string | null;
+
+  // 해금된 페르소나 목록 (기본적으로 jun은 해금됨)
+  unlockedPersonas: string[];
 
   // Actions
   setPersona: (updates: Partial<UserPersona>) => void;
@@ -127,13 +133,40 @@ interface UserPersonaState {
   setAttachmentStyle: (style: AttachmentStyle) => void;
   completeOnboarding: () => void;
   resetPersona: () => void;
+
+  // 페르소나 해금 관련
+  unlockPersona: (personaId: string) => void;
+  isPersonaUnlocked: (personaId: string) => boolean;
+  setUnlockedPersonas: (personas: string[]) => void;
+
+  // API Actions
+  saveToServer: () => Promise<void>;
+  loadFromServer: () => Promise<void>;
 }
 
 export const useUserPersonaStore = create<UserPersonaState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       persona: DEFAULT_PERSONA,
       isOnboarded: false,
+      isSyncing: false,
+      lastSyncError: null,
+      unlockedPersonas: ['jun'], // 기본적으로 jun은 해금됨
+
+      // 페르소나 해금
+      unlockPersona: (personaId: string) =>
+        set((state) => ({
+          unlockedPersonas: state.unlockedPersonas.includes(personaId)
+            ? state.unlockedPersonas
+            : [...state.unlockedPersonas, personaId],
+        })),
+
+      isPersonaUnlocked: (personaId: string) => {
+        return get().unlockedPersonas.includes(personaId);
+      },
+
+      setUnlockedPersonas: (personas: string[]) =>
+        set({ unlockedPersonas: personas }),
 
       setPersona: (updates) =>
         set((state) => ({
@@ -199,6 +232,59 @@ export const useUserPersonaStore = create<UserPersonaState>()(
       completeOnboarding: () => set({ isOnboarded: true }),
 
       resetPersona: () => set({ persona: DEFAULT_PERSONA, isOnboarded: false }),
+
+      // 프로필 + 페르소나 모두 서버에 저장 (단일 API)
+      saveToServer: async () => {
+        const { persona } = get();
+        set({ isSyncing: true, lastSyncError: null });
+        try {
+          await apiClient.updateProfile({
+            nickname: persona.nickname || undefined,
+            profile_image: persona.profileImage || undefined,
+            bio: persona.bio || undefined,
+            personality_type: persona.personality,
+            communication_style: persona.communicationStyle,
+            emotional_tendency: persona.emotionalTendency,
+            interests: persona.interests,
+            love_language: persona.loveLanguage,
+            attachment_style: persona.attachmentStyle,
+          });
+          set({ isSyncing: false });
+        } catch (error) {
+          const message = error instanceof Error ? error.message : '저장 실패';
+          set({ isSyncing: false, lastSyncError: message });
+          throw error;
+        }
+      },
+
+      // 서버에서 프로필 + 페르소나 불러오기 (users 테이블에서 모두 로드)
+      loadFromServer: async () => {
+        set({ isSyncing: true, lastSyncError: null });
+        try {
+          const profile = await apiClient.getProfile();
+
+          set((state) => ({
+            persona: {
+              ...state.persona,
+              nickname: profile.nickname || state.persona.nickname,
+              profileImage: profile.profile_image || state.persona.profileImage,
+              bio: profile.bio || state.persona.bio,
+              personality: (profile as Record<string, unknown>).personality_type as PersonalityType || state.persona.personality,
+              communicationStyle: (profile as Record<string, unknown>).communication_style as CommunicationStyle || state.persona.communicationStyle,
+              emotionalTendency: (profile as Record<string, unknown>).emotional_tendency as EmotionalTendency || state.persona.emotionalTendency,
+              interests: (profile as Record<string, unknown>).interests as string[] || state.persona.interests,
+              loveLanguage: (profile as Record<string, unknown>).love_language as LoveLanguage || state.persona.loveLanguage,
+              attachmentStyle: (profile as Record<string, unknown>).attachment_style as AttachmentStyle || state.persona.attachmentStyle,
+            },
+            isOnboarded: profile.onboarding_completed,
+            isSyncing: false,
+          }));
+        } catch (error) {
+          const message = error instanceof Error ? error.message : '데이터 로드 실패';
+          set({ isSyncing: false, lastSyncError: message });
+          throw error;
+        }
+      },
     }),
     {
       name: 'user-persona-storage',

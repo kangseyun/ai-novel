@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerClient } from '@/lib/supabase';
+import { createServerClient } from '@/lib/supabase-server';
 import { getAuthUser, unauthorized, badRequest, serverError } from '@/lib/auth';
 
 // POST /api/game/episode/complete - 에피소드 완료
@@ -14,7 +14,7 @@ export async function POST(request: NextRequest) {
       return badRequest('session_id and episode_id are required');
     }
 
-    const supabase = createServerClient();
+    const supabase = await createServerClient();
 
     // 1. 세션 확인 및 완료 처리
     const { data: session, error: sessionError } = await supabase

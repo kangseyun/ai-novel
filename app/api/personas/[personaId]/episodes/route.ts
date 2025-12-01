@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerClient } from '@/lib/supabase';
+import { createServerClient } from '@/lib/supabase-server';
 import { getAuthUser } from '@/lib/auth';
 
 // GET /api/personas/:personaId/episodes - 에피소드 목록 조회
@@ -20,7 +20,7 @@ export async function GET(
     thumbnail: string;
     unlock_requirements?: {
       min_affection?: number;
-      gem_cost?: number;
+      token_cost?: number;
     };
   }>> = {
     jun: [
@@ -41,7 +41,7 @@ export async function GET(
         thumbnail: '/episodes/jun-ep2.jpg',
         unlock_requirements: {
           min_affection: 30,
-          gem_cost: 100,
+          token_cost: 100,
         },
       },
       {
@@ -53,7 +53,7 @@ export async function GET(
         thumbnail: '/episodes/jun-ep3.jpg',
         unlock_requirements: {
           min_affection: 50,
-          gem_cost: 150,
+          token_cost: 150,
         },
       },
       {
@@ -65,7 +65,7 @@ export async function GET(
         thumbnail: '/episodes/jun-ep4.jpg',
         unlock_requirements: {
           min_affection: 70,
-          gem_cost: 200,
+          token_cost: 200,
         },
       },
       {
@@ -77,7 +77,7 @@ export async function GET(
         thumbnail: '/episodes/jun-ep5.jpg',
         unlock_requirements: {
           min_affection: 90,
-          gem_cost: 300,
+          token_cost: 300,
         },
       },
     ],
@@ -90,7 +90,7 @@ export async function GET(
   let userAffection = 0;
 
   if (user) {
-    const supabase = createServerClient();
+    const supabase = await createServerClient();
     const { data: gameState } = await supabase
       .from('game_state')
       .select('unlocked_episodes, affection')

@@ -1,252 +1,339 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Lock, ChevronLeft } from 'lucide-react';
-import { JUN_PROFILE } from '@/lib/hacked-sns-data';
-import { useHackerStore } from '@/lib/stores/hacker-store';
+import { Lock, ChevronLeft, RefreshCw } from 'lucide-react';
+import { apiClient } from '@/lib/api-client';
+import { useAuthStore } from '@/lib/stores/auth-store';
+import { MemoryListSkeleton, MemoryDetailSkeleton } from '@/components/ui/Skeleton';
 
-// 페르소나 진행도 타입
+// 페르소나 진행도 타입 (API 응답 기반)
 interface PersonaProgress {
   id: string;
   name: string;
+  fullName: string;
+  role: string;
   image: string;
   affection: number;
-  maxAffection: number;
+  trust: number;
+  intimacy: number;
+  stage: string;
   storyProgress: number;
   totalStories: number;
-  currentArc: string;
-  relationship: string;
   unlockedSecrets: number;
   totalSecrets: number;
-  stats: {
-    trust: number;
-    intimacy: number;
-    mystery: number;
-    chemistry: number;
-    loyalty: number;
-  };
+  memories: Memo[];
+  relationship: string;
+  currentArc: string;
+  userNickname: string | null;
+  personaNickname: string | null;
+  totalMessages: number;
+  firstInteractionAt: string | null;
+  lastInteractionAt: string | null;
 }
 
-// 메모 타입 (유저가 캐릭터에 대해 파악한 내용)
+// 메모 타입
 interface Memo {
   id: string;
-  personaId: string;
+  type: string;
   title: string;
   content: string;
   isLocked: boolean;
   unlockCondition?: string;
+  emotionalWeight?: number;
+  createdAt?: string;
 }
 
-// 더미 데이터 - 여러 페르소나
-const PERSONA_PROGRESS: PersonaProgress[] = [
-  {
-    id: 'jun',
-    name: 'Jun',
-    image: JUN_PROFILE.profileImage,
-    affection: 35,
-    maxAffection: 100,
-    storyProgress: 3,
-    totalStories: 12,
-    currentArc: 'Chapter 1: 첫 만남',
-    relationship: '호감',
-    unlockedSecrets: 2,
-    totalSecrets: 8,
-    stats: {
-      trust: 45,
-      intimacy: 30,
-      mystery: 70,
-      chemistry: 55,
-      loyalty: 25,
-    },
-  },
-  {
-    id: 'yuna',
-    name: 'Yuna',
-    image: 'https://i.pravatar.cc/400?img=5',
-    affection: 0,
-    maxAffection: 100,
-    storyProgress: 0,
-    totalStories: 10,
-    currentArc: '아직 시작하지 않음',
-    relationship: '???',
-    unlockedSecrets: 0,
-    totalSecrets: 6,
-    stats: {
-      trust: 0,
-      intimacy: 0,
-      mystery: 100,
-      chemistry: 0,
-      loyalty: 0,
-    },
-  },
-  {
-    id: 'minho',
-    name: 'Minho',
-    image: 'https://i.pravatar.cc/400?img=12',
-    affection: 0,
-    maxAffection: 100,
-    storyProgress: 0,
-    totalStories: 14,
-    currentArc: '아직 시작하지 않음',
-    relationship: '???',
-    unlockedSecrets: 0,
-    totalSecrets: 10,
-    stats: {
-      trust: 0,
-      intimacy: 0,
-      mystery: 100,
-      chemistry: 0,
-      loyalty: 0,
-    },
-  },
-];
+// 상세 페이지용 stats
+interface DetailStats {
+  trust: number;
+  intimacy: number;
+  mystery: number;
+  chemistry: number;
+  loyalty: number;
+}
 
-const MEMOS: Memo[] = [
-  {
-    id: 'memo_1',
-    personaId: 'jun',
-    title: '감정 표현',
-    content: '직접적으로 말하지 않지만, 눈빛으로 많은 걸 표현하는 것 같다.',
-    isLocked: false,
-  },
-  {
-    id: 'memo_2',
-    personaId: 'jun',
-    title: '좋아하는 것',
-    content: '밤바다를 좋아하는 듯. 혼자 있을 때 자주 가는 것 같다.',
-    isLocked: false,
-  },
-  {
-    id: 'memo_3',
-    personaId: 'jun',
-    title: '숨기는 것',
-    content: '???',
-    isLocked: true,
-    unlockCondition: '더 알아가면 기록됨',
-  },
-];
+// 상세 데이터 타입
+interface PersonaDetail {
+  exists: boolean;
+  persona?: {
+    id: string;
+    name: string;
+    fullName: string;
+    role: string;
+    image: string;
+  };
+  relationship?: {
+    stage: string;
+    stageLabel: string;
+    affection: number;
+    trust: number;
+    intimacy: number;
+    totalMessages: number;
+    firstInteractionAt: string | null;
+    lastInteractionAt: string | null;
+    userNickname: string | null;
+    personaNickname: string | null;
+  };
+  stats?: DetailStats;
+  progress?: {
+    storyProgress: number;
+    totalStories: number;
+    currentArc: string;
+    unlockedSecrets: number;
+    totalSecrets: number;
+  };
+  memories?: Memo[];
+  lockedMemos?: Memo[];
+}
 
 type TabType = 'progress' | 'memo';
 
 export default function AnalyticsPage() {
   const [activeTab, setActiveTab] = useState<TabType>('progress');
-  const [selectedPersona, setSelectedPersona] = useState<PersonaProgress | null>(null);
+  const [personas, setPersonas] = useState<PersonaProgress[]>([]);
+  const [stats, setStats] = useState({ totalCharacters: 0, totalSecrets: 0, totalStories: 0 });
+  const [selectedPersonaId, setSelectedPersonaId] = useState<string | null>(null);
+  const [personaDetail, setPersonaDetail] = useState<PersonaDetail | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isDetailLoading, setIsDetailLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const profile = useHackerStore(state => state.getProfile('jun'));
-  const hackLevel = profile?.hackLevel ?? 1;
+  const { isAuthenticated } = useAuthStore();
 
-  // 페르소나 선택 화면
-  if (!selectedPersona) {
+  // 기억 목록 로드
+  const loadMemoryList = async () => {
+    if (!isAuthenticated) {
+      setIsLoading(false);
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      setError(null);
+      const data = await apiClient.getMemoryList();
+      setPersonas(data.personas);
+      setStats(data.stats);
+    } catch (err) {
+      console.error('[AnalyticsPage] Failed to load memory list:', err);
+      setError('기억을 불러오는데 실패했습니다');
+      // 로그인 안된 경우 빈 목록
+      setPersonas([]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // 페르소나 상세 로드
+  const loadPersonaDetail = async (personaId: string) => {
+    try {
+      setIsDetailLoading(true);
+      const data = await apiClient.getMemoryDetail(personaId);
+      setPersonaDetail(data);
+    } catch (err) {
+      console.error('[AnalyticsPage] Failed to load persona detail:', err);
+      setPersonaDetail(null);
+    } finally {
+      setIsDetailLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadMemoryList();
+  }, [isAuthenticated]);
+
+  // 페르소나 선택 시 상세 로드
+  useEffect(() => {
+    if (selectedPersonaId) {
+      loadPersonaDetail(selectedPersonaId);
+    } else {
+      setPersonaDetail(null);
+    }
+  }, [selectedPersonaId]);
+
+  const handleSelectPersona = (personaId: string) => {
+    setSelectedPersonaId(personaId);
+    setActiveTab('progress');
+  };
+
+  // 로딩 상태 - 스켈레톤 표시
+  if (isLoading) {
+    return <MemoryListSkeleton count={3} />;
+  }
+
+  // 로그인 필요 상태
+  if (!isAuthenticated) {
     return (
       <div className="min-h-screen bg-black text-white pb-24">
-        {/* Header */}
         <div className="sticky top-0 z-40 bg-black/95 backdrop-blur-xl border-b border-white/5">
           <div className="px-4 py-4">
             <h1 className="text-lg font-bold">기억</h1>
             <p className="text-xs text-white/40 mt-0.5">누군가를 선택하세요</p>
           </div>
         </div>
-
-        {/* 페르소나 선택 그리드 */}
-        <div className="px-4 pt-4">
-          <div className="space-y-3">
-            {PERSONA_PROGRESS.map((persona, idx) => {
-              const isUnlocked = persona.storyProgress > 0;
-              const progressPercent = (persona.affection / persona.maxAffection) * 100;
-
-              return (
-                <motion.button
-                  key={persona.id}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: idx * 0.05 }}
-                  onClick={() => isUnlocked && setSelectedPersona(persona)}
-                  disabled={!isUnlocked}
-                  className={`w-full p-4 rounded-xl border text-left transition ${
-                    isUnlocked
-                      ? 'bg-white/[0.03] border-white/10 active:bg-white/[0.06]'
-                      : 'bg-white/[0.01] border-white/5 opacity-50'
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    {/* 프로필 이미지 */}
-                    <div className="relative">
-                      <div className={`w-14 h-14 rounded-full overflow-hidden ${
-                        !isUnlocked && 'grayscale opacity-50'
-                      }`}>
-                        <img
-                          src={persona.image}
-                          alt={persona.name}
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
-                      {!isUnlocked && (
-                        <div className="absolute inset-0 flex items-center justify-center">
-                          <Lock className="w-4 h-4 text-white/40" />
-                        </div>
-                      )}
-                    </div>
-
-                    {/* 정보 */}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <h3 className="font-medium">{persona.name}</h3>
-                        {isUnlocked && (
-                          <span className="text-xs text-white/40">
-                            {persona.relationship}
-                          </span>
-                        )}
-                      </div>
-
-                      {isUnlocked ? (
-                        <>
-                          <p className="text-xs text-white/30 mt-0.5">{persona.currentArc}</p>
-                          {/* 호감도 바 */}
-                          <div className="mt-2 flex items-center gap-2">
-                            <div className="flex-1 h-1 bg-white/10 rounded-full overflow-hidden">
-                              <div
-                                className="h-full bg-white/40 rounded-full"
-                                style={{ width: `${progressPercent}%` }}
-                              />
-                            </div>
-                            <span className="text-xs text-white/40">{persona.affection}%</span>
-                          </div>
-                        </>
-                      ) : (
-                        <p className="text-xs text-white/20 mt-0.5">잠김</p>
-                      )}
-                    </div>
-
-                    {/* 화살표 */}
-                    {isUnlocked && (
-                      <ChevronLeft className="w-4 h-4 text-white/20 rotate-180" />
-                    )}
-                  </div>
-                </motion.button>
-              );
-            })}
-          </div>
-
-          {/* 전체 통계 - 심플하게 */}
-          <div className="mt-6 p-4 bg-white/[0.02] border border-white/5 rounded-xl">
-            <div className="flex justify-around text-sm">
-              <div className="text-center">
-                <p className="text-lg font-medium">{PERSONA_PROGRESS.filter(p => p.storyProgress > 0).length}</p>
-                <p className="text-xs text-white/30">캐릭터</p>
-              </div>
-              <div className="text-center">
-                <p className="text-lg font-medium">
-                  {PERSONA_PROGRESS.reduce((sum, p) => sum + p.unlockedSecrets, 0)}
-                </p>
-                <p className="text-xs text-white/30">비밀</p>
-              </div>
-            </div>
-          </div>
+        <div className="px-4 pt-20 text-center">
+          <p className="text-white/40">로그인이 필요합니다</p>
         </div>
       </div>
     );
   }
+
+  // 에러 상태
+  if (error && personas.length === 0) {
+    return (
+      <div className="min-h-screen bg-black text-white pb-24">
+        <div className="sticky top-0 z-40 bg-black/95 backdrop-blur-xl border-b border-white/5">
+          <div className="px-4 py-4">
+            <h1 className="text-lg font-bold">기억</h1>
+          </div>
+        </div>
+        <div className="px-4 pt-20 text-center space-y-4">
+          <p className="text-white/40">{error}</p>
+          <button
+            onClick={loadMemoryList}
+            className="inline-flex items-center gap-2 px-4 py-2 bg-white/10 rounded-lg text-sm"
+          >
+            <RefreshCw className="w-4 h-4" />
+            다시 시도
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // 페르소나 선택 화면
+  if (!selectedPersonaId) {
+    return (
+      <div className="min-h-screen bg-black text-white pb-24">
+        {/* Header */}
+        <div className="sticky top-0 z-40 bg-black/95 backdrop-blur-xl border-b border-white/5">
+          <div className="px-4 py-4">
+            <h1 className="text-lg font-bold">기억</h1>
+            <p className="text-xs text-white/40 mt-0.5">
+              {personas.length > 0 ? '누군가를 선택하세요' : 'DM을 시작하면 기억이 쌓입니다'}
+            </p>
+          </div>
+        </div>
+
+        {/* 페르소나 선택 그리드 */}
+        <div className="px-4 pt-4">
+          {personas.length === 0 ? (
+            <div className="text-center py-12">
+              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-white/5 flex items-center justify-center">
+                <Lock className="w-6 h-6 text-white/20" />
+              </div>
+              <p className="text-white/40 text-sm">아직 기억이 없습니다</p>
+              <p className="text-white/20 text-xs mt-1">DM에서 대화를 시작해보세요</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {personas.map((persona, idx) => {
+                const isUnlocked = persona.storyProgress > 0 || persona.totalMessages > 0;
+                const progressPercent = persona.affection;
+
+                return (
+                  <motion.button
+                    key={persona.id}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: idx * 0.05 }}
+                    onClick={() => handleSelectPersona(persona.id)}
+                    className="w-full p-4 rounded-xl border text-left transition bg-white/[0.03] border-white/10 active:bg-white/[0.06]"
+                  >
+                    <div className="flex items-center gap-3">
+                      {/* 프로필 이미지 */}
+                      <div className="relative">
+                        <div className="w-14 h-14 rounded-full overflow-hidden">
+                          <img
+                            src={persona.image}
+                            alt={persona.name}
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                      </div>
+
+                      {/* 정보 */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <h3 className="font-medium">{persona.name}</h3>
+                          <span className="text-xs text-white/40">
+                            {persona.relationship}
+                          </span>
+                        </div>
+
+                        <p className="text-xs text-white/30 mt-0.5">{persona.currentArc}</p>
+                        {/* 호감도 바 */}
+                        <div className="mt-2 flex items-center gap-2">
+                          <div className="flex-1 h-1 bg-white/10 rounded-full overflow-hidden">
+                            <div
+                              className="h-full bg-white/40 rounded-full"
+                              style={{ width: `${progressPercent}%` }}
+                            />
+                          </div>
+                          <span className="text-xs text-white/40">{persona.affection}%</span>
+                        </div>
+                      </div>
+
+                      {/* 화살표 */}
+                      <ChevronLeft className="w-4 h-4 text-white/20 rotate-180" />
+                    </div>
+                  </motion.button>
+                );
+              })}
+            </div>
+          )}
+
+          {/* 전체 통계 */}
+          {personas.length > 0 && (
+            <div className="mt-6 p-4 bg-white/[0.02] border border-white/5 rounded-xl">
+              <div className="flex justify-around text-sm">
+                <div className="text-center">
+                  <p className="text-lg font-medium">{stats.totalCharacters}</p>
+                  <p className="text-xs text-white/30">캐릭터</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-lg font-medium">{stats.totalSecrets}</p>
+                  <p className="text-xs text-white/30">비밀</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-lg font-medium">{stats.totalStories}</p>
+                  <p className="text-xs text-white/30">이야기</p>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // 상세 로딩 중 - 스켈레톤 표시
+  if (isDetailLoading || !personaDetail) {
+    return <MemoryDetailSkeleton />;
+  }
+
+  // 상세 데이터가 없는 경우
+  if (!personaDetail.exists) {
+    return (
+      <div className="min-h-screen bg-black text-white pb-24">
+        <div className="sticky top-0 z-40 bg-black/95 backdrop-blur-xl border-b border-white/5">
+          <div className="px-4 py-3">
+            <button
+              onClick={() => setSelectedPersonaId(null)}
+              className="p-1 -ml-1 hover:bg-white/5 rounded-lg transition"
+            >
+              <ChevronLeft className="w-5 h-5 text-white/50" />
+            </button>
+          </div>
+        </div>
+        <div className="px-4 pt-20 text-center">
+          <p className="text-white/40">아직 기억이 없습니다</p>
+        </div>
+      </div>
+    );
+  }
+
+  const { persona, relationship, stats: detailStats, progress, memories, lockedMemos } = personaDetail;
 
   return (
     <div className="min-h-screen bg-black text-white pb-24">
@@ -255,21 +342,21 @@ export default function AnalyticsPage() {
         <div className="px-4 py-3">
           <div className="flex items-center gap-3">
             <button
-              onClick={() => setSelectedPersona(null)}
+              onClick={() => setSelectedPersonaId(null)}
               className="p-1 -ml-1 hover:bg-white/5 rounded-lg transition"
             >
               <ChevronLeft className="w-5 h-5 text-white/50" />
             </button>
             <div className="flex items-center gap-2">
               <div className="w-7 h-7 rounded-full overflow-hidden">
-                <img src={selectedPersona.image} alt={selectedPersona.name} className="w-full h-full object-cover" />
+                <img src={persona?.image} alt={persona?.name} className="w-full h-full object-cover" />
               </div>
-              <span className="font-medium">{selectedPersona.name}</span>
+              <span className="font-medium">{persona?.name}</span>
             </div>
           </div>
         </div>
 
-        {/* Tabs - 미니멀 */}
+        {/* Tabs */}
         <div className="flex px-4 pb-3 gap-4">
           {[
             { id: 'progress' as TabType, label: '우리 사이' },
@@ -294,7 +381,7 @@ export default function AnalyticsPage() {
       <div className="px-4 pt-4">
         <AnimatePresence mode="wait">
           {/* 우리 사이 탭 */}
-          {activeTab === 'progress' && selectedPersona && (
+          {activeTab === 'progress' && (
             <motion.div
               key="progress"
               initial={{ opacity: 0 }}
@@ -307,55 +394,77 @@ export default function AnalyticsPage() {
                 <div className="flex items-center gap-3 mb-4">
                   <div className="w-12 h-12 rounded-full overflow-hidden">
                     <img
-                      src={selectedPersona.image}
-                      alt={selectedPersona.name}
+                      src={persona?.image}
+                      alt={persona?.name}
                       className="w-full h-full object-cover"
                     />
                   </div>
                   <div>
-                    <h2 className="font-medium">{selectedPersona.name}</h2>
-                    <p className="text-xs text-white/40">{selectedPersona.currentArc}</p>
+                    <h2 className="font-medium">{persona?.name}</h2>
+                    <p className="text-xs text-white/40">{progress?.currentArc}</p>
                   </div>
                   <div className="ml-auto text-right">
-                    <p className="text-sm text-white/70">{selectedPersona.relationship}</p>
+                    <p className="text-sm text-white/70">{relationship?.stageLabel}</p>
+                    {relationship?.totalMessages && relationship.totalMessages > 0 && (
+                      <p className="text-xs text-white/30">{relationship.totalMessages} 메시지</p>
+                    )}
                   </div>
                 </div>
 
-                {/* 감성적인 프로그레스 바들 */}
+                {/* 프로그레스 바들 */}
                 <div className="space-y-3">
                   <ProgressBar
                     label="마음을 연 정도"
-                    value={selectedPersona.affection}
-                    max={selectedPersona.maxAffection}
+                    value={relationship?.affection || 0}
+                    max={100}
                   />
                   <ProgressBar
                     label="함께한 이야기"
-                    value={selectedPersona.storyProgress}
-                    max={selectedPersona.totalStories}
+                    value={progress?.storyProgress || 0}
+                    max={progress?.totalStories || 12}
                   />
                   <ProgressBar
                     label="알게 된 비밀"
-                    value={selectedPersona.unlockedSecrets}
-                    max={selectedPersona.totalSecrets}
+                    value={progress?.unlockedSecrets || 0}
+                    max={progress?.totalSecrets || 8}
                   />
                 </div>
               </div>
 
-              {/* 관계 온도 */}
-              <div className="p-4 bg-white/[0.03] border border-white/5 rounded-xl">
-                <p className="text-xs text-white/40 mb-3">지금 우리 사이는</p>
-                <RadarChart stats={selectedPersona.stats} />
+              {/* 관계 온도 (스탯이 있는 경우만) */}
+              {detailStats && (
+                <div className="p-4 bg-white/[0.03] border border-white/5 rounded-xl">
+                  <p className="text-xs text-white/40 mb-3">지금 우리 사이는</p>
+                  <RadarChart stats={detailStats as unknown as Record<string, number>} />
 
-                {/* 스탯 목록 - 감성적 */}
-                <div className="mt-3 grid grid-cols-5 gap-2 text-center">
-                  {Object.entries(selectedPersona.stats).map(([key, value]) => (
-                    <div key={key}>
-                      <p className="text-sm font-medium">{value}</p>
-                      <p className="text-[10px] text-white/30">{getStatLabel(key)}</p>
-                    </div>
-                  ))}
+                  {/* 스탯 목록 */}
+                  <div className="mt-3 grid grid-cols-5 gap-2 text-center">
+                    {Object.entries(detailStats).map(([key, value]) => (
+                      <div key={key}>
+                        <p className="text-sm font-medium">{Math.round(value)}</p>
+                        <p className="text-[10px] text-white/30">{getStatLabel(key)}</p>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
+
+              {/* 별명 (있는 경우) */}
+              {(relationship?.userNickname || relationship?.personaNickname) && (
+                <div className="p-4 bg-white/[0.03] border border-white/5 rounded-xl">
+                  <p className="text-xs text-white/40 mb-2">우리만의 이름</p>
+                  {relationship?.personaNickname && (
+                    <p className="text-sm text-white/70">
+                      {persona?.name}이(가) 나를 부르는: <span className="text-white">{relationship.personaNickname}</span>
+                    </p>
+                  )}
+                  {relationship?.userNickname && (
+                    <p className="text-sm text-white/70 mt-1">
+                      내가 {persona?.name}을(를) 부르는: <span className="text-white">{relationship.userNickname}</span>
+                    </p>
+                  )}
+                </div>
+              )}
 
               {/* 다음 이야기 */}
               <div className="p-4 bg-white/[0.03] border border-white/5 rounded-xl">
@@ -375,33 +484,53 @@ export default function AnalyticsPage() {
               className="space-y-2"
             >
               <p className="text-xs text-white/30 mb-3">
-                {selectedPersona?.name}에 대해 알게 된 것들
+                {persona?.name}에 대해 알게 된 것들
               </p>
 
-              {MEMOS.map((memo, idx) => (
+              {/* 해금된 메모 */}
+              {memories && memories.length > 0 ? (
+                memories.map((memo, idx) => (
+                  <motion.div
+                    key={memo.id}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: idx * 0.05 }}
+                    className="p-3 rounded-xl border bg-white/[0.03] border-white/10"
+                  >
+                    <div className="flex items-start gap-3">
+                      <div>
+                        <h4 className="text-sm text-white">{memo.title}</h4>
+                        <p className="text-xs mt-0.5 text-white/50">{memo.content}</p>
+                        {memo.createdAt && (
+                          <p className="text-[10px] text-white/20 mt-1">
+                            {new Date(memo.createdAt).toLocaleDateString('ko-KR')}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </motion.div>
+                ))
+              ) : (
+                <div className="text-center py-8">
+                  <p className="text-white/30 text-sm">아직 기록된 메모가 없습니다</p>
+                </div>
+              )}
+
+              {/* 잠긴 메모 */}
+              {lockedMemos && lockedMemos.map((memo, idx) => (
                 <motion.div
                   key={memo.id}
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
-                  transition={{ delay: idx * 0.05 }}
-                  className={`p-3 rounded-xl border ${
-                    memo.isLocked
-                      ? 'bg-white/[0.01] border-white/5'
-                      : 'bg-white/[0.03] border-white/10'
-                  }`}
+                  transition={{ delay: (memories?.length || 0 + idx) * 0.05 }}
+                  className="p-3 rounded-xl border bg-white/[0.01] border-white/5"
                 >
                   <div className="flex items-start gap-3">
-                    {memo.isLocked && (
-                      <Lock className="w-4 h-4 text-white/20 mt-0.5 flex-shrink-0" />
-                    )}
+                    <Lock className="w-4 h-4 text-white/20 mt-0.5 flex-shrink-0" />
                     <div>
-                      <h4 className={`text-sm ${memo.isLocked ? 'text-white/30' : 'text-white'}`}>
-                        {memo.title}
-                      </h4>
-                      <p className={`text-xs mt-0.5 ${memo.isLocked ? 'text-white/20' : 'text-white/50'}`}>
-                        {memo.content}
-                      </p>
-                      {memo.isLocked && memo.unlockCondition && (
+                      <h4 className="text-sm text-white/30">{memo.title}</h4>
+                      <p className="text-xs mt-0.5 text-white/20">{memo.content}</p>
+                      {memo.unlockCondition && (
                         <p className="text-[10px] text-white/20 mt-1">{memo.unlockCondition}</p>
                       )}
                     </div>
@@ -418,7 +547,7 @@ export default function AnalyticsPage() {
 
 // 프로그레스 바 컴포넌트
 function ProgressBar({ label, value, max }: { label: string; value: number; max: number }) {
-  const percent = (value / max) * 100;
+  const percent = max > 0 ? (value / max) * 100 : 0;
   return (
     <div>
       <div className="flex items-center justify-between text-xs mb-1">
@@ -437,7 +566,7 @@ function ProgressBar({ label, value, max }: { label: string; value: number; max:
   );
 }
 
-// 레이더 차트 컴포넌트 - 심플
+// 레이더 차트 컴포넌트
 function RadarChart({ stats }: { stats: Record<string, number> }) {
   const labels = Object.keys(stats);
   const values = Object.values(stats);

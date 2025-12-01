@@ -1,20 +1,29 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerClient } from '@/lib/supabase';
+import { createServerClient } from '@/lib/supabase-server';
 import { getAuthUser, unauthorized, badRequest, serverError } from '@/lib/auth';
 
 // POST /api/feed/post - 유저 포스트 작성
 export async function POST(request: NextRequest) {
   try {
-    const user = await getAuthUser(request);
-    if (!user) return unauthorized();
+    console.log('[Feed Post] Start');
 
-    const { type, mood, caption, image } = await request.json();
+    const user = await getAuthUser(request);
+    if (!user) {
+      console.log('[Feed Post] Unauthorized');
+      return unauthorized();
+    }
+
+    console.log('[Feed Post] User:', user.id);
+
+    const body = await request.json();
+    const { type, mood, caption, image } = body;
+    console.log('[Feed Post] Body:', { type, mood, caption, image: image ? 'present' : 'absent' });
 
     if (!type || !caption) {
       return badRequest('type and caption are required');
     }
 
-    const supabase = createServerClient();
+    const supabase = await createServerClient();
 
     // 포스트 저장
     const { data: post, error } = await supabase
@@ -30,8 +39,11 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (error) {
+      console.error('[Feed Post] DB Error:', error);
       return serverError(error);
     }
+
+    console.log('[Feed Post] Post created:', post.id);
 
     // 게임 상태 조회 (반응 생성에 필요)
     const { data: gameState } = await supabase
@@ -76,6 +88,7 @@ export async function POST(request: NextRequest) {
       triggered_events: triggeredEvents,
     });
   } catch (error) {
+    console.error('[Feed Post] Exception:', error);
     return serverError(error);
   }
 }

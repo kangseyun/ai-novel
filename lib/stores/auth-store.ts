@@ -7,7 +7,7 @@ interface User {
   email: string;
   nickname: string | null;
   profile_image: string | null;
-  gems: number;
+  tokens: number;
   onboarding_completed: boolean;
 }
 
@@ -15,14 +15,17 @@ interface AuthState {
   user: User | null;
   isLoading: boolean;
   isAuthenticated: boolean;
+  hasHydrated: boolean;
+  isInitialized: boolean;
 
   // Actions
-  login: (email: string, password: string) => Promise<void>;
-  register: (email: string, password: string, nickname?: string) => Promise<void>;
+  initialize: () => void;
   logout: () => Promise<void>;
+  forceLogout: () => void;
   loadUser: () => Promise<void>;
   updateUser: (updates: Partial<User>) => void;
   setOnboardingCompleted: () => void;
+  setHasHydrated: (state: boolean) => void;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -31,53 +34,29 @@ export const useAuthStore = create<AuthState>()(
       user: null,
       isLoading: false,
       isAuthenticated: false,
+      hasHydrated: false,
+      isInitialized: false,
 
-      login: async (email: string, password: string) => {
-        set({ isLoading: true });
-        try {
-          const { user } = await apiClient.login(email, password);
-          set({
-            user: {
-              id: user.id,
-              email: user.email,
-              nickname: user.nickname,
-              profile_image: null,
-              gems: user.gems,
-              onboarding_completed: user.onboarding_completed,
-            },
-            isAuthenticated: true,
-            isLoading: false,
-          });
-        } catch (error) {
-          set({ isLoading: false });
-          throw error;
-        }
+      setHasHydrated: (state: boolean) => {
+        set({ hasHydrated: state });
       },
 
-      register: async (email: string, password: string, nickname?: string) => {
-        set({ isLoading: true });
-        try {
-          const { user, session } = await apiClient.register(email, password, nickname);
-          if (session) {
-            set({
-              user: {
-                id: user.id,
-                email: user.email,
-                nickname: user.nickname,
-                profile_image: null,
-                gems: 100,
-                onboarding_completed: false,
-              },
-              isAuthenticated: true,
-              isLoading: false,
-            });
-          } else {
-            // 이메일 인증이 필요한 경우
-            set({ isLoading: false });
-          }
-        } catch (error) {
-          set({ isLoading: false });
-          throw error;
+      initialize: () => {
+        if (get().isInitialized) return;
+
+        // apiClient에 인증 에러 콜백 등록
+        apiClient.setOnAuthError(() => {
+          get().forceLogout();
+        });
+
+        set({ isInitialized: true });
+      },
+
+      forceLogout: () => {
+        set({ user: null, isAuthenticated: false });
+        // 로그인 페이지로 리다이렉트
+        if (typeof window !== 'undefined') {
+          window.location.href = '/login';
         }
       },
 
@@ -90,6 +69,9 @@ export const useAuthStore = create<AuthState>()(
       },
 
       loadUser: async () => {
+        const { initialize } = get();
+        initialize(); // 초기화 보장
+
         const token = apiClient.getAccessToken();
         if (!token) {
           set({ user: null, isAuthenticated: false });
@@ -105,32 +87,15 @@ export const useAuthStore = create<AuthState>()(
               email: profile.email,
               nickname: profile.nickname,
               profile_image: profile.profile_image,
-              gems: profile.gems,
+              tokens: profile.tokens,
               onboarding_completed: profile.onboarding_completed,
             },
             isAuthenticated: true,
             isLoading: false,
           });
         } catch {
-          // 토큰이 유효하지 않으면 리프레시 시도
-          try {
-            await apiClient.refreshToken();
-            const profile = await apiClient.getProfile();
-            set({
-              user: {
-                id: profile.id,
-                email: profile.email,
-                nickname: profile.nickname,
-                profile_image: profile.profile_image,
-                gems: profile.gems,
-                onboarding_completed: profile.onboarding_completed,
-              },
-              isAuthenticated: true,
-              isLoading: false,
-            });
-          } catch {
-            set({ user: null, isAuthenticated: false, isLoading: false });
-          }
+          // 401 에러 시 apiClient 내부에서 자동 처리됨
+          set({ user: null, isAuthenticated: false, isLoading: false });
         }
       },
 
@@ -154,6 +119,10 @@ export const useAuthStore = create<AuthState>()(
         user: state.user,
         isAuthenticated: state.isAuthenticated,
       }),
+      onRehydrateStorage: () => (state) => {
+        state?.setHasHydrated(true);
+        state?.initialize(); // apiClient 콜백 등록
+      },
     }
   )
 );

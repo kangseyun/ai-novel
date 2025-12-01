@@ -4,16 +4,14 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 
 // 클라이언트 사이드용 Supabase 클라이언트
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
-
-// 서버 사이드용 Supabase 클라이언트 (API 라우트에서 사용)
-export function createServerClient() {
-  return createClient(supabaseUrl, supabaseAnonKey, {
-    auth: {
-      persistSession: false,
-    },
-  });
-}
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    persistSession: true,
+    storageKey: 'luminovel-auth',
+    autoRefreshToken: true,
+    detectSessionInUrl: true,
+  },
+});
 
 // 타입 정의
 export interface User {
@@ -22,7 +20,7 @@ export interface User {
   nickname: string | null;
   profile_image: string | null;
   bio: string | null;
-  gems: number;
+  tokens: number;
   created_at: string;
   onboarding_completed: boolean;
   onboarding_variant: string | null;

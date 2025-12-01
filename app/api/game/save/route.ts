@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerClient } from '@/lib/supabase';
+import { createServerClient } from '@/lib/supabase-server';
 import { getAuthUser, unauthorized, badRequest, serverError } from '@/lib/auth';
 
 // POST /api/game/save - 게임 저장
@@ -14,7 +14,7 @@ export async function POST(request: NextRequest) {
       return badRequest('persona_id is required');
     }
 
-    const supabase = createServerClient();
+    const supabase = await createServerClient();
 
     // 현재 게임 상태 가져오기
     const { data: gameState, error } = await supabase

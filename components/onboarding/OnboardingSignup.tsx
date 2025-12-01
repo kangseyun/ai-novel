@@ -18,9 +18,9 @@ export default function OnboardingSignup({
   personaColor = '#8B5CF6',
 }: OnboardingSignupProps) {
   return (
-    <div className="min-h-screen bg-black flex flex-col">
+    <div className="h-[100dvh] bg-black flex flex-col overflow-hidden">
       {/* Content */}
-      <div className="flex-1 flex flex-col justify-center p-6">
+      <div className="flex-1 flex flex-col justify-center p-6 min-h-0">
         {/* Message */}
         <motion.div
           initial={{ opacity: 0, y: 10 }}
@@ -81,7 +81,7 @@ export default function OnboardingSignup({
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.4 }}
-        className="p-6 pb-8"
+        className="p-6 pb-8 shrink-0"
       >
         <p className="text-center text-xs text-white/30">
           계속하면 이용약관 및 개인정보처리방침에 동의합니다

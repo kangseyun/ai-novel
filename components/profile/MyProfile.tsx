@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import { motion } from 'framer-motion';
 import {
@@ -12,8 +12,10 @@ import {
 } from 'lucide-react';
 import { useFeedStore } from '@/lib/stores/feed-store';
 import { useUserPersonaStore, PERSONALITY_LABELS, COMMUNICATION_LABELS } from '@/lib/stores/user-persona-store';
+import { useAuthStore } from '@/lib/stores/auth-store';
 import ProfileEditModal from './ProfileEditModal';
 import SettingsModal from './SettingsModal';
+import { ProfileSkeleton } from '@/components/ui/Skeleton';
 
 export default function MyProfile() {
   const [activeTab, setActiveTab] = useState<'posts' | 'saved'>('posts');
@@ -21,6 +23,44 @@ export default function MyProfile() {
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const userPosts = useFeedStore(state => state.userPosts);
   const persona = useUserPersonaStore(state => state.persona);
+  const loadFromServer = useUserPersonaStore(state => state.loadFromServer);
+  const isSyncing = useUserPersonaStore(state => state.isSyncing);
+  const isAuthenticated = useAuthStore(state => state.isAuthenticated);
+  const hasHydrated = useAuthStore(state => state.hasHydrated);
+
+  // 마운트 시 서버에서 데이터 동기화
+  const hasFetched = useRef(false);
+  useEffect(() => {
+    if (isAuthenticated && !hasFetched.current) {
+      hasFetched.current = true;
+      loadFromServer().catch(() => {
+        // 동기화 실패 시 무시 (로컬 데이터 사용)
+      });
+    }
+  }, [loadFromServer, isAuthenticated]);
+
+  // hydration이 완료될 때까지 또는 동기화 중일 때 스켈레톤 표시
+  if (!hasHydrated || isSyncing) {
+    return <ProfileSkeleton />;
+  }
+
+  // 비로그인 상태면 로그인 페이지로 유도
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-black text-white flex flex-col items-center justify-center p-6">
+        <div className="text-center">
+          <h2 className="text-xl font-bold mb-2">로그인이 필요해요</h2>
+          <p className="text-white/50 mb-6">프로필을 보려면 먼저 로그인해주세요</p>
+          <a
+            href="/login"
+            className="inline-block px-6 py-3 bg-white text-black rounded-xl font-medium"
+          >
+            로그인하기
+          </a>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-black text-white">
@@ -70,7 +110,13 @@ export default function MyProfile() {
 
         {/* Bio */}
         <div className="mt-4">
-          <div className="font-medium">{persona.nickname || '닉네임을 설정해주세요'}</div>
+          <div className="font-medium">
+            {isSyncing ? (
+              <span className="text-white/50">로딩 중...</span>
+            ) : (
+              persona.nickname || '닉네임을 설정해주세요'
+            )}
+          </div>
           {persona.bio ? (
             <div className="text-sm text-white/60 mt-1">{persona.bio}</div>
           ) : (

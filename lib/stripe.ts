@@ -1,10 +1,17 @@
 import Stripe from 'stripe';
 
-// Initialize Stripe only if the secret key is available to avoid build-time/module-load errors.
-// The API route will check for the instance and return a proper error if it's missing.
+// Initialize Stripe only if the secret key is available
 export const stripe = process.env.STRIPE_SECRET_KEY
-  ? new Stripe(process.env.STRIPE_SECRET_KEY, {
-      apiVersion: '2025-11-17.clover', // Use the latest stable version or match your dashboard
-      typescript: true,
-    })
+  ? new Stripe(process.env.STRIPE_SECRET_KEY)
   : null;
+
+// 클라이언트사이드 publishable key
+export const getStripePublishableKey = () => {
+  return process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!;
+};
+
+// 현재 모드 확인 (키 prefix로 판단)
+export const isStripeTestMode = () => {
+  const key = process.env.STRIPE_SECRET_KEY || '';
+  return key.startsWith('sk_test_');
+};

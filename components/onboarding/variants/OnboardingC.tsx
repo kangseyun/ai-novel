@@ -79,7 +79,7 @@ export default function OnboardingC({ onComplete, onSkip }: OnboardingCProps) {
 
   return (
     <div className="fixed inset-0 z-[100] bg-black flex justify-center">
-      <div className="w-full max-w-[430px] min-h-screen relative bg-black">
+      <div className="w-full max-w-[430px] h-[100dvh] relative bg-black overflow-hidden">
         <AnimatePresence mode="wait">
           {/* Lockscreen */}
           {step === 'lockscreen' && (
@@ -88,12 +88,12 @@ export default function OnboardingC({ onComplete, onSkip }: OnboardingCProps) {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="min-h-screen flex flex-col relative overflow-hidden"
+              className="h-[100dvh] flex flex-col relative overflow-hidden"
             >
               <div className="absolute inset-0 bg-gradient-to-b from-zinc-900/50 to-black" />
 
               {/* 시간 표시 - 상단 */}
-              <div className="relative z-10 flex flex-col items-center pt-20 pb-8">
+              <div className="relative z-10 flex flex-col items-center pt-16 pb-6 shrink-0">
                 <motion.p
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
@@ -111,7 +111,7 @@ export default function OnboardingC({ onComplete, onSkip }: OnboardingCProps) {
               </div>
 
               {/* Notifications preview - 시계 아래 */}
-              <div className="relative z-10 px-4 space-y-2">
+              <div className="relative z-10 px-4 space-y-2 flex-1 overflow-y-auto min-h-0">
                 {availablePersonas.slice(0, 3).map((persona, idx) => (
                   <motion.div
                     key={persona.id}
@@ -136,11 +136,8 @@ export default function OnboardingC({ onComplete, onSkip }: OnboardingCProps) {
                 ))}
               </div>
 
-              {/* Spacer */}
-              <div className="flex-1" />
-
               {/* 터치 힌트 - 하단 */}
-              <div className="relative z-10 px-4 pb-8">
+              <div className="relative z-10 px-4 pb-8 shrink-0">
                 <AnimatePresence>
                   {showSwipeHint && (
                     <motion.button
@@ -181,9 +178,9 @@ export default function OnboardingC({ onComplete, onSkip }: OnboardingCProps) {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="min-h-screen flex flex-col"
+              className="h-[100dvh] flex flex-col overflow-hidden"
             >
-              <div className="px-5 pt-12 pb-6">
+              <div className="px-5 pt-12 pb-4 shrink-0">
                 <motion.h1
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -201,7 +198,7 @@ export default function OnboardingC({ onComplete, onSkip }: OnboardingCProps) {
                 </motion.p>
               </div>
 
-              <div className="flex-1 px-4">
+              <div className="flex-1 px-4 overflow-y-auto min-h-0 pb-16">
                 {PERSONAS.map((persona, idx) => (
                   <motion.button
                     key={persona.id}
@@ -279,7 +276,7 @@ export default function OnboardingC({ onComplete, onSkip }: OnboardingCProps) {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="min-h-screen flex flex-col items-center justify-center"
+              className="h-[100dvh] flex flex-col items-center justify-center"
             >
               <motion.div
                 initial={{ scale: 0.8, opacity: 0 }}

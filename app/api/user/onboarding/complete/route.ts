@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerClient } from '@/lib/supabase';
+import { createServerClient } from '@/lib/supabase-server';
 import { getAuthUser, unauthorized, badRequest, serverError } from '@/lib/auth';
 
 // POST /api/user/onboarding/complete - 온보딩 완료 처리
@@ -14,7 +14,7 @@ export async function POST(request: NextRequest) {
       return badRequest('variant and persona_id are required');
     }
 
-    const supabase = createServerClient();
+    const supabase = await createServerClient();
 
     // 1. 사용자 온보딩 완료 표시
     const { error: userError } = await supabase

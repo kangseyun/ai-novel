@@ -31,7 +31,7 @@ export default function PrivacyPage() {
           <section>
             <h2 className="text-white font-semibold text-base mb-3">Introduction</h2>
             <p>
-              Lumina Fiction ("we", "us", "our") respects your privacy and is committed to
+              Luminovel.ai ("we", "us", "our") respects your privacy and is committed to
               protecting your personal data. This Privacy Policy explains how we collect, use,
               disclose, and safeguard your information when you use our mobile application
               ("the App").
@@ -303,7 +303,7 @@ export default function PrivacyPage() {
                 <strong className="text-white">Address:</strong>
               </p>
               <p className="text-white/60 pl-4">
-                Lumina Fiction Inc.<br />
+                Luminovel.ai Inc.<br />
                 Attn: Privacy Team<br />
                 Delaware, United States
               </p>
@@ -323,7 +323,7 @@ export default function PrivacyPage() {
           </section>
 
           <div className="pt-8 pb-4 text-center">
-            <p className="text-xs text-white/30">© 2025 Lumina Fiction. All rights reserved.</p>
+            <p className="text-xs text-white/30">© 2025 Luminovel.ai. All rights reserved.</p>
           </div>
         </div>
       </div>

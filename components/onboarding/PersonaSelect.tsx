@@ -14,9 +14,9 @@ export default function PersonaSelect({ onSelect }: PersonaSelectProps) {
   };
 
   return (
-    <div className="min-h-screen bg-black text-white flex flex-col">
+    <div className="h-[100dvh] bg-black text-white flex flex-col overflow-hidden">
       {/* Header */}
-      <div className="px-5 pt-12 pb-6">
+      <div className="px-5 pt-12 pb-4 shrink-0">
         <motion.h1
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -35,7 +35,7 @@ export default function PersonaSelect({ onSelect }: PersonaSelectProps) {
       </div>
 
       {/* DM List */}
-      <div className="flex-1 px-4">
+      <div className="flex-1 px-4 overflow-y-auto min-h-0 pb-8">
         {PERSONAS.map((persona, idx) => (
           <motion.button
             key={persona.id}

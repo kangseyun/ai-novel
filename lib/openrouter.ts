@@ -63,7 +63,7 @@ class OpenRouterService {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${this.apiKey}`,
           'HTTP-Referer': typeof window !== 'undefined' ? window.location.origin : '',
-          'X-Title': 'AI Novel Game',
+          'X-Title': 'Luminovel.ai',
         },
         body: JSON.stringify({
           model: this.model,

@@ -46,7 +46,7 @@ export default function OnboardingA({ onComplete, onSkip }: OnboardingAProps) {
 
   return (
     <div className="fixed inset-0 z-[100] bg-black flex justify-center">
-      <div className="w-full max-w-[430px] min-h-screen relative bg-black">
+      <div className="w-full max-w-[430px] h-[100dvh] relative bg-black overflow-hidden">
         <AnimatePresence mode="wait">
           {step === 'select' && (
             <motion.div
@@ -54,10 +54,10 @@ export default function OnboardingA({ onComplete, onSkip }: OnboardingAProps) {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="min-h-screen flex flex-col"
+              className="h-[100dvh] flex flex-col overflow-hidden"
             >
               {/* Header */}
-              <div className="px-5 pt-14 pb-6">
+              <div className="px-5 pt-12 pb-4 shrink-0">
                 <motion.p
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
@@ -83,7 +83,7 @@ export default function OnboardingA({ onComplete, onSkip }: OnboardingAProps) {
               </div>
 
               {/* Simple DM List */}
-              <div className="flex-1 px-4">
+              <div className="flex-1 px-4 overflow-y-auto min-h-0 pb-16">
                 {PERSONAS.map((persona, idx) => (
                   <motion.button
                     key={persona.id}
