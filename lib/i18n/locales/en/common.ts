@@ -1,0 +1,18 @@
+export const common = {
+  loading: 'Loading...',
+  error: 'An error occurred',
+  retry: 'Retry',
+  cancel: 'Cancel',
+  confirm: 'Confirm',
+  save: 'Save',
+  delete: 'Delete',
+  edit: 'Edit',
+  close: 'Close',
+  back: 'Back',
+  next: 'Next',
+  done: 'Done',
+  search: 'Search',
+  noData: 'No data',
+  loginRequired: 'Login required',
+  login: 'Login',
+} as const;

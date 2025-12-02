@@ -1,0 +1,15 @@
+export const feed = {
+  title: '피드',
+  empty: '피드가 비어있어요',
+  emptyHint: '+ 버튼을 눌러 첫 포스팅을 해보세요',
+  justNow: '방금',
+  minutesAgo: '{n}분 전',
+  hoursAgo: '{n}시간 전',
+  daysAgo: '{n}일 전',
+  weeksAgo: '며칠 전',
+  likes: '좋아요 {n}개',
+  createPost: '포스팅 작성',
+  all: '전체',
+  reactions: '반응',
+  posted: '게시됨!',
+} as const;

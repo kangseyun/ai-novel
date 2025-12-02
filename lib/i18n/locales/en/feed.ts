@@ -1,0 +1,15 @@
+export const feed = {
+  title: 'Feed',
+  empty: 'Your feed is empty',
+  emptyHint: 'Tap + to create your first post',
+  justNow: 'Just now',
+  minutesAgo: '{n}m ago',
+  hoursAgo: '{n}h ago',
+  daysAgo: '{n}d ago',
+  weeksAgo: 'days ago',
+  likes: '{n} likes',
+  createPost: 'Create Post',
+  all: 'All',
+  reactions: 'Reactions',
+  posted: 'Posted!',
+} as const;

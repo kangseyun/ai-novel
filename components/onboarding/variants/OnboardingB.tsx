@@ -12,6 +12,7 @@ import { PERSONAS } from '@/lib/persona-data';
 import OnboardingScenario, { ScenarioResultData } from '../OnboardingScenario';
 import OnboardingSignup from '../OnboardingSignup';
 import { getPersonaById } from '@/lib/persona-data';
+import { useTranslations, useLocale } from '@/lib/i18n';
 
 interface OnboardingBProps {
   onComplete: () => void;
@@ -26,17 +27,20 @@ export default function OnboardingB({ onComplete, onSkip }: OnboardingBProps) {
   const [affectionGained, setAffectionGained] = useState(0);
   const [time, setTime] = useState('');
   const [date, setDate] = useState('');
+  const tr = useTranslations();
+  const locale = useLocale();
 
   useEffect(() => {
     const updateTime = () => {
       const now = new Date();
-      setTime(now.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false }));
-      setDate(now.toLocaleDateString('ko-KR', { month: 'long', day: 'numeric', weekday: 'long' }));
+      const localeCode = locale === 'ko' ? 'ko-KR' : 'en-US';
+      setTime(now.toLocaleTimeString(localeCode, { hour: '2-digit', minute: '2-digit', hour12: false }));
+      setDate(now.toLocaleDateString(localeCode, { month: 'long', day: 'numeric', weekday: 'long' }));
     };
     updateTime();
     const interval = setInterval(updateTime, 1000);
     return () => clearInterval(interval);
-  }, []);
+  }, [locale]);
 
   const handleNotificationClick = (personaId: string, isAvailable: boolean) => {
     if (!isAvailable) return; // 사용 불가능한 페르소나는 클릭 무시
@@ -123,11 +127,11 @@ export default function OnboardingB({ onComplete, onSkip }: OnboardingBProps) {
                         <div className="flex items-center justify-between mb-0.5">
                           <span className="font-medium text-sm text-white">{persona.name}</span>
                           <span className="text-xs text-white/40">
-                            {persona.available ? '방금' : '준비 중'}
+                            {persona.available ? tr.onboarding.justNow : tr.onboarding.preparing}
                           </span>
                         </div>
                         <p className="text-sm text-white/60 truncate">
-                          {persona.available ? persona.teaserLine : '곧 만나요...'}
+                          {persona.available ? persona.teaserLine : tr.onboarding.comingSoon}
                         </p>
                       </div>
                     </div>
@@ -141,7 +145,7 @@ export default function OnboardingB({ onComplete, onSkip }: OnboardingBProps) {
                   transition={{ delay: 0.5 }}
                   className="text-center text-xs text-white/30 pt-4"
                 >
-                  알림을 탭하여 대화 시작
+                  {tr.onboarding.tapNotificationToStart}
                 </motion.p>
               </div>
 
@@ -150,7 +154,7 @@ export default function OnboardingB({ onComplete, onSkip }: OnboardingBProps) {
                   onClick={onSkip}
                   className="absolute bottom-8 right-6 text-xs text-white/30 hover:text-white/50 transition z-20"
                 >
-                  건너뛰기 →
+                  {tr.onboarding.skip}
                 </button>
               )}
             </motion.div>

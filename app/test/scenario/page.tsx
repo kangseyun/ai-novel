@@ -5,11 +5,13 @@ import { motion } from 'framer-motion';
 import { RotateCcw, Play, ChevronLeft } from 'lucide-react';
 import Link from 'next/link';
 import OnboardingScenario, { ScenarioResultData } from '@/components/onboarding/OnboardingScenario';
+import { useTranslations } from '@/lib/i18n';
 
 export default function ScenarioTestPage() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [key, setKey] = useState(0); // 리셋용
   const [confirmedResult, setConfirmedResult] = useState<ScenarioResultData | null>(null);
+  const tr = useTranslations();
 
   const handleProgress = (affection: number, isPremiumTease: boolean) => {
     console.log('Progress:', { affection, isPremiumTease });

@@ -10,6 +10,8 @@ import { useAuthStore } from '@/lib/stores/auth-store';
 import { apiClient } from '@/lib/api-client';
 import SuggestedFriends from './SuggestedFriends';
 import { DMListSkeleton } from '@/components/ui/Skeleton';
+import { useTranslations, useLocale, t } from '@/lib/i18n';
+import { toast } from 'sonner';
 
 interface DMListProps {
   onOpenChat: (personaId: string) => void;
@@ -33,6 +35,8 @@ export default function DMList({ onOpenChat }: DMListProps) {
   const [isLoading, setIsLoading] = useState(true);
   const isAuthenticated = useAuthStore(state => state.isAuthenticated);
   const hasFetched = useRef(false);
+  const tr = useTranslations();
+  const locale = useLocale();
 
   // 서버에서 DM 목록 로드
   useEffect(() => {
@@ -51,7 +55,7 @@ export default function DMList({ onOpenChat }: DMListProps) {
       setConversations(data.conversations);
     } catch (error) {
       console.error('[DMList] Failed to load:', error);
-      // 에러 시 빈 목록 표시
+      toast.error('메시지 목록을 불러오지 못했어요');
       setConversations([]);
     } finally {
       setIsLoading(false);
@@ -69,11 +73,11 @@ export default function DMList({ onOpenChat }: DMListProps) {
     const hours = Math.floor(diff / 3600000);
     const days = Math.floor(diff / 86400000);
 
-    if (minutes < 1) return '방금';
-    if (minutes < 60) return `${minutes}분`;
-    if (hours < 24) return `${hours}시간`;
-    if (days < 7) return `${days}일`;
-    return '오래전';
+    if (minutes < 1) return tr.feed.justNow;
+    if (minutes < 60) return t(tr.feed.minutesAgo, { n: minutes });
+    if (hours < 24) return t(tr.feed.hoursAgo, { n: hours });
+    if (days < 7) return locale === 'ko' ? `${days}일` : `${days}d`;
+    return tr.feed.daysAgo;
   };
 
   // 로딩 중 스켈레톤 표시
@@ -82,8 +86,8 @@ export default function DMList({ onOpenChat }: DMListProps) {
       <div className="min-h-screen bg-black text-white">
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
-          <h1 className="text-lg font-bold">메시지</h1>
-          <div className="text-xs text-white/50">로딩 중...</div>
+          <h1 className="text-lg font-bold">{tr.dm.title}</h1>
+          <div className="text-xs text-white/50">{tr.common.loading}</div>
         </div>
         <DMListSkeleton count={3} />
       </div>
@@ -94,9 +98,9 @@ export default function DMList({ onOpenChat }: DMListProps) {
     <div className="min-h-screen bg-black text-white">
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
-        <h1 className="text-lg font-bold">메시지</h1>
+        <h1 className="text-lg font-bold">{tr.dm.title}</h1>
         <div className="text-xs text-white/50">
-          {conversations.length}개의 대화
+          {t(tr.dm.conversations, { n: conversations.length })}
         </div>
       </div>
 
@@ -107,10 +111,9 @@ export default function DMList({ onOpenChat }: DMListProps) {
             <div className="w-16 h-16 rounded-full border-2 border-white/20 flex items-center justify-center mb-4">
               <MessageCircle className="w-8 h-8 text-white/30" />
             </div>
-            <p className="text-white/50 mb-2">아직 대화가 없어요</p>
-            <p className="text-sm text-white/30">
-              페르소나의 스토리에 답장하거나<br />
-              포스팅을 올려 대화를 시작해보세요
+            <p className="text-white/50 mb-2">{tr.dm.empty}</p>
+            <p className="text-sm text-white/30 whitespace-pre-line">
+              {tr.dm.emptyHint}
             </p>
           </div>
         ) : (
@@ -182,7 +185,7 @@ export default function DMList({ onOpenChat }: DMListProps) {
       {/* 대화가 없을 때 Jun 시작 카드 */}
       {conversations.length === 0 && (
         <div className="px-4 pt-6">
-          <h2 className="text-sm font-medium text-white/50 mb-3">대화 시작하기</h2>
+          <h2 className="text-sm font-medium text-white/50 mb-3">{tr.dm.startChat}</h2>
           <div className="flex items-center gap-3 p-3 bg-white/5 rounded-xl">
             <div
               className="w-12 h-12 rounded-full overflow-hidden border border-white/20 cursor-pointer"
@@ -214,7 +217,7 @@ export default function DMList({ onOpenChat }: DMListProps) {
               onClick={() => onOpenChat('jun')}
               className="px-3 py-1.5 bg-white/10 rounded-lg text-sm hover:bg-white/15 transition"
             >
-              대화하기
+              {tr.dm.chat}
             </button>
           </div>
         </div>

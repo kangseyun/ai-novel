@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { POST_TEMPLATES, PostTemplate, UserMood } from '@/lib/user-feed-system';
 import { useFeedStore } from '@/lib/stores/feed-store';
+import { useTranslations } from '@/lib/i18n';
 
 interface CreatePostProps {
   onClose: () => void;
@@ -34,12 +35,6 @@ const MOOD_EMOJIS: Record<UserMood, string> = {
   angry: '😤',
 };
 
-const CATEGORY_INFO: Record<Category, { label: string; icon: string; color: string }> = {
-  daily: { label: '일상', icon: '☀️', color: 'text-amber-400' },
-  night: { label: '밤/감성', icon: '🌙', color: 'text-indigo-400' },
-  special: { label: '특별한 순간', icon: '✨', color: 'text-pink-400' },
-  provoke: { label: '반응 유도', icon: '💬', color: 'text-red-400' },
-};
 
 export default function CreatePost({ onClose, onPostCreated }: CreatePostProps) {
   const [selectedCategory, setSelectedCategory] = useState<Category>('daily');
@@ -48,8 +43,16 @@ export default function CreatePost({ onClose, onPostCreated }: CreatePostProps) 
   const [step, setStep] = useState<'category' | 'template' | 'customize'>('category');
   const [isPosting, setIsPosting] = useState(false);
   const [postError, setPostError] = useState<string | null>(null);
+  const tr = useTranslations();
 
   const createPostToServer = useFeedStore(state => state.createPostToServer);
+
+  const CATEGORY_INFO: Record<Category, { label: string; icon: string; color: string }> = {
+    daily: { label: tr.createPost.daily, icon: '☀️', color: 'text-amber-400' },
+    night: { label: tr.createPost.night, icon: '🌙', color: 'text-indigo-400' },
+    special: { label: tr.createPost.special, icon: '✨', color: 'text-pink-400' },
+    provoke: { label: tr.createPost.provoke, icon: '💬', color: 'text-red-400' },
+  };
 
   const filteredTemplates = POST_TEMPLATES.filter(t => t.category === selectedCategory);
 
@@ -86,7 +89,7 @@ export default function CreatePost({ onClose, onPostCreated }: CreatePostProps) 
       onClose();
     } catch (error) {
       setIsPosting(false);
-      setPostError(error instanceof Error ? error.message : '포스트 생성에 실패했습니다');
+      setPostError(error instanceof Error ? error.message : tr.createPost.postFailed);
     }
   };
 
@@ -103,14 +106,14 @@ export default function CreatePost({ onClose, onPostCreated }: CreatePostProps) 
         <button onClick={onClose} className="p-2">
           <X className="w-6 h-6" />
         </button>
-        <span className="font-medium">새 게시물</span>
+        <span className="font-medium">{tr.createPost.newPost}</span>
         {step === 'customize' && (
           <button
             onClick={handlePost}
             disabled={isPosting}
             className="px-4 py-1.5 bg-blue-500 text-white text-sm font-medium rounded-lg disabled:opacity-50"
           >
-            {isPosting ? '게시 중...' : '공유'}
+            {isPosting ? tr.createPost.posting : tr.createPost.share}
           </button>
         )}
         {step !== 'customize' && <div className="w-16" />}
@@ -133,9 +136,9 @@ export default function CreatePost({ onClose, onPostCreated }: CreatePostProps) 
             exit={{ opacity: 0, x: -20 }}
             className="p-6"
           >
-            <h2 className="text-lg font-medium mb-2">어떤 기분이에요?</h2>
+            <h2 className="text-lg font-medium mb-2">{tr.createPost.howAreYouFeeling}</h2>
             <p className="text-sm text-white/50 mb-6">
-              포스팅하면 관심있는 누군가가 반응할지도...
+              {tr.createPost.maybeReaction}
             </p>
 
             <div className="space-y-3">
@@ -152,7 +155,7 @@ export default function CreatePost({ onClose, onPostCreated }: CreatePostProps) 
                       <div className="text-left">
                         <div className={`font-medium ${info.color}`}>{info.label}</div>
                         <div className="text-xs text-white/40">
-                          {cat === 'provoke' ? '높은 반응 확률' : '일반 포스팅'}
+                          {cat === 'provoke' ? tr.createPost.highReactionChance : tr.createPost.normalPost}
                         </div>
                       </div>
                     </div>
@@ -177,7 +180,7 @@ export default function CreatePost({ onClose, onPostCreated }: CreatePostProps) 
               onClick={() => setStep('category')}
               className="flex items-center gap-2 text-sm text-white/50 mb-4"
             >
-              ← 카테고리 선택
+              ← {tr.createPost.selectCategory}
             </button>
 
             <h2 className="text-lg font-medium mb-4">
@@ -234,7 +237,7 @@ export default function CreatePost({ onClose, onPostCreated }: CreatePostProps) 
               onClick={() => setStep('template')}
               className="flex items-center gap-2 text-sm text-white/50 px-4 py-2"
             >
-              ← 다른 템플릿 선택
+              ← {tr.createPost.selectOtherTemplate}
             </button>
 
             {/* Preview */}
@@ -259,14 +262,14 @@ export default function CreatePost({ onClose, onPostCreated }: CreatePostProps) 
                 <textarea
                   value={customCaption}
                   onChange={(e) => setCustomCaption(e.target.value)}
-                  placeholder="문구 작성..."
+                  placeholder={tr.createPost.writeCaption}
                   className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-sm resize-none focus:outline-none focus:border-white/30"
                   rows={3}
                 />
 
                 {/* Mood indicator */}
                 <div className="flex items-center gap-2 text-sm text-white/50">
-                  <span>기분:</span>
+                  <span>{tr.createPost.mood}:</span>
                   <span className="px-2 py-1 bg-white/10 rounded-full flex items-center gap-1">
                     {MOOD_EMOJIS[selectedTemplate.mood]}
                     <span className="capitalize">{selectedTemplate.mood}</span>
@@ -278,8 +281,8 @@ export default function CreatePost({ onClose, onPostCreated }: CreatePostProps) 
                   <div className="flex items-start gap-2">
                     <Sparkles className="w-4 h-4 text-purple-400 mt-0.5" />
                     <div className="text-xs text-white/60">
-                      <span className="text-purple-400 font-medium">Tip:</span>{' '}
-                      이 포스팅을 하면 누군가가 DM을 보낼 수도 있어요
+                      <span className="text-purple-400 font-medium">{tr.createPost.tip}</span>{' '}
+                      {tr.createPost.postTip}
                     </div>
                   </div>
                 </div>
@@ -305,7 +308,7 @@ export default function CreatePost({ onClose, onPostCreated }: CreatePostProps) 
             >
               <Check className="w-8 h-8 text-white" />
             </motion.div>
-            <p className="text-white font-medium">게시됨!</p>
+            <p className="text-white font-medium">{tr.feed.posted}</p>
           </motion.div>
         )}
       </AnimatePresence>

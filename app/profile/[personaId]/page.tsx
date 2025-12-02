@@ -6,6 +6,7 @@ import Image from 'next/image';
 import { ArrowLeft, Settings, MoreHorizontal, Grid3X3, Bookmark, Heart } from 'lucide-react';
 import { JUN_PROFILE, JUN_POSTS } from '@/lib/hacked-sns-data';
 import { useUserPersonaStore } from '@/lib/stores/user-persona-store';
+import { useTranslations } from '@/lib/i18n';
 
 // 페르소나 프로필 데이터
 const PERSONA_PROFILES: Record<string, {
@@ -80,6 +81,7 @@ export default function PersonaProfilePage() {
   const params = useParams();
   const router = useRouter();
   const personaId = params.personaId as string;
+  const tr = useTranslations();
 
   const { unlockedPersonas } = useUserPersonaStore();
   const isFollowing = unlockedPersonas.includes(personaId);
@@ -89,7 +91,7 @@ export default function PersonaProfilePage() {
   if (!profile) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
-        <p className="text-white/50">프로필을 찾을 수 없습니다</p>
+        <p className="text-white/50">{tr.common.noData}</p>
       </div>
     );
   }
@@ -135,15 +137,15 @@ export default function PersonaProfilePage() {
           <div className="flex-1 flex justify-around pt-2">
             <div className="text-center">
               <p className="font-bold">{profile.posts}</p>
-              <p className="text-xs text-white/50">게시물</p>
+              <p className="text-xs text-white/50">{tr.profile.posts}</p>
             </div>
             <div className="text-center">
               <p className="font-bold">{profile.followers}</p>
-              <p className="text-xs text-white/50">팔로워</p>
+              <p className="text-xs text-white/50">{tr.profile.followers}</p>
             </div>
             <div className="text-center">
               <p className="font-bold">{profile.following}</p>
-              <p className="text-xs text-white/50">팔로잉</p>
+              <p className="text-xs text-white/50">{tr.profile.following}</p>
             </div>
           </div>
         </div>
@@ -168,18 +170,18 @@ export default function PersonaProfilePage() {
           {isFollowing ? (
             <>
               <button className="flex-1 py-2 bg-white/10 rounded-lg text-sm font-medium">
-                팔로잉
+                {tr.profile.following}
               </button>
               <button
                 onClick={() => router.push(`/dm?persona=${personaId}`)}
                 className="flex-1 py-2 bg-white/10 rounded-lg text-sm font-medium"
               >
-                메시지
+                {tr.nav.messages}
               </button>
             </>
           ) : (
             <button className="flex-1 py-2 bg-white text-black rounded-lg text-sm font-medium">
-              팔로우
+              {tr.dm.follow}
             </button>
           )}
         </div>

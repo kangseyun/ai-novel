@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Check } from 'lucide-react';
 import { useUserPersonaStore } from '@/lib/stores/user-persona-store';
+import { useTranslations } from '@/lib/i18n';
 
 // ============================================
 // 타입 정의
@@ -71,6 +72,7 @@ export default function SuggestedFriends({
   const [selectedPersona, setSelectedPersona] = useState<Persona | null>(null);
   const [isFollowing, setIsFollowing] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
+  const tr = useTranslations();
 
   const { unlockedPersonas, unlockPersona } = useUserPersonaStore();
 
@@ -129,7 +131,7 @@ export default function SuggestedFriends({
   return (
     <>
       <div className="px-4 pt-[300px] pb-4">
-        <h2 className="text-sm font-medium text-white/50 mb-3">추천 친구</h2>
+        <h2 className="text-sm font-medium text-white/50 mb-3">{tr.dm.suggestedFriends}</h2>
         <div className="space-y-2">
           {unfollowedPersonas.map((persona, idx) => (
             <motion.div
@@ -169,7 +171,7 @@ export default function SuggestedFriends({
                 onClick={() => handleFollowClick(persona)}
                 className="px-4 py-1.5 bg-white/10 rounded-lg text-sm text-white/80 hover:bg-white/15 transition"
               >
-                팔로우
+                {tr.dm.follow}
               </button>
             </motion.div>
           ))}
@@ -202,7 +204,7 @@ export default function SuggestedFriends({
                   >
                     <Check className="w-6 h-6 text-white" />
                   </motion.div>
-                  <p className="text-white text-sm">팔로우 완료</p>
+                  <p className="text-white text-sm">{tr.dm.followComplete}</p>
                 </div>
               ) : (
                 <div className="p-5">
@@ -227,7 +229,7 @@ export default function SuggestedFriends({
                       onClick={() => setSelectedPersona(null)}
                       className="flex-1 py-2.5 bg-white/5 rounded-xl text-white/50 text-sm hover:bg-white/10 transition"
                     >
-                      취소
+                      {tr.common.cancel}
                     </button>
                     <button
                       onClick={handleConfirmFollow}
@@ -237,7 +239,7 @@ export default function SuggestedFriends({
                       {isFollowing ? (
                         <div className="w-4 h-4 mx-auto border-2 border-white/20 border-t-white/60 rounded-full animate-spin" />
                       ) : (
-                        '팔로우'
+                        tr.dm.follow
                       )}
                     </button>
                   </div>

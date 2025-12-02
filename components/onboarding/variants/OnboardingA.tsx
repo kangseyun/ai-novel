@@ -10,6 +10,7 @@ import { PERSONAS, PersonaCard } from '@/lib/persona-data';
 import OnboardingScenario, { ScenarioResultData } from '../OnboardingScenario';
 import OnboardingSignup from '../OnboardingSignup';
 import { getPersonaById } from '@/lib/persona-data';
+import { useTranslations } from '@/lib/i18n';
 
 interface OnboardingAProps {
   onComplete: () => void;
@@ -22,6 +23,7 @@ export default function OnboardingA({ onComplete, onSkip }: OnboardingAProps) {
   const [step, setStep] = useState<Step>('select');
   const [selectedPersonaId, setSelectedPersonaId] = useState<string | null>(null);
   const [affectionGained, setAffectionGained] = useState(0);
+  const tr = useTranslations();
 
   const handleSelect = (persona: PersonaCard) => {
     if (!persona.available) return;
@@ -63,14 +65,14 @@ export default function OnboardingA({ onComplete, onSkip }: OnboardingAProps) {
                   animate={{ opacity: 1 }}
                   className="text-white/40 text-xs mb-3"
                 >
-                  AI 인터랙티브 스토리
+                  {tr.onboarding.aiInteractiveStory}
                 </motion.p>
                 <motion.h1
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   className="text-2xl font-bold text-white mb-2"
                 >
-                  누군가 메시지를 보냈어요
+                  {tr.onboarding.someoneMessaged}
                 </motion.h1>
                 <motion.p
                   initial={{ opacity: 0 }}
@@ -78,7 +80,7 @@ export default function OnboardingA({ onComplete, onSkip }: OnboardingAProps) {
                   transition={{ delay: 0.1 }}
                   className="text-white/50 text-sm"
                 >
-                  대화를 통해 그들의 이야기 속으로
+                  {tr.onboarding.enterTheirStory}
                 </motion.p>
               </div>
 
@@ -115,11 +117,11 @@ export default function OnboardingA({ onComplete, onSkip }: OnboardingAProps) {
                           <span className="text-xs text-white/30">{persona.archetype}</span>
                         </div>
                         {persona.available && (
-                          <span className="text-xs text-white/30">방금</span>
+                          <span className="text-xs text-white/30">{tr.onboarding.justNow}</span>
                         )}
                       </div>
                       <p className="text-sm text-white/40 truncate">
-                        {persona.available ? persona.teaserLine : '준비 중'}
+                        {persona.available ? persona.teaserLine : tr.onboarding.preparing}
                       </p>
                     </div>
 
@@ -136,7 +138,7 @@ export default function OnboardingA({ onComplete, onSkip }: OnboardingAProps) {
                   onClick={onSkip}
                   className="absolute bottom-8 right-6 text-xs text-white/30 hover:text-white/50 transition"
                 >
-                  건너뛰기 →
+                  {tr.onboarding.skip}
                 </button>
               )}
             </motion.div>

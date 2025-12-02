@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Crown, Heart, History, X } from 'lucide-react';
 import type { ScenarioContent, ScenarioScene, ScenarioChoice } from '@/lib/ai-agent/scenario-service';
+import { useTranslations } from '@/lib/i18n';
 
 // ============================================
 // 타입 정의
@@ -73,6 +74,8 @@ export default function ScenarioPlayer({
   theme = 'dark',
   showHistory = true,
 }: ScenarioPlayerProps) {
+  const tr = useTranslations();
+
   // 현재 씬 인덱스 찾기
   const findSceneIndex = useCallback((sceneId?: string) => {
     if (!sceneId) return 0;
@@ -407,7 +410,7 @@ export default function ScenarioPlayer({
             isDark ? 'text-white/30' : 'text-black/30'
           }`}
         >
-          탭하여 계속
+          {tr.scenario.tapToContinue}
         </motion.p>
       )}
 
@@ -471,6 +474,7 @@ export default function ScenarioPlayer({
             characterName={character.name}
             onClose={() => setShowHistoryPanel(false)}
             theme={theme}
+            tr={tr}
           />
         )}
       </AnimatePresence>
@@ -481,6 +485,7 @@ export default function ScenarioPlayer({
           <PremiumModal
             onContinue={handleContinueWithFree}
             theme={theme}
+            tr={tr}
           />
         )}
       </AnimatePresence>
@@ -567,11 +572,13 @@ function HistoryPanel({
   characterName,
   onClose,
   theme = 'dark',
+  tr,
 }: {
   history: HistoryItem[];
   characterName: string;
   onClose: () => void;
   theme?: 'dark' | 'light';
+  tr: ReturnType<typeof useTranslations>;
 }) {
   const isDark = theme === 'dark';
 
@@ -586,7 +593,7 @@ function HistoryPanel({
       <div className={`flex items-center justify-between px-4 py-4 border-b ${
         isDark ? 'border-white/10' : 'border-black/10'
       }`}>
-        <h3 className={`font-medium ${isDark ? 'text-white' : 'text-black'}`}>이전 대화</h3>
+        <h3 className={`font-medium ${isDark ? 'text-white' : 'text-black'}`}>{tr.scenario.previousChat}</h3>
         <button
           onClick={onClose}
           className={`p-2 rounded-full transition ${isDark ? 'hover:bg-white/10' : 'hover:bg-black/10'}`}
@@ -598,7 +605,7 @@ function HistoryPanel({
       <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
         {history.length === 0 ? (
           <p className={`text-center py-8 ${isDark ? 'text-white/30' : 'text-black/30'}`}>
-            아직 대화 기록이 없습니다
+            {tr.scenario.noHistoryYet}
           </p>
         ) : (
           history.map((item, idx) => (
@@ -610,7 +617,7 @@ function HistoryPanel({
               ) : (
                 <div className="space-y-1">
                   <span className={`text-xs ${isDark ? 'text-white/50' : 'text-black/50'}`}>
-                    {item.speaker}
+                    {item.speaker === '나' ? tr.scenario.me : item.speaker}
                   </span>
                   <p className={`text-sm leading-relaxed ${
                     item.speaker === '나'
@@ -633,7 +640,7 @@ function HistoryPanel({
             isDark ? 'bg-white/10 text-white/70' : 'bg-black/10 text-black/70'
           }`}
         >
-          닫기
+          {tr.scenario.close}
         </button>
       </div>
     </motion.div>
@@ -643,9 +650,11 @@ function HistoryPanel({
 function PremiumModal({
   onContinue,
   theme = 'dark',
+  tr,
 }: {
   onContinue: () => void;
   theme?: 'dark' | 'light';
+  tr: ReturnType<typeof useTranslations>;
 }) {
   const isDark = theme === 'dark';
 
@@ -671,10 +680,10 @@ function PremiumModal({
 
         <div className="space-y-2">
           <h3 className={`text-xl font-semibold ${isDark ? 'text-white' : 'text-black'}`}>
-            프리미엄 선택지
+            {tr.scenario.premiumChoice}
           </h3>
           <p className={`text-sm ${isDark ? 'text-white/50' : 'text-black/50'}`}>
-            특별한 스토리를 경험할 수 있어요
+            {tr.scenario.premiumHint}
           </p>
         </div>
 
@@ -684,7 +693,7 @@ function PremiumModal({
             isDark ? 'bg-white/10 text-white/70' : 'bg-black/10 text-black/70'
           }`}
         >
-          일반 선택지로 계속
+          {tr.scenario.continueWithFree}
         </button>
       </motion.div>
     </motion.div>

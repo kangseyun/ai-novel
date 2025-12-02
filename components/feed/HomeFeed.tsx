@@ -16,6 +16,8 @@ import {
 import { useFeedStore } from '@/lib/stores/feed-store';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import { FeedSkeleton } from '@/components/ui/Skeleton';
+import { useTranslations, useLocale, t } from '@/lib/i18n';
+import { toast } from 'sonner';
 
 // 통합 피드 아이템 타입
 type FeedItem = {
@@ -57,6 +59,8 @@ export default function HomeFeed() {
   const [showDeleteMenu, setShowDeleteMenu] = useState<string | null>(null);
 
   const isAuthenticated = useAuthStore(state => state.isAuthenticated);
+  const tr = useTranslations();
+  const locale = useLocale();
 
   const handleProfileClick = (personaId: string) => {
     router.push(`/profile/${personaId}`);
@@ -68,7 +72,7 @@ export default function HomeFeed() {
     if (isAuthenticated && !hasFetched.current) {
       hasFetched.current = true;
       loadFeedFromServer().catch(() => {
-        console.error('피드 로드 실패');
+        toast.error('피드를 불러오지 못했어요');
       });
     }
   }, [isAuthenticated, loadFeedFromServer]);
@@ -95,10 +99,10 @@ export default function HomeFeed() {
     const minutes = Math.floor(diff / 60000);
     const hours = Math.floor(diff / 3600000);
 
-    if (minutes < 1) return '방금';
-    if (minutes < 60) return `${minutes}분`;
-    if (hours < 24) return `${hours}시간`;
-    return '며칠 전';
+    if (minutes < 1) return tr.feed.justNow;
+    if (minutes < 60) return t(tr.feed.minutesAgo, { n: minutes });
+    if (hours < 24) return t(tr.feed.hoursAgo, { n: hours });
+    return tr.feed.daysAgo;
   };
 
   // 유저 포스트 + 페르소나 포스트 통합 피드
@@ -137,9 +141,9 @@ export default function HomeFeed() {
       <div className="divide-y divide-white/5">
         {allPosts.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 text-center px-6">
-            <p className="text-white/50 mb-2">피드가 비어있어요</p>
+            <p className="text-white/50 mb-2">{tr.feed.empty}</p>
             <p className="text-sm text-white/30">
-              + 버튼을 눌러 첫 포스팅을 해보세요
+              {tr.feed.emptyHint}
             </p>
           </div>
         ) : (
@@ -216,7 +220,7 @@ export default function HomeFeed() {
                             className="flex items-center gap-2 px-4 py-3 text-red-400 hover:bg-white/5 w-full"
                           >
                             <Trash2 className="w-4 h-4" />
-                            <span className="text-sm">삭제</span>
+                            <span className="text-sm">{tr.common.delete}</span>
                           </button>
                         </motion.div>
                       )}
@@ -276,7 +280,7 @@ export default function HomeFeed() {
                 {/* Likes count for persona posts */}
                 {post.type === 'persona' && post.likes !== undefined && post.likes > 0 && (
                   <div className="text-sm font-semibold mb-1">
-                    좋아요 {post.likes.toLocaleString()}개
+                    {t(tr.feed.likes, { n: post.likes.toLocaleString() })}
                   </div>
                 )}
 

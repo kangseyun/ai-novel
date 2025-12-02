@@ -23,6 +23,7 @@ import { useFeedStore } from '@/lib/stores/feed-store';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import { apiClient } from '@/lib/api-client';
 import { Coins } from 'lucide-react';
+import { useTranslations, t } from '@/lib/i18n';
 
 interface DMChatProps {
   personaId: string;
@@ -74,6 +75,7 @@ export default function DMChat({
   const [showScenarioTransition, setShowScenarioTransition] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
+  const tr = useTranslations();
 
   // Auth store for tokens
   const user = useAuthStore(state => state.user);
@@ -202,7 +204,7 @@ export default function DMChat({
       }
     } catch (err) {
       console.error('Failed to start conversation:', err);
-      setError('대화를 시작할 수 없습니다. 다시 시도해주세요.');
+      setError(tr.dm.cannotStartChat);
     }
   };
 
@@ -276,9 +278,9 @@ export default function DMChat({
     } catch (err) {
       console.error('Failed to send message:', err);
       setIsTyping(false);
-      setError('메시지 전송에 실패했습니다.');
+      setError(tr.dm.sendFailed);
     }
-  }, [personaId, sessionId, updatePersonaAffection, onGainXP]);
+  }, [personaId, sessionId, updatePersonaAffection, onGainXP, tr.dm.sendFailed]);
 
   const handleSendMessage = useCallback(async () => {
     if (!inputText.trim()) return;
@@ -364,12 +366,12 @@ export default function DMChat({
       // Handle insufficient tokens error
       const error = err as { status?: number; message?: string };
       if (error.status === 402) {
-        setError('토큰이 부족합니다. 토큰을 충전해주세요.');
+        setError(tr.dm.insufficientTokens);
       } else {
-        setError('메시지 전송에 실패했습니다.');
+        setError(tr.dm.sendFailed);
       }
     }
-  }, [inputText, personaId, sessionId, updatePersonaAffection, updateUser, onGainXP]);
+  }, [inputText, personaId, sessionId, updatePersonaAffection, updateUser, onGainXP, tr.dm.insufficientTokens, tr.dm.sendFailed]);
 
   // Handle scenario start
   const handleStartScenario = useCallback(() => {
@@ -403,7 +405,7 @@ export default function DMChat({
       >
         <div className="text-center">
           <Loader2 className="w-8 h-8 text-white animate-spin mx-auto mb-4" />
-          <p className="text-white/70">대화를 불러오는 중...</p>
+          <p className="text-white/70">{tr.dm.loadingChat}</p>
         </div>
       </motion.div>
     );
@@ -424,10 +426,10 @@ export default function DMChat({
             onClick={() => window.location.reload()}
             className="px-4 py-2 bg-white/10 rounded-lg text-white mr-2"
           >
-            다시 시도
+            {tr.dm.retry}
           </button>
           <button onClick={onClose} className="px-4 py-2 bg-white/10 rounded-lg text-white">
-            닫기
+            {tr.dm.close}
           </button>
         </div>
       </motion.div>
@@ -474,7 +476,7 @@ export default function DMChat({
                     </div>
                   )}
                 </div>
-                <span className="text-xs text-green-400">Active now</span>
+                <span className="text-xs text-green-400">{tr.dm.activeNow}</span>
               </div>
             </div>
           </div>
@@ -502,7 +504,7 @@ export default function DMChat({
           <div className="px-4 py-2 bg-gradient-to-r from-pink-500/10 to-red-500/10 border-b border-pink-500/20">
             <div className="flex items-center justify-center gap-2 text-xs">
               <Heart className={`w-3 h-3 ${affection > 0 ? 'text-pink-400 fill-current' : 'text-gray-400'}`} />
-              <span className="text-pink-400">호감도: {affection > 0 ? '+' : ''}{affection}</span>
+              <span className="text-pink-400">{tr.dm.affection}: {affection > 0 ? '+' : ''}{affection}</span>
             </div>
           </div>
         )}
@@ -512,7 +514,7 @@ export default function DMChat({
           {/* Context/intro */}
           <div className="text-center py-4">
             <div className="inline-block px-4 py-2 bg-white/5 rounded-full">
-              <span className="text-xs text-white/40">{profile.displayName}님과의 대화</span>
+              <span className="text-xs text-white/40">{t(tr.dm.chatWith, { name: profile.displayName })}</span>
             </div>
           </div>
 
@@ -597,7 +599,7 @@ export default function DMChat({
                 value={inputText}
                 onChange={(e) => setInputText(e.target.value)}
                 onKeyPress={(e) => e.key === 'Enter' && !isTyping && handleSendMessage()}
-                placeholder="메시지 보내기..."
+                placeholder={tr.dm.sendPlaceholder}
                 disabled={isTyping}
                 className="w-full px-4 py-2 bg-white/10 border border-white/10 rounded-full text-sm focus:outline-none focus:border-white/30 disabled:opacity-50"
               />
@@ -639,20 +641,19 @@ export default function DMChat({
                   <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-br from-amber-500 to-purple-500 rounded-full flex items-center justify-center">
                     <Lock className="w-8 h-8 text-white" />
                   </div>
-                  <h3 className="text-xl font-bold text-white mb-2">Premium Choice</h3>
-                  <p className="text-sm text-white/60 mb-6">
-                    이 선택지는 프리미엄 멤버만 사용할 수 있습니다.
-                    특별한 스토리를 경험해보세요.
+                  <h3 className="text-xl font-bold text-white mb-2">{tr.dm.premiumChoice}</h3>
+                  <p className="text-sm text-white/60 mb-6 whitespace-pre-line">
+                    {tr.dm.premiumOnlyHint}
                   </p>
                   <div className="space-y-3">
                     <button className="w-full py-3 bg-gradient-to-r from-amber-500 to-amber-600 text-black font-bold rounded-xl">
-                      프리미엄 구독하기
+                      {tr.dm.subscribePremium}
                     </button>
                     <button
                       onClick={() => setShowPremiumPrompt(false)}
                       className="w-full py-3 bg-white/10 text-white rounded-xl"
                     >
-                      다른 선택지 고르기
+                      {tr.dm.chooseOther}
                     </button>
                   </div>
                 </div>
@@ -684,9 +685,9 @@ export default function DMChat({
                   transition={{ delay: 0.2 }}
                   className="mb-8"
                 >
-                  <p className="text-white/60 text-sm mb-2">잠시 후...</p>
+                  <p className="text-white/60 text-sm mb-2">{tr.dm.afterMoment}</p>
                   <p className="text-white text-lg leading-relaxed">
-                    {scenarioTrigger.transitionMessage || '새로운 장면이 시작됩니다...'}
+                    {scenarioTrigger.transitionMessage || tr.dm.newSceneStarts}
                   </p>
                   {scenarioTrigger.location && (
                     <p className="text-white/50 text-sm mt-2">
@@ -721,13 +722,13 @@ export default function DMChat({
                     className="w-full py-4 bg-gradient-to-r from-purple-500 to-pink-500 text-white font-bold rounded-xl flex items-center justify-center gap-2 hover:from-purple-600 hover:to-pink-600 transition-all"
                   >
                     <Play className="w-5 h-5" />
-                    시나리오 시작
+                    {tr.dm.startScenario}
                   </button>
                   <button
                     onClick={handleDismissScenario}
                     className="w-full py-3 bg-white/10 text-white/70 rounded-xl hover:bg-white/20 transition-all"
                   >
-                    계속 대화하기
+                    {tr.dm.continueChat}
                   </button>
                 </motion.div>
               </motion.div>

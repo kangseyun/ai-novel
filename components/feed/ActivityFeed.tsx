@@ -21,6 +21,7 @@ import { JUN_PROFILE } from '@/lib/hacked-sns-data';
 import { FeedEvent } from '@/lib/user-feed-system';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import { ActivityListSkeleton } from '@/components/ui/Skeleton';
+import { useTranslations, useLocale, t } from '@/lib/i18n';
 
 interface ActivityFeedProps {
   onOpenDM: (scenarioId: string) => void;
@@ -54,6 +55,8 @@ export default function ActivityFeed({ onOpenDM }: ActivityFeedProps) {
   const isLoading = useFeedStore(state => state.isLoading);
 
   const isAuthenticated = useAuthStore(state => state.isAuthenticated);
+  const tr = useTranslations();
+  const locale = useLocale();
 
   // 로그인 상태면 서버에서 이벤트 로드
   useEffect(() => {
@@ -95,25 +98,25 @@ export default function ActivityFeed({ onOpenDM }: ActivityFeedProps) {
     const hours = Math.floor(diff / 3600000);
     const days = Math.floor(diff / 86400000);
 
-    if (minutes < 1) return '방금';
-    if (minutes < 60) return `${minutes}분 전`;
-    if (hours < 24) return `${hours}시간 전`;
-    if (days < 7) return `${days}일 전`;
-    return new Date(timestamp).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' });
+    if (minutes < 1) return tr.feed.justNow;
+    if (minutes < 60) return t(tr.feed.minutesAgo, { n: minutes });
+    if (hours < 24) return t(tr.feed.hoursAgo, { n: hours });
+    if (days < 7) return t(tr.feed.daysAgo, { n: days });
+    return new Date(timestamp).toLocaleDateString(locale === 'ko' ? 'ko-KR' : 'en-US', { month: 'short', day: 'numeric' });
   };
 
   const getEventDescription = (event: FeedEvent) => {
     switch (event.type) {
       case 'dm':
-        return '새로운 메시지를 보냈어요';
+        return tr.notifications.newMessage;
       case 'story_reply':
-        return '스토리에 답장했어요';
+        return tr.notifications.storyReply;
       case 'like':
-        return '게시물을 좋아해요';
+        return tr.notifications.liked;
       case 'comment':
-        return '댓글을 남겼어요';
+        return tr.notifications.commented;
       case 'follow':
-        return '팔로우하기 시작했어요';
+        return tr.notifications.followed;
       default:
         return '';
     }
@@ -194,7 +197,7 @@ export default function ActivityFeed({ onOpenDM }: ActivityFeedProps) {
                 ? 'bg-blue-500 text-white'
                 : 'bg-white/10 text-white/70'
             }`}>
-              답장하기
+              {tr.notifications.reply}
             </div>
           </div>
         )}
@@ -225,7 +228,7 @@ export default function ActivityFeed({ onOpenDM }: ActivityFeedProps) {
       <div className="sticky top-0 z-40 bg-black/95 backdrop-blur-xl border-b border-white/10">
         <div className="flex items-center justify-between px-4 py-3">
           <div className="flex items-center gap-2">
-            <h1 className="text-lg font-bold">알림</h1>
+            <h1 className="text-lg font-bold">{tr.notifications.title}</h1>
             {unreadCount > 0 && (
               <span className="px-2 py-0.5 bg-red-500 rounded-full text-xs font-bold">
                 {unreadCount}
@@ -237,7 +240,7 @@ export default function ActivityFeed({ onOpenDM }: ActivityFeedProps) {
               onClick={markAllEventsAsRead}
               className="text-sm text-blue-400 hover:text-blue-300 transition"
             >
-              모두 읽음
+              {tr.notifications.markAllRead}
             </button>
           )}
         </div>
@@ -245,9 +248,9 @@ export default function ActivityFeed({ onOpenDM }: ActivityFeedProps) {
         {/* Filter tabs */}
         <div className="flex gap-2 px-4 pb-3 overflow-x-auto scrollbar-hide">
           {[
-            { id: 'all' as FilterType, label: '전체', icon: Bell },
-            { id: 'dm' as FilterType, label: '메시지', icon: MessageCircle },
-            { id: 'reactions' as FilterType, label: '반응', icon: Heart },
+            { id: 'all' as FilterType, label: tr.feed.all, icon: Bell },
+            { id: 'dm' as FilterType, label: tr.dm.title, icon: MessageCircle },
+            { id: 'reactions' as FilterType, label: tr.feed.reactions, icon: Heart },
           ].map(({ id, label, icon: TabIcon }) => (
             <button
               key={id}
@@ -275,9 +278,9 @@ export default function ActivityFeed({ onOpenDM }: ActivityFeedProps) {
             <div className="w-20 h-20 bg-gradient-to-br from-purple-500/20 to-pink-500/20 rounded-full flex items-center justify-center mb-4">
               <Bell className="w-10 h-10 text-white/30" />
             </div>
-            <p className="text-white/70 font-medium mb-2">아직 알림이 없어요</p>
+            <p className="text-white/70 font-medium mb-2">{tr.notifications.empty}</p>
             <p className="text-sm text-white/40 mb-6">
-              포스팅을 하면 페르소나가 반응할 수 있어요
+              {tr.notifications.emptyHint}
             </p>
 
             {/* Quick action cards */}
@@ -288,9 +291,9 @@ export default function ActivityFeed({ onOpenDM }: ActivityFeedProps) {
                     <Zap className="w-5 h-5 text-blue-400" />
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-blue-300">빠른 반응 받기</p>
+                    <p className="text-sm font-medium text-blue-300">{tr.notifications.quickReaction}</p>
                     <p className="text-xs text-white/50 mt-1">
-                      밤 시간대에 감성적인 포스팅을 올려보세요
+                      {tr.notifications.quickReactionHint}
                     </p>
                   </div>
                 </div>
@@ -302,9 +305,9 @@ export default function ActivityFeed({ onOpenDM }: ActivityFeedProps) {
                     <Star className="w-5 h-5 text-purple-400" />
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-purple-300">특별한 순간 공유</p>
+                    <p className="text-sm font-medium text-purple-300">{tr.notifications.specialMoment}</p>
                     <p className="text-xs text-white/50 mt-1">
-                      콘서트나 특별한 이벤트 포스팅은 큰 반응을 얻어요
+                      {tr.notifications.specialMomentHint}
                     </p>
                   </div>
                 </div>
@@ -315,21 +318,21 @@ export default function ActivityFeed({ onOpenDM }: ActivityFeedProps) {
           <>
             {/* Today's events */}
             {renderSection(
-              '오늘',
+              tr.notifications.today,
               todayEvents,
               <Clock className="w-4 h-4 text-green-400" />
             )}
 
             {/* This week's events */}
             {renderSection(
-              '이번 주',
+              tr.notifications.thisWeek,
               weekEvents,
               <Clock className="w-4 h-4 text-blue-400" />
             )}
 
             {/* Older events */}
             {renderSection(
-              '이전',
+              tr.notifications.earlier,
               olderEvents,
               <Clock className="w-4 h-4 text-white/40" />
             )}
@@ -342,9 +345,9 @@ export default function ActivityFeed({ onOpenDM }: ActivityFeedProps) {
             <div className="flex items-start gap-3">
               <Gift className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
               <div>
-                <p className="text-sm font-medium text-amber-300">더 많은 반응을 원한다면?</p>
+                <p className="text-sm font-medium text-amber-300">{tr.notifications.moreReactions}</p>
                 <p className="text-xs text-white/50 mt-1 leading-relaxed">
-                  호감도가 높아질수록 더 다양한 반응이 와요. DM에서 좋은 선택지를 고르면 호감도가 올라가요!
+                  {tr.notifications.moreReactionsHint}
                 </p>
               </div>
             </div>
@@ -364,9 +367,9 @@ export default function ActivityFeed({ onOpenDM }: ActivityFeedProps) {
                 <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full animate-pulse" />
               </div>
               <div>
-                <p className="text-sm font-medium text-red-300">새로운 시나리오 발생!</p>
+                <p className="text-sm font-medium text-red-300">{tr.notifications.newScenario}</p>
                 <p className="text-xs text-white/50 mt-1">
-                  읽지 않은 메시지가 있어요. 빨리 확인해보세요!
+                  {tr.notifications.newScenarioHint}
                 </p>
               </div>
             </div>

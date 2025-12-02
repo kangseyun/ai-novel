@@ -1,0 +1,20 @@
+export const onboarding = {
+  justNow: 'Just now',
+  preparing: 'Preparing',
+  comingSoon: 'Coming soon...',
+  tapNotificationToStart: 'Tap notification to start chat',
+  skip: 'Skip →',
+  swipeUpToCheck: 'Swipe up to check',
+  minutesAgo: '{n}m ago',
+  messages: 'Messages',
+  whoseMessageToOpen: 'Whose message will you open?',
+  loadingMessages: 'Loading messages...',
+  sendMessage: 'Send a message...',
+  aiInteractiveStory: 'AI Interactive Story',
+  someoneMessaged: 'Someone sent you a message',
+  enterTheirStory: 'Enter their story through conversation',
+  // LockScreen preview messages
+  junPreview: "...Can't sleep. You too?",
+  minhoPreview: "Why do you keep crossing my mind...",
+  hanaPreview: "Have a great day! ...just kidding",
+} as const;

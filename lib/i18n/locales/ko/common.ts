@@ -1,0 +1,18 @@
+export const common = {
+  loading: '로딩 중...',
+  error: '오류가 발생했습니다',
+  retry: '다시 시도',
+  cancel: '취소',
+  confirm: '확인',
+  save: '저장',
+  delete: '삭제',
+  edit: '편집',
+  close: '닫기',
+  back: '뒤로',
+  next: '다음',
+  done: '완료',
+  search: '검색',
+  noData: '데이터가 없습니다',
+  loginRequired: '로그인이 필요해요',
+  login: '로그인하기',
+} as const;

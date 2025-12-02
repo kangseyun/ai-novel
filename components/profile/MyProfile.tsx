@@ -16,6 +16,7 @@ import { useAuthStore } from '@/lib/stores/auth-store';
 import ProfileEditModal from './ProfileEditModal';
 import SettingsModal from './SettingsModal';
 import { ProfileSkeleton } from '@/components/ui/Skeleton';
+import { useTranslations } from '@/lib/i18n';
 
 export default function MyProfile() {
   const [activeTab, setActiveTab] = useState<'posts' | 'saved'>('posts');
@@ -27,6 +28,7 @@ export default function MyProfile() {
   const isSyncing = useUserPersonaStore(state => state.isSyncing);
   const isAuthenticated = useAuthStore(state => state.isAuthenticated);
   const hasHydrated = useAuthStore(state => state.hasHydrated);
+  const tr = useTranslations();
 
   // 마운트 시 서버에서 데이터 동기화
   const hasFetched = useRef(false);
@@ -49,13 +51,13 @@ export default function MyProfile() {
     return (
       <div className="min-h-screen bg-black text-white flex flex-col items-center justify-center p-6">
         <div className="text-center">
-          <h2 className="text-xl font-bold mb-2">로그인이 필요해요</h2>
-          <p className="text-white/50 mb-6">프로필을 보려면 먼저 로그인해주세요</p>
+          <h2 className="text-xl font-bold mb-2">{tr.common.loginRequired}</h2>
+          <p className="text-white/50 mb-6">{tr.profile.title}</p>
           <a
             href="/login"
             className="inline-block px-6 py-3 bg-white text-black rounded-xl font-medium"
           >
-            로그인하기
+            {tr.common.login}
           </a>
         </div>
       </div>
@@ -66,7 +68,7 @@ export default function MyProfile() {
     <div className="min-h-screen bg-black text-white">
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
-        <h1 className="text-lg font-bold">내 프로필</h1>
+        <h1 className="text-lg font-bold">{tr.profile.title}</h1>
         <button
           onClick={() => setShowSettingsModal(true)}
           className="p-2 hover:bg-white/10 rounded-full transition"
@@ -95,15 +97,15 @@ export default function MyProfile() {
           <div className="flex-1 flex justify-around">
             <div className="text-center">
               <div className="text-xl font-bold">{userPosts.length}</div>
-              <div className="text-xs text-white/50">게시물</div>
+              <div className="text-xs text-white/50">{tr.profile.posts}</div>
             </div>
             <div className="text-center">
               <div className="text-xl font-bold">1</div>
-              <div className="text-xs text-white/50">팔로워</div>
+              <div className="text-xs text-white/50">{tr.profile.followers}</div>
             </div>
             <div className="text-center">
               <div className="text-xl font-bold">1</div>
-              <div className="text-xs text-white/50">팔로잉</div>
+              <div className="text-xs text-white/50">{tr.profile.following}</div>
             </div>
           </div>
         </div>
@@ -112,15 +114,15 @@ export default function MyProfile() {
         <div className="mt-4">
           <div className="font-medium">
             {isSyncing ? (
-              <span className="text-white/50">로딩 중...</span>
+              <span className="text-white/50">{tr.common.loading}</span>
             ) : (
-              persona.nickname || '닉네임을 설정해주세요'
+              persona.nickname || tr.profile.setNickname
             )}
           </div>
           {persona.bio ? (
             <div className="text-sm text-white/60 mt-1">{persona.bio}</div>
           ) : (
-            <div className="text-sm text-white/40 mt-1">한 줄 소개를 작성해보세요</div>
+            <div className="text-sm text-white/40 mt-1">{tr.profile.writeBio}</div>
           )}
         </div>
 
@@ -146,7 +148,7 @@ export default function MyProfile() {
           onClick={() => setShowEditModal(true)}
           className="w-full mt-4 py-2 bg-white/10 hover:bg-white/15 rounded-lg text-sm font-medium transition"
         >
-          프로필 편집
+          {tr.profile.editProfile}
         </button>
       </div>
 
@@ -191,9 +193,9 @@ export default function MyProfile() {
                 <div className="w-16 h-16 rounded-full border-2 border-white/20 flex items-center justify-center mb-4">
                   <Grid3X3 className="w-8 h-8 text-white/30" />
                 </div>
-                <p className="text-white/50 mb-1">아직 게시물이 없어요</p>
+                <p className="text-white/50 mb-1">{tr.profile.noPosts}</p>
                 <p className="text-sm text-white/30">
-                  + 버튼을 눌러 첫 포스팅을 해보세요
+                  {tr.profile.noPostsHint}
                 </p>
               </div>
             ) : (
@@ -241,9 +243,9 @@ export default function MyProfile() {
             <div className="w-16 h-16 rounded-full border-2 border-white/20 flex items-center justify-center mb-4">
               <Bookmark className="w-8 h-8 text-white/30" />
             </div>
-            <p className="text-white/50 mb-1">저장된 게시물이 없어요</p>
+            <p className="text-white/50 mb-1">{tr.profile.noSavedPosts}</p>
             <p className="text-sm text-white/30">
-              마음에 드는 게시물을 저장해보세요
+              {tr.profile.noSavedPostsHint}
             </p>
           </div>
         )}

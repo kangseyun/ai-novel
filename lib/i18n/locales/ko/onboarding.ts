@@ -1,0 +1,20 @@
+export const onboarding = {
+  justNow: '방금',
+  preparing: '준비 중',
+  comingSoon: '곧 만나요...',
+  tapNotificationToStart: '알림을 탭하여 대화 시작',
+  skip: '건너뛰기 →',
+  swipeUpToCheck: '위로 스와이프하여 확인',
+  minutesAgo: '{n}분 전',
+  messages: '메시지',
+  whoseMessageToOpen: '누구의 메시지를 열어볼까요?',
+  loadingMessages: '메시지 불러오는 중...',
+  sendMessage: '메시지 보내기...',
+  aiInteractiveStory: 'AI 인터랙티브 스토리',
+  someoneMessaged: '누군가 메시지를 보냈어요',
+  enterTheirStory: '대화를 통해 그들의 이야기 속으로',
+  // LockScreen preview messages
+  junPreview: '...잠이 안 와. 너도?',
+  minhoPreview: '귀찮게 왜 자꾸 신경 쓰이는 건데...',
+  hanaPreview: '오늘도 좋은 하루! ...거짓말이야',
+} as const;

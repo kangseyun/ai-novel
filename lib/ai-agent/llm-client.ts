@@ -24,6 +24,12 @@ import {
 import type { TaskContext } from './model-selector';
 import { getBudgetGuard } from './usage-tracker';
 import type { BudgetGuard } from './usage-tracker';
+import {
+  parseDialogueResponse,
+  parseChoicesResponse,
+  parseEventMessageResponse,
+  parseStoryBranchResponse,
+} from './schemas';
 
 const OPENROUTER_API_URL = 'https://openrouter.ai/api/v1/chat/completions';
 
@@ -128,7 +134,7 @@ export class LLMClient {
       { ...options, taskContext }
     );
 
-    return this.parseDialogueResponse(response.content);
+    return parseDialogueResponse(response.content);
   }
 
   /**
@@ -159,7 +165,7 @@ export class LLMClient {
       { ...options, taskContext }
     );
 
-    return this.parseChoicesResponse(response.content);
+    return parseChoicesResponse(response.content);
   }
 
   /**
@@ -194,7 +200,7 @@ export class LLMClient {
       { ...options, taskContext }
     );
 
-    return this.parseEventMessageResponse(response.content);
+    return parseEventMessageResponse(response.content);
   }
 
   /**
@@ -288,15 +294,7 @@ Respond in JSON:
       { ...options, taskContext }
     );
 
-    try {
-      return JSON.parse(response.content);
-    } catch {
-      return {
-        selectedBranch: branchOptions[0]?.id || 'default',
-        reasoning: 'Failed to parse response',
-        flagsToSet: {},
-      };
-    }
+    return parseStoryBranchResponse(response.content, branchOptions[0]?.id || 'default');
   }
 
   // ============================================
@@ -417,91 +415,6 @@ Respond in JSON:
     return (usage.total_tokens / 1000) * modelConfig.costPer1kTokens;
   }
 
-  /**
-   * LLM 응답에서 JSON 추출 (마크다운 코드블록 제거)
-   */
-  private extractJSON(response: string): string {
-    // 마크다운 코드블록 제거: ```json ... ``` 또는 ``` ... ```
-    const codeBlockMatch = response.match(/```(?:json)?\s*([\s\S]*?)```/);
-    if (codeBlockMatch) {
-      return codeBlockMatch[1].trim();
-    }
-    // 코드블록이 없으면 원본 반환
-    return response.trim();
-  }
-
-  private parseDialogueResponse(response: string): LLMDialogueResponse {
-    try {
-      const jsonStr = this.extractJSON(response);
-      const parsed = JSON.parse(jsonStr);
-      return {
-        content: parsed.content || '',
-        emotion: parsed.emotion || 'neutral',
-        innerThought: parsed.innerThought,
-        affectionModifier: parsed.affectionModifier || 0,
-        flagsToSet: parsed.flagsToSet,
-        suggestedChoices: parsed.suggestedChoices,
-        // 시나리오 전환 트리거 파싱
-        scenarioTrigger: parsed.scenarioTrigger?.shouldStart ? {
-          shouldStart: true,
-          scenarioType: parsed.scenarioTrigger.scenarioType || 'meeting',
-          scenarioContext: parsed.scenarioTrigger.scenarioContext || '',
-          location: parsed.scenarioTrigger.location,
-          transitionMessage: parsed.scenarioTrigger.transitionMessage,
-        } : undefined,
-      };
-    } catch {
-      // JSON 파싱 실패 시 기본 응답
-      console.warn('[LLM] Failed to parse dialogue response as JSON:', response.slice(0, 200));
-      return {
-        content: response,
-        emotion: 'neutral',
-        affectionModifier: 0,
-      };
-    }
-  }
-
-  private parseChoicesResponse(response: string): DialogueChoice[] {
-    try {
-      const jsonStr = this.extractJSON(response);
-      const parsed = JSON.parse(jsonStr);
-      return (parsed.choices || []).map((choice: Record<string, unknown>, index: number) => ({
-        id: choice.id || `choice_${index}`,
-        text: choice.text || '',
-        tone: choice.tone || 'neutral',
-        isPremium: choice.isPremium || false,
-        premiumCost: choice.premiumCost,
-        estimatedAffectionChange: choice.estimatedAffectionChange || 0,
-        nextBeatHint: choice.nextBeatHint,
-      }));
-    } catch {
-      // 파싱 실패 시 기본 선택지
-      return [
-        { id: 'default_1', text: '...', tone: 'neutral', isPremium: false, estimatedAffectionChange: 0 },
-      ];
-    }
-  }
-
-  private parseEventMessageResponse(response: string): {
-    content: string;
-    emotion: PersonaMood;
-    postType?: string;
-  } {
-    try {
-      const jsonStr = this.extractJSON(response);
-      const parsed = JSON.parse(jsonStr);
-      return {
-        content: parsed.content || '',
-        emotion: parsed.emotion || 'neutral',
-        postType: parsed.postType,
-      };
-    } catch {
-      return {
-        content: response,
-        emotion: 'neutral',
-      };
-    }
-  }
 }
 
 // ============================================

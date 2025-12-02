@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useTranslations } from '@/lib/i18n';
 import {
   Shield,
   ShieldAlert,
@@ -57,6 +58,7 @@ export default function HackedProfile({
 }: HackedProfileProps) {
   const [activeTab, setActiveTab] = useState<'posts' | 'hidden'>('posts');
   const [showHackInfo, setShowHackInfo] = useState(false);
+  const tr = useTranslations();
 
   const visibleStories = getVisibleStories(stories, hackLevel);
   const visiblePosts = getVisiblePosts(posts, hackLevel);
@@ -136,15 +138,15 @@ export default function HackedProfile({
             <div className="flex justify-around mb-3">
               <div className="text-center">
                 <div className="font-bold">{visiblePosts.length}</div>
-                <div className="text-xs text-white/50">posts</div>
+                <div className="text-xs text-white/50">{tr.hackedProfile.posts}</div>
               </div>
               <div className="text-center">
                 <div className="font-bold">{profile.followers}</div>
-                <div className="text-xs text-white/50">followers</div>
+                <div className="text-xs text-white/50">{tr.hackedProfile.followers}</div>
               </div>
               <div className="text-center">
                 <div className="font-bold">{profile.following}</div>
-                <div className="text-xs text-white/50">following</div>
+                <div className="text-xs text-white/50">{tr.hackedProfile.following}</div>
               </div>
             </div>
           </div>
@@ -165,8 +167,8 @@ export default function HackedProfile({
             className="flex-1 py-2 bg-gradient-to-r from-red-500/20 to-purple-500/20 border border-red-500/30 rounded-lg text-sm font-medium flex items-center justify-center gap-2"
           >
             <MessageCircle className="w-4 h-4" />
-            <span>Message</span>
-            <span className="text-[10px] text-red-400">[INTERCEPT]</span>
+            <span>{tr.hackedProfile.message}</span>
+            <span className="text-[10px] text-red-400">{tr.hackedProfile.intercept}</span>
           </button>
           <button className="px-4 py-2 bg-white/10 rounded-lg">
             <Wifi className="w-4 h-4" />
@@ -178,12 +180,12 @@ export default function HackedProfile({
       <div className="mt-6 px-4">
         <div className="flex items-center justify-between mb-3">
           <span className="text-xs text-white/50 font-mono">
-            STORIES [{visibleStories.length}/{stories.length}]
+            {tr.hackedProfile.stories} [{visibleStories.length}/{stories.length}]
           </span>
           {stories.length > visibleStories.length && (
             <span className="text-xs text-red-400 flex items-center gap-1">
               <Lock className="w-3 h-3" />
-              {stories.length - visibleStories.length} hidden
+              {stories.length - visibleStories.length} {tr.hackedProfile.hidden}
             </span>
           )}
         </div>
@@ -237,7 +239,7 @@ export default function HackedProfile({
                   </div>
                 </div>
                 <span className="text-[10px] text-white/50 max-w-[60px] truncate">
-                  {story.isSecret ? '비밀' : story.timestamp}
+                  {story.isSecret ? tr.hackedProfile.secret : story.timestamp}
                 </span>
               </button>
             );
@@ -287,7 +289,7 @@ export default function HackedProfile({
                 {post.isHidden && (
                   <div className="absolute top-2 left-2">
                     <span className="px-1.5 py-0.5 bg-red-500/80 text-[8px] font-mono rounded">
-                      RECOVERED
+                      {tr.hackedProfile.recovered}
                     </span>
                   </div>
                 )}
@@ -313,7 +315,7 @@ export default function HackedProfile({
           <div className="p-4 space-y-3">
             <div className="text-xs text-red-400 font-mono mb-4 flex items-center gap-2">
               <Terminal className="w-4 h-4" />
-              <span>RECOVERED FILES ({filesWithStatus.filter(f => f.isUnlocked).length}/{filesWithStatus.length})</span>
+              <span>{tr.hackedProfile.recoveredFiles} ({filesWithStatus.filter(f => f.isUnlocked).length}/{filesWithStatus.length})</span>
             </div>
 
             {filesWithStatus.map((file) => (
@@ -393,7 +395,7 @@ export default function HackedProfile({
               <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center gap-2">
                   <Terminal className="w-5 h-5 text-red-400" />
-                  <span className="font-mono text-red-400">HACK STATUS</span>
+                  <span className="font-mono text-red-400">{tr.hackedProfile.hackStatus}</span>
                 </div>
                 <button onClick={() => setShowHackInfo(false)}>
                   <X className="w-5 h-5 text-white/50" />
@@ -403,7 +405,7 @@ export default function HackedProfile({
               {/* Current Level */}
               <div className="mb-6">
                 <div className="text-3xl font-bold mb-1">
-                  Level {hackLevel}
+                  {tr.hackedProfile.level} {hackLevel}
                 </div>
                 <div className="text-lg text-red-400 font-mono">
                   {currentLevelInfo?.name}
@@ -436,7 +438,7 @@ export default function HackedProfile({
               {/* Unlocked Features */}
               <div>
                 <div className="text-xs text-white/50 mb-2 font-mono">
-                  UNLOCKED FEATURES
+                  {tr.hackedProfile.unlockedFeatures}
                 </div>
                 <ul className="space-y-2">
                   {currentLevelInfo?.features.map((feature, idx) => (

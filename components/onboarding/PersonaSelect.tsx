@@ -2,12 +2,15 @@
 
 import { motion } from 'framer-motion';
 import { PERSONAS, PersonaCard } from '@/lib/persona-data';
+import { useTranslations } from '@/lib/i18n';
 
 interface PersonaSelectProps {
   onSelect: (personaId: string) => void;
 }
 
 export default function PersonaSelect({ onSelect }: PersonaSelectProps) {
+  const tr = useTranslations();
+
   const handleCardClick = (persona: PersonaCard) => {
     if (!persona.available) return;
     onSelect(persona.id);
@@ -22,7 +25,7 @@ export default function PersonaSelect({ onSelect }: PersonaSelectProps) {
           animate={{ opacity: 1, y: 0 }}
           className="text-2xl font-bold mb-1"
         >
-          메시지
+          {tr.onboarding.messages}
         </motion.h1>
         <motion.p
           initial={{ opacity: 0 }}
@@ -30,7 +33,7 @@ export default function PersonaSelect({ onSelect }: PersonaSelectProps) {
           transition={{ delay: 0.1 }}
           className="text-white/40 text-sm"
         >
-          누구의 메시지를 열어볼까요?
+          {tr.onboarding.whoseMessageToOpen}
         </motion.p>
       </div>
 
@@ -79,11 +82,11 @@ export default function PersonaSelect({ onSelect }: PersonaSelectProps) {
               <div className="flex items-center justify-between mb-1">
                 <span className="font-semibold">{persona.name}</span>
                 {persona.available && (
-                  <span className="text-xs text-white/40">방금</span>
+                  <span className="text-xs text-white/40">{tr.onboarding.justNow}</span>
                 )}
               </div>
               <p className="text-sm text-white/50 truncate">
-                {persona.available ? persona.teaserLine : '준비 중...'}
+                {persona.available ? persona.teaserLine : tr.onboarding.comingSoon}
               </p>
             </div>
 

@@ -12,6 +12,7 @@ import { PERSONAS, PersonaCard } from '@/lib/persona-data';
 import OnboardingScenario, { ScenarioResultData } from '../OnboardingScenario';
 import OnboardingSignup from '../OnboardingSignup';
 import { getPersonaById } from '@/lib/persona-data';
+import { useTranslations, useLocale } from '@/lib/i18n';
 
 interface OnboardingCProps {
   onComplete: () => void;
@@ -27,17 +28,20 @@ export default function OnboardingC({ onComplete, onSkip }: OnboardingCProps) {
   const [time, setTime] = useState('');
   const [date, setDate] = useState('');
   const [showSwipeHint, setShowSwipeHint] = useState(false);
+  const tr = useTranslations();
+  const locale = useLocale();
 
   useEffect(() => {
     const updateTime = () => {
       const now = new Date();
-      setTime(now.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false }));
-      setDate(now.toLocaleDateString('ko-KR', { month: 'long', day: 'numeric', weekday: 'long' }));
+      const localeCode = locale === 'ko' ? 'ko-KR' : 'en-US';
+      setTime(now.toLocaleTimeString(localeCode, { hour: '2-digit', minute: '2-digit', hour12: false }));
+      setDate(now.toLocaleDateString(localeCode, { month: 'long', day: 'numeric', weekday: 'long' }));
     };
     updateTime();
     const interval = setInterval(updateTime, 1000);
     return () => clearInterval(interval);
-  }, []);
+  }, [locale]);
 
   useEffect(() => {
     if (step === 'lockscreen') {
@@ -127,7 +131,7 @@ export default function OnboardingC({ onComplete, onSkip }: OnboardingCProps) {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between mb-0.5">
                           <span className="font-medium text-sm text-white">{persona.name}</span>
-                          <span className="text-xs text-white/40">방금</span>
+                          <span className="text-xs text-white/40">{tr.onboarding.justNow}</span>
                         </div>
                         <p className="text-sm text-white/60 truncate">{persona.teaserLine}</p>
                       </div>
@@ -153,7 +157,7 @@ export default function OnboardingC({ onComplete, onSkip }: OnboardingCProps) {
                         className="text-center"
                       >
                         <div className="w-10 h-1 bg-white/30 rounded-full mx-auto mb-3" />
-                        <p className="text-sm text-white/40">탭하여 메시지 확인</p>
+                        <p className="text-sm text-white/40">{tr.onboarding.tapNotificationToStart}</p>
                       </motion.div>
                     </motion.button>
                   )}
@@ -165,7 +169,7 @@ export default function OnboardingC({ onComplete, onSkip }: OnboardingCProps) {
                   onClick={onSkip}
                   className="absolute bottom-8 right-6 text-xs text-white/30 hover:text-white/50 transition z-20"
                 >
-                  건너뛰기 →
+                  {tr.onboarding.skip}
                 </button>
               )}
             </motion.div>
@@ -186,7 +190,7 @@ export default function OnboardingC({ onComplete, onSkip }: OnboardingCProps) {
                   animate={{ opacity: 1, y: 0 }}
                   className="text-2xl font-bold text-white mb-1"
                 >
-                  메시지
+                  {tr.onboarding.messages}
                 </motion.h1>
                 <motion.p
                   initial={{ opacity: 0 }}
@@ -194,7 +198,7 @@ export default function OnboardingC({ onComplete, onSkip }: OnboardingCProps) {
                   transition={{ delay: 0.1 }}
                   className="text-white/40 text-sm"
                 >
-                  누구의 메시지를 열어볼까요?
+                  {tr.onboarding.whoseMessageToOpen}
                 </motion.p>
               </div>
 
@@ -240,11 +244,11 @@ export default function OnboardingC({ onComplete, onSkip }: OnboardingCProps) {
                       <div className="flex items-center justify-between mb-1">
                         <span className="font-semibold text-white">{persona.name}</span>
                         {persona.available && (
-                          <span className="text-xs text-white/40">방금</span>
+                          <span className="text-xs text-white/40">{tr.onboarding.justNow}</span>
                         )}
                       </div>
                       <p className="text-sm text-white/50 truncate">
-                        {persona.available ? persona.teaserLine : '준비 중...'}
+                        {persona.available ? persona.teaserLine : tr.onboarding.comingSoon}
                       </p>
                     </div>
 
@@ -263,7 +267,7 @@ export default function OnboardingC({ onComplete, onSkip }: OnboardingCProps) {
                   onClick={onSkip}
                   className="absolute bottom-8 right-6 text-xs text-white/30 hover:text-white/50 transition"
                 >
-                  건너뛰기 →
+                  {tr.onboarding.skip}
                 </button>
               )}
             </motion.div>
@@ -299,7 +303,7 @@ export default function OnboardingC({ onComplete, onSkip }: OnboardingCProps) {
                   transition={{ repeat: Infinity, duration: 1.2 }}
                   className="text-white/40 text-sm"
                 >
-                  메시지 불러오는 중...
+                  {tr.onboarding.loadingMessages}
                 </motion.div>
               </motion.div>
             </motion.div>

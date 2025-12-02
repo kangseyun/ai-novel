@@ -17,6 +17,7 @@ import {
   LoveLanguage,
   AttachmentStyle,
 } from '@/lib/stores/user-persona-store';
+import { useTranslations, t } from '@/lib/i18n';
 
 interface ProfileEditModalProps {
   isOpen: boolean;
@@ -29,6 +30,7 @@ export default function ProfileEditModal({ isOpen, onClose }: ProfileEditModalPr
   const [section, setSection] = useState<EditSection>('main');
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const tr = useTranslations();
 
   const persona = useUserPersonaStore((state) => state.persona);
   const setPersona = useUserPersonaStore((state) => state.setPersona);
@@ -61,7 +63,7 @@ export default function ProfileEditModal({ isOpen, onClose }: ProfileEditModalPr
       await saveToServer();
       onClose();
     } catch (error) {
-      setSaveError(error instanceof Error ? error.message : '저장 중 오류가 발생했습니다');
+      setSaveError(error instanceof Error ? error.message : tr.profileEdit.saveError);
     } finally {
       setIsSaving(false);
     }
@@ -93,17 +95,17 @@ export default function ProfileEditModal({ isOpen, onClose }: ProfileEditModalPr
               {section === 'main' ? (
                 <X className="w-6 h-6" />
               ) : (
-                <span className="text-sm text-white/70">뒤로</span>
+                <span className="text-sm text-white/70">{tr.common.back}</span>
               )}
             </button>
             <h1 className="text-lg font-medium">
-              {section === 'main' && '프로필 편집'}
-              {section === 'personality' && '성격'}
-              {section === 'communication' && '대화 스타일'}
-              {section === 'emotional' && '감정 표현'}
-              {section === 'interests' && '관심사'}
-              {section === 'love' && '사랑의 언어'}
-              {section === 'attachment' && '관계 성향'}
+              {section === 'main' && tr.profileEdit.editProfile}
+              {section === 'personality' && tr.profileEdit.personality}
+              {section === 'communication' && tr.profileEdit.conversationStyle}
+              {section === 'emotional' && tr.profileEdit.emotionalExpression}
+              {section === 'interests' && tr.profileEdit.interests}
+              {section === 'love' && tr.profileEdit.loveLanguage}
+              {section === 'attachment' && tr.profileEdit.relationshipStyle}
             </h1>
             {section === 'main' ? (
               <button
@@ -114,10 +116,10 @@ export default function ProfileEditModal({ isOpen, onClose }: ProfileEditModalPr
                 {isSaving ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin" />
-                    저장중
+                    {tr.profileEdit.saving}
                   </>
                 ) : (
-                  '완료'
+                  tr.common.done
                 )}
               </button>
             ) : (
@@ -166,24 +168,24 @@ export default function ProfileEditModal({ isOpen, onClose }: ProfileEditModalPr
                 {/* Basic Info */}
                 <div className="px-4 space-y-4">
                   <div>
-                    <label className="text-xs text-white/40 mb-1.5 block">닉네임</label>
+                    <label className="text-xs text-white/40 mb-1.5 block">{tr.profileEdit.nickname}</label>
                     <input
                       type="text"
                       value={localNickname}
                       onChange={(e) => setLocalNickname(e.target.value)}
-                      placeholder="어떻게 불러드릴까요?"
+                      placeholder={tr.profileEdit.nicknamePlaceholder}
                       className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-white/30 focus:outline-none focus:border-white/30"
                       maxLength={20}
                     />
                   </div>
 
                   <div>
-                    <label className="text-xs text-white/40 mb-1.5 block">한 줄 소개</label>
+                    <label className="text-xs text-white/40 mb-1.5 block">{tr.profileEdit.bioLabel}</label>
                     <input
                       type="text"
                       value={localBio}
                       onChange={(e) => setLocalBio(e.target.value)}
-                      placeholder="나를 표현하는 한 마디"
+                      placeholder={tr.profileEdit.bioPlaceholder}
                       className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-white/30 focus:outline-none focus:border-white/30"
                       maxLength={50}
                     />
@@ -195,30 +197,30 @@ export default function ProfileEditModal({ isOpen, onClose }: ProfileEditModalPr
 
                 {/* Persona Settings */}
                 <div className="px-4">
-                  <p className="text-xs text-white/40 mb-3">나의 성향</p>
+                  <p className="text-xs text-white/40 mb-3">{tr.profileEdit.myTendency}</p>
                   <p className="text-xs text-white/30 mb-4">
-                    설정한 성향에 따라 캐릭터들이 다르게 반응해요
+                    {tr.profileEdit.tendencyHint}
                   </p>
 
                   <div className="space-y-2">
                     <SettingRow
-                      label="성격"
+                      label={tr.profileEdit.personality}
                       value={PERSONALITY_LABELS[persona.personality].label}
                       onClick={() => setSection('personality')}
                     />
                     <SettingRow
-                      label="대화 스타일"
+                      label={tr.profileEdit.conversationStyle}
                       value={COMMUNICATION_LABELS[persona.communicationStyle].label}
                       onClick={() => setSection('communication')}
                     />
                     <SettingRow
-                      label="감정 표현"
+                      label={tr.profileEdit.emotionalExpression}
                       value={EMOTIONAL_LABELS[persona.emotionalTendency].label}
                       onClick={() => setSection('emotional')}
                     />
                     <SettingRow
-                      label="관심사"
-                      value={persona.interests.length > 0 ? persona.interests.slice(0, 2).join(', ') + (persona.interests.length > 2 ? ` 외 ${persona.interests.length - 2}개` : '') : '설정 안함'}
+                      label={tr.profileEdit.interests}
+                      value={persona.interests.length > 0 ? persona.interests.slice(0, 2).join(', ') + (persona.interests.length > 2 ? ` ${t(tr.profileEdit.andMore, { n: persona.interests.length - 2 })}` : '') : tr.profileEdit.notSet}
                       onClick={() => setSection('interests')}
                     />
                   </div>
@@ -229,16 +231,16 @@ export default function ProfileEditModal({ isOpen, onClose }: ProfileEditModalPr
 
                 {/* Relationship Settings */}
                 <div className="px-4">
-                  <p className="text-xs text-white/40 mb-3">연애 성향</p>
+                  <p className="text-xs text-white/40 mb-3">{tr.profileEdit.loveTendency}</p>
 
                   <div className="space-y-2">
                     <SettingRow
-                      label="사랑의 언어"
+                      label={tr.profileEdit.loveLanguage}
                       value={LOVE_LANGUAGE_LABELS[persona.loveLanguage].label}
                       onClick={() => setSection('love')}
                     />
                     <SettingRow
-                      label="관계 성향"
+                      label={tr.profileEdit.relationshipStyle}
                       value={ATTACHMENT_LABELS[persona.attachmentStyle].label}
                       onClick={() => setSection('attachment')}
                     />
@@ -326,7 +328,7 @@ export default function ProfileEditModal({ isOpen, onClose }: ProfileEditModalPr
                 className="px-4 py-4"
               >
                 <p className="text-xs text-white/40 mb-4">
-                  최대 5개까지 선택할 수 있어요 ({persona.interests.length}/5)
+                  {t(tr.createPost.maxSelect, { n: 5 })} ({persona.interests.length}/5)
                 </p>
 
                 <div className="flex flex-wrap gap-2">
@@ -352,7 +354,7 @@ export default function ProfileEditModal({ isOpen, onClose }: ProfileEditModalPr
                   onClick={() => setSection('main')}
                   className="w-full mt-8 py-3 bg-white text-black rounded-xl font-medium"
                 >
-                  선택 완료
+                  {tr.createPost.selectionComplete}
                 </button>
               </motion.div>
             )}

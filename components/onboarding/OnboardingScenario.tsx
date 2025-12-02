@@ -8,6 +8,7 @@ import {
   ONBOARDING_SPECIAL_SCENARIO,
 } from '@/lib/onboarding-data';
 import ScenarioResult from './ScenarioResult';
+import { useTranslations } from '@/lib/i18n';
 
 interface OnboardingScenarioProps {
   onProgress: (affection: number, isPremiumTease: boolean) => void;
@@ -56,6 +57,7 @@ export default function OnboardingScenario({
   onRestart,
   onConfirm,
 }: OnboardingScenarioProps) {
+  const tr = useTranslations();
   const [currentSceneId, setCurrentSceneId] = useState('scene_1');
   const [showContent, setShowContent] = useState(false);
   const [showChoices, setShowChoices] = useState(false);
@@ -363,7 +365,7 @@ export default function OnboardingScenario({
           transition={{ delay: 1 }}
           className="py-4 text-center text-xs text-white/30 shrink-0"
         >
-          탭하여 계속
+          {tr.scenario.tapToContinue}
         </motion.p>
       )}
 
@@ -427,7 +429,7 @@ export default function OnboardingScenario({
           >
             {/* 헤더 */}
             <div className="flex items-center justify-between px-4 py-4 border-b border-white/10">
-              <h3 className="text-white font-medium">이전 대화</h3>
+              <h3 className="text-white font-medium">{tr.scenario.previousChat}</h3>
               <button
                 onClick={() => setShowHistory(false)}
                 className="p-2 hover:bg-white/10 rounded-full transition"
@@ -439,7 +441,7 @@ export default function OnboardingScenario({
             {/* 히스토리 목록 */}
             <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
               {history.length === 0 ? (
-                <p className="text-white/30 text-center py-8">아직 대화 기록이 없습니다</p>
+                <p className="text-white/30 text-center py-8">{tr.scenario.noHistoryYet}</p>
               ) : (
                 history.map((item, idx) => (
                   <div key={idx} className="space-y-1">
@@ -454,7 +456,7 @@ export default function OnboardingScenario({
                             <SoundWave size="sm" />
                           )}
                           <span className="text-xs text-white/50">
-                            {item.speaker}
+                            {item.speaker === '나' ? tr.scenario.me : item.speaker}
                           </span>
                         </div>
                         <p className={`text-sm leading-relaxed ${
@@ -477,7 +479,7 @@ export default function OnboardingScenario({
                 onClick={() => setShowHistory(false)}
                 className="w-full py-3 bg-white/10 rounded-lg text-white/70 text-sm"
               >
-                닫기
+                {tr.scenario.close}
               </button>
             </div>
           </motion.div>
@@ -505,9 +507,9 @@ export default function OnboardingScenario({
               </div>
 
               <div className="space-y-2">
-                <h3 className="text-xl font-semibold text-white">프리미엄 선택지</h3>
+                <h3 className="text-xl font-semibold text-white">{tr.scenario.premiumChoice}</h3>
                 <p className="text-sm text-white/50">
-                  특별한 스토리를 경험할 수 있어요
+                  {tr.scenario.premiumHint}
                 </p>
               </div>
 
@@ -515,7 +517,7 @@ export default function OnboardingScenario({
                 onClick={handleContinueWithFree}
                 className="w-full py-3 bg-white/10 rounded-lg text-white/70 text-sm"
               >
-                일반 선택지로 계속
+                {tr.scenario.continueWithFree}
               </button>
             </motion.div>
           </motion.div>

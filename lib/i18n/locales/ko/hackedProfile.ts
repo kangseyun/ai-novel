@@ -1,0 +1,15 @@
+export const hackedProfile = {
+  posts: 'posts',
+  followers: 'followers',
+  following: 'following',
+  secret: '비밀',
+  hidden: 'hidden',
+  recoveredFiles: 'RECOVERED FILES',
+  message: 'Message',
+  intercept: '[INTERCEPT]',
+  stories: 'STORIES',
+  hackStatus: 'HACK STATUS',
+  level: 'Level',
+  unlockedFeatures: 'UNLOCKED FEATURES',
+  recovered: 'RECOVERED',
+} as const;

@@ -6,6 +6,7 @@ import { Lock, ChevronLeft, RefreshCw } from 'lucide-react';
 import { apiClient } from '@/lib/api-client';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import { MemoryListSkeleton, MemoryDetailSkeleton } from '@/components/ui/Skeleton';
+import { useTranslations, t } from '@/lib/i18n';
 
 // 페르소나 진행도 타입 (API 응답 기반)
 interface PersonaProgress {
@@ -100,6 +101,7 @@ export default function AnalyticsPage() {
   const [error, setError] = useState<string | null>(null);
 
   const { isAuthenticated } = useAuthStore();
+  const tr = useTranslations();
 
   // 기억 목록 로드
   const loadMemoryList = async () => {
@@ -116,7 +118,7 @@ export default function AnalyticsPage() {
       setStats(data.stats);
     } catch (err) {
       console.error('[AnalyticsPage] Failed to load memory list:', err);
-      setError('기억을 불러오는데 실패했습니다');
+      setError(tr.common.error);
       // 로그인 안된 경우 빈 목록
       setPersonas([]);
     } finally {
@@ -167,12 +169,12 @@ export default function AnalyticsPage() {
       <div className="min-h-screen bg-black text-white pb-24">
         <div className="sticky top-0 z-40 bg-black/95 backdrop-blur-xl border-b border-white/5">
           <div className="px-4 py-4">
-            <h1 className="text-lg font-bold">기억</h1>
-            <p className="text-xs text-white/40 mt-0.5">누군가를 선택하세요</p>
+            <h1 className="text-lg font-bold">{tr.memory.title}</h1>
+            <p className="text-xs text-white/40 mt-0.5">{tr.memory.selectPersona}</p>
           </div>
         </div>
         <div className="px-4 pt-20 text-center">
-          <p className="text-white/40">로그인이 필요합니다</p>
+          <p className="text-white/40">{tr.common.loginRequired}</p>
         </div>
       </div>
     );
@@ -184,7 +186,7 @@ export default function AnalyticsPage() {
       <div className="min-h-screen bg-black text-white pb-24">
         <div className="sticky top-0 z-40 bg-black/95 backdrop-blur-xl border-b border-white/5">
           <div className="px-4 py-4">
-            <h1 className="text-lg font-bold">기억</h1>
+            <h1 className="text-lg font-bold">{tr.memory.title}</h1>
           </div>
         </div>
         <div className="px-4 pt-20 text-center space-y-4">
@@ -194,7 +196,7 @@ export default function AnalyticsPage() {
             className="inline-flex items-center gap-2 px-4 py-2 bg-white/10 rounded-lg text-sm"
           >
             <RefreshCw className="w-4 h-4" />
-            다시 시도
+            {tr.common.retry}
           </button>
         </div>
       </div>
@@ -208,9 +210,9 @@ export default function AnalyticsPage() {
         {/* Header */}
         <div className="sticky top-0 z-40 bg-black/95 backdrop-blur-xl border-b border-white/5">
           <div className="px-4 py-4">
-            <h1 className="text-lg font-bold">기억</h1>
+            <h1 className="text-lg font-bold">{tr.memory.title}</h1>
             <p className="text-xs text-white/40 mt-0.5">
-              {personas.length > 0 ? '누군가를 선택하세요' : 'DM을 시작하면 기억이 쌓입니다'}
+              {personas.length > 0 ? tr.memory.selectPersona : tr.memory.startDMHint}
             </p>
           </div>
         </div>
@@ -222,8 +224,8 @@ export default function AnalyticsPage() {
               <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-white/5 flex items-center justify-center">
                 <Lock className="w-6 h-6 text-white/20" />
               </div>
-              <p className="text-white/40 text-sm">아직 기억이 없습니다</p>
-              <p className="text-white/20 text-xs mt-1">DM에서 대화를 시작해보세요</p>
+              <p className="text-white/40 text-sm">{tr.memory.noMemory}</p>
+              <p className="text-white/20 text-xs mt-1">{tr.memory.noMemoryHint}</p>
             </div>
           ) : (
             <div className="space-y-3">
@@ -289,15 +291,15 @@ export default function AnalyticsPage() {
               <div className="flex justify-around text-sm">
                 <div className="text-center">
                   <p className="text-lg font-medium">{stats.totalCharacters}</p>
-                  <p className="text-xs text-white/30">캐릭터</p>
+                  <p className="text-xs text-white/30">{tr.memory.characters}</p>
                 </div>
                 <div className="text-center">
                   <p className="text-lg font-medium">{stats.totalSecrets}</p>
-                  <p className="text-xs text-white/30">비밀</p>
+                  <p className="text-xs text-white/30">{tr.memory.secrets}</p>
                 </div>
                 <div className="text-center">
                   <p className="text-lg font-medium">{stats.totalStories}</p>
-                  <p className="text-xs text-white/30">이야기</p>
+                  <p className="text-xs text-white/30">{tr.memory.stories}</p>
                 </div>
               </div>
             </div>
@@ -327,7 +329,7 @@ export default function AnalyticsPage() {
           </div>
         </div>
         <div className="px-4 pt-20 text-center">
-          <p className="text-white/40">아직 기억이 없습니다</p>
+          <p className="text-white/40">{tr.memory.noMemory}</p>
         </div>
       </div>
     );
@@ -359,8 +361,8 @@ export default function AnalyticsPage() {
         {/* Tabs */}
         <div className="flex px-4 pb-3 gap-4">
           {[
-            { id: 'progress' as TabType, label: '우리 사이' },
-            { id: 'memo' as TabType, label: '메모' },
+            { id: 'progress' as TabType, label: tr.memory.ourRelationship },
+            { id: 'memo' as TabType, label: tr.memory.memo },
           ].map(({ id, label }) => (
             <button
               key={id}
@@ -414,17 +416,17 @@ export default function AnalyticsPage() {
                 {/* 프로그레스 바들 */}
                 <div className="space-y-3">
                   <ProgressBar
-                    label="마음을 연 정도"
+                    label={tr.memory.openedHeart}
                     value={relationship?.affection || 0}
                     max={100}
                   />
                   <ProgressBar
-                    label="함께한 이야기"
+                    label={tr.memory.sharedStories}
                     value={progress?.storyProgress || 0}
                     max={progress?.totalStories || 12}
                   />
                   <ProgressBar
-                    label="알게 된 비밀"
+                    label={tr.memory.knownSecrets}
                     value={progress?.unlockedSecrets || 0}
                     max={progress?.totalSecrets || 8}
                   />
@@ -434,7 +436,7 @@ export default function AnalyticsPage() {
               {/* 관계 온도 (스탯이 있는 경우만) */}
               {detailStats && (
                 <div className="p-4 bg-white/[0.03] border border-white/5 rounded-xl">
-                  <p className="text-xs text-white/40 mb-3">지금 우리 사이는</p>
+                  <p className="text-xs text-white/40 mb-3">{tr.memory.currentRelationship}</p>
                   <RadarChart stats={detailStats as unknown as Record<string, number>} />
 
                   {/* 스탯 목록 */}
@@ -442,7 +444,7 @@ export default function AnalyticsPage() {
                     {Object.entries(detailStats).map(([key, value]) => (
                       <div key={key}>
                         <p className="text-sm font-medium">{Math.round(value)}</p>
-                        <p className="text-[10px] text-white/30">{getStatLabel(key)}</p>
+                        <p className="text-[10px] text-white/30">{getStatLabel(key, tr)}</p>
                       </div>
                     ))}
                   </div>
@@ -452,15 +454,15 @@ export default function AnalyticsPage() {
               {/* 별명 (있는 경우) */}
               {(relationship?.userNickname || relationship?.personaNickname) && (
                 <div className="p-4 bg-white/[0.03] border border-white/5 rounded-xl">
-                  <p className="text-xs text-white/40 mb-2">우리만의 이름</p>
+                  <p className="text-xs text-white/40 mb-2">{tr.memory.ourNames}</p>
                   {relationship?.personaNickname && (
                     <p className="text-sm text-white/70">
-                      {persona?.name}이(가) 나를 부르는: <span className="text-white">{relationship.personaNickname}</span>
+                      {persona?.name}{tr.memory.callsMe}: <span className="text-white">{relationship.personaNickname}</span>
                     </p>
                   )}
                   {relationship?.userNickname && (
                     <p className="text-sm text-white/70 mt-1">
-                      내가 {persona?.name}을(를) 부르는: <span className="text-white">{relationship.userNickname}</span>
+                      {t(tr.memory.iCall, { name: persona?.name || '' })}: <span className="text-white">{relationship.userNickname}</span>
                     </p>
                   )}
                 </div>
@@ -468,8 +470,8 @@ export default function AnalyticsPage() {
 
               {/* 다음 이야기 */}
               <div className="p-4 bg-white/[0.03] border border-white/5 rounded-xl">
-                <p className="text-xs text-white/40 mb-2">조금만 더 가까워지면</p>
-                <p className="text-sm text-white/70">새로운 이야기가 시작될 것 같다</p>
+                <p className="text-xs text-white/40 mb-2">{tr.memory.nextStory}</p>
+                <p className="text-sm text-white/70">{tr.memory.nextStoryHint}</p>
               </div>
             </motion.div>
           )}
@@ -484,7 +486,7 @@ export default function AnalyticsPage() {
               className="space-y-2"
             >
               <p className="text-xs text-white/30 mb-3">
-                {persona?.name}에 대해 알게 된 것들
+                {t(tr.memory.aboutPersona, { name: persona?.name || '' })}
               </p>
 
               {/* 해금된 메모 */}
@@ -512,7 +514,7 @@ export default function AnalyticsPage() {
                 ))
               ) : (
                 <div className="text-center py-8">
-                  <p className="text-white/30 text-sm">아직 기록된 메모가 없습니다</p>
+                  <p className="text-white/30 text-sm">{tr.memory.noMemos}</p>
                 </div>
               )}
 
@@ -654,13 +656,13 @@ function RadarChart({ stats }: { stats: Record<string, number> }) {
 }
 
 // 헬퍼 함수
-function getStatLabel(key: string): string {
+function getStatLabel(key: string, tr: ReturnType<typeof useTranslations>): string {
   const labels: Record<string, string> = {
-    trust: '신뢰',
-    intimacy: '친밀',
-    mystery: '미스터리',
-    chemistry: '케미',
-    loyalty: '충성',
+    trust: tr.memory.trust,
+    intimacy: tr.memory.intimacy,
+    mystery: tr.memory.mystery,
+    chemistry: tr.memory.chemistry,
+    loyalty: tr.memory.loyalty,
   };
   return labels[key] || key;
 }

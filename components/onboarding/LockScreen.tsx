@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useTranslations, useLocale, t } from '@/lib/i18n';
 
 interface LockScreenProps {
   onUnlock: () => void;
@@ -11,17 +12,20 @@ export default function LockScreen({ onUnlock }: LockScreenProps) {
   const [time, setTime] = useState('');
   const [date, setDate] = useState('');
   const [showSwipeHint, setShowSwipeHint] = useState(false);
+  const tr = useTranslations();
+  const locale = useLocale();
 
   useEffect(() => {
     const updateTime = () => {
       const now = new Date();
-      setTime(now.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false }));
-      setDate(now.toLocaleDateString('ko-KR', { month: 'long', day: 'numeric', weekday: 'long' }));
+      const localeCode = locale === 'ko' ? 'ko-KR' : 'en-US';
+      setTime(now.toLocaleTimeString(localeCode, { hour: '2-digit', minute: '2-digit', hour12: false }));
+      setDate(now.toLocaleDateString(localeCode, { month: 'long', day: 'numeric', weekday: 'long' }));
     };
     updateTime();
     const interval = setInterval(updateTime, 1000);
     return () => clearInterval(interval);
-  }, []);
+  }, [locale]);
 
   // 스와이프 힌트만 약간 딜레이
   useEffect(() => {
@@ -32,9 +36,9 @@ export default function LockScreen({ onUnlock }: LockScreenProps) {
   const notifications = [0, 1, 2];
 
   const dmPreviews = [
-    { name: 'Jun', message: '...잠이 안 와. 너도?', time: '방금' },
-    { name: 'Minho', message: '귀찮게 왜 자꾸 신경 쓰이는 건데...', time: '2분 전' },
-    { name: 'Hana', message: '오늘도 좋은 하루! ...거짓말이야', time: '5분 전' },
+    { name: 'Jun', message: tr.onboarding.junPreview, time: tr.onboarding.justNow },
+    { name: 'Minho', message: tr.onboarding.minhoPreview, time: t(tr.onboarding.minutesAgo, { n: 2 }) },
+    { name: 'Hana', message: tr.onboarding.hanaPreview, time: t(tr.onboarding.minutesAgo, { n: 5 }) },
   ];
 
   return (
@@ -105,7 +109,7 @@ export default function LockScreen({ onUnlock }: LockScreenProps) {
                 className="text-center"
               >
                 <div className="w-10 h-1 bg-white/30 rounded-full mx-auto mb-3" />
-                <p className="text-sm text-white/40">위로 스와이프하여 확인</p>
+                <p className="text-sm text-white/40">{tr.onboarding.swipeUpToCheck}</p>
               </motion.div>
             </motion.button>
           )}

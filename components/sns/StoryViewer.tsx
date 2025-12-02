@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useTranslations } from '@/lib/i18n';
 import {
   X,
   ChevronLeft,
@@ -41,6 +42,7 @@ export default function StoryViewer({
   const [isPaused, setIsPaused] = useState(false);
   const [replyText, setReplyText] = useState('');
   const [showReplyInput, setShowReplyInput] = useState(false);
+  const tr = useTranslations();
 
   const currentStory = stories[currentIndex];
   const STORY_DURATION = 5000; // 5 seconds per story
@@ -243,8 +245,8 @@ export default function StoryViewer({
             className="w-full mb-4 p-4 bg-gradient-to-r from-red-500/20 to-purple-500/20 border border-red-500/30 rounded-xl flex items-center justify-center gap-3"
           >
             <MessageCircle className="w-5 h-5 text-red-400" />
-            <span className="text-sm">이 스토리에 답장하기</span>
-            <span className="text-xs text-red-400 font-mono">[START DM]</span>
+            <span className="text-sm">{tr.story.replyToStory}</span>
+            <span className="text-xs text-red-400 font-mono">[{tr.story.startDM}]</span>
           </motion.button>
         )}
 
@@ -260,7 +262,7 @@ export default function StoryViewer({
               value={replyText}
               onChange={(e) => setReplyText(e.target.value)}
               onKeyPress={(e) => e.key === 'Enter' && handleReply()}
-              placeholder="메시지 보내기..."
+              placeholder={tr.dm.sendPlaceholder}
               className="flex-1 px-4 py-3 bg-white/10 border border-white/20 rounded-full text-sm focus:outline-none focus:border-white/40"
               autoFocus
             />
@@ -278,7 +280,7 @@ export default function StoryViewer({
               onClick={() => setShowReplyInput(true)}
               className="flex-1 px-4 py-3 bg-white/10 border border-white/20 rounded-full text-left text-sm text-white/50"
             >
-              메시지 보내기...
+              {tr.dm.sendPlaceholder}
             </button>
             <button className="p-2">
               <Heart className="w-6 h-6" />
