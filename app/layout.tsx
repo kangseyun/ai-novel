@@ -1,8 +1,9 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import MixpanelProvider from "@/components/MixpanelProvider";
+import AnalyticsProvider from "@/components/AnalyticsProvider";
 import { FirebaseProvider } from "@/components/providers/FirebaseProvider";
+import { TutorialProvider } from "@/components/tutorial";
 import { Toaster } from "sonner";
 
 const geistSans = Geist({
@@ -45,9 +46,11 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-[#0F172A] text-slate-900`}
       >
-        <MixpanelProvider />
+        <AnalyticsProvider />
         <FirebaseProvider>
-          {children}
+          <TutorialProvider>
+            {children}
+          </TutorialProvider>
         </FirebaseProvider>
         <Toaster
           position="top-center"

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { apiClient } from '@/lib/api-client';
 import { useAuthStore } from '@/lib/stores/auth-store';
+import analytics from '@/lib/analytics';
 
 export default function AuthCallbackPage() {
   const router = useRouter();
@@ -52,6 +53,10 @@ export default function AuthCallbackPage() {
               tokens: 100,
               onboarding_completed: true,
             });
+
+            // 유저 식별 후 회원가입 이벤트 (순서 중요: identify → track)
+            analytics.identify(user.id, { email: user.email });
+            analytics.trackSignUp('oauth');
           } else {
             // 기존 가입자 - 프로필 업데이트
             await supabase
@@ -61,6 +66,10 @@ export default function AuthCallbackPage() {
                 profile_image: user.user_metadata?.avatar_url || null,
               })
               .eq('id', user.id);
+
+            // 유저 식별 후 로그인 이벤트 (순서 중요: identify → track)
+            analytics.identify(user.id, { email: user.email });
+            analytics.trackLogin('oauth');
           }
 
           // Auth 스토어 업데이트 (isAuthenticated = true)
@@ -99,6 +108,10 @@ export default function AuthCallbackPage() {
                 tokens: 100,
                 onboarding_completed: true,
               });
+
+              // 유저 식별 후 회원가입 이벤트 (순서 중요: identify → track)
+              analytics.identify(data.user.id, { email: data.user.email });
+              analytics.trackSignUp('oauth');
             } else {
               // 기존 가입자 - 프로필 업데이트
               await supabase
@@ -108,6 +121,10 @@ export default function AuthCallbackPage() {
                   profile_image: data.user.user_metadata?.avatar_url || null,
                 })
                 .eq('id', data.user.id);
+
+              // 유저 식별 후 로그인 이벤트 (순서 중요: identify → track)
+              analytics.identify(data.user.id, { email: data.user.email });
+              analytics.trackLogin('oauth');
             }
 
             // Auth 스토어 업데이트 (isAuthenticated = true)

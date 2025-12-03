@@ -36,6 +36,7 @@ import {
 import { useHackerStore } from '@/lib/stores/hacker-store';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import { supabase } from '@/lib/supabase';
+import { useTutorial } from '@/components/tutorial';
 
 type Tab = 'home' | 'dm' | 'create' | 'activity' | 'profile';
 
@@ -93,6 +94,10 @@ export default function MainPage() {
     getProfile,
   } = useHackerStore();
 
+  // Tutorial hook
+  const { startInitialTutorial, isInitialTutorialCompleted } = useTutorial();
+  const tutorialStartedRef = useRef(false);
+
   // 로그인 체크 - Supabase 세션 확인
   useEffect(() => {
     const checkAuth = async () => {
@@ -125,6 +130,18 @@ export default function MainPage() {
   useEffect(() => {
     initProfile('jun');
   }, [initProfile]);
+
+  // 로딩 완료 후 튜토리얼 시작 (처음 접속한 사용자만)
+  useEffect(() => {
+    if (!isLoading && !tutorialStartedRef.current && !isInitialTutorialCompleted()) {
+      tutorialStartedRef.current = true;
+      // 잠시 대기 후 튜토리얼 시작 (UI가 완전히 렌더링된 후)
+      const timer = setTimeout(() => {
+        startInitialTutorial();
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [isLoading, startInitialTutorial, isInitialTutorialCompleted]);
 
   // Get profile data
   const profile = getProfile('jun');
@@ -301,7 +318,7 @@ export default function MainPage() {
       </div>
 
       {/* Main Content */}
-      <main className="pb-20">
+      <main className="pb-20" data-tutorial="home-feed">
         {currentTab === 'home' && (
           <HomeFeed />
         )}
@@ -359,14 +376,15 @@ export default function MainPage() {
       <nav className="sticky bottom-0 z-40 bg-black/90 backdrop-blur-xl border-t border-white/10">
         <div className="flex items-center justify-around py-3">
           {[
-            { id: 'home' as Tab, icon: Home },
-            { id: 'dm' as Tab, icon: MessageCircle },
-            { id: 'create' as Tab, icon: Plus, isCreate: true },
-            { id: 'activity' as Tab, icon: Heart },
-            { id: 'profile' as Tab, icon: User },
-          ].map(({ id, icon: Icon, isCreate }) => (
+            { id: 'home' as Tab, icon: Home, tutorialId: 'home-button' },
+            { id: 'dm' as Tab, icon: MessageCircle, tutorialId: 'dm-button' },
+            { id: 'create' as Tab, icon: Plus, isCreate: true, tutorialId: 'create-button' },
+            { id: 'activity' as Tab, icon: Heart, tutorialId: 'activity-button' },
+            { id: 'profile' as Tab, icon: User, tutorialId: 'profile-button' },
+          ].map(({ id, icon: Icon, isCreate, tutorialId }) => (
             <button
               key={id}
+              data-tutorial={tutorialId}
               onClick={() => {
                 if (isCreate) {
                   setShowCreatePost(true);

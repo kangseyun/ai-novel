@@ -24,6 +24,7 @@ import { useAuthStore } from '@/lib/stores/auth-store';
 import { apiClient } from '@/lib/api-client';
 import { Coins } from 'lucide-react';
 import { useTranslations, t } from '@/lib/i18n';
+import analytics from '@/lib/analytics';
 
 interface DMChatProps {
   personaId: string;
@@ -89,7 +90,10 @@ export default function DMChat({
   // Initialize persona progress on mount
   useEffect(() => {
     initPersonaProgress(personaId);
-  }, [initPersonaProgress, personaId]);
+
+    // DM 열기 이벤트
+    analytics.trackDMOpen(personaId, profile.displayName);
+  }, [initPersonaProgress, personaId, profile.displayName]);
 
   // Scroll to bottom when messages change
   useEffect(() => {
@@ -305,6 +309,9 @@ export default function DMChat({
     // Show typing indicator
     setIsTyping(true);
     onGainXP(5);
+
+    // 메시지 전송 이벤트
+    analytics.trackMessageSent(personaId);
 
     try {
       const response = await apiClient.aiChat({

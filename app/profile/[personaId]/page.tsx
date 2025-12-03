@@ -7,6 +7,8 @@ import { ArrowLeft, Settings, MoreHorizontal, Grid3X3, Bookmark, Heart } from 'l
 import { JUN_PROFILE, JUN_POSTS } from '@/lib/hacked-sns-data';
 import { useUserPersonaStore } from '@/lib/stores/user-persona-store';
 import { useTranslations } from '@/lib/i18n';
+import { useEffect } from 'react';
+import analytics from '@/lib/analytics';
 
 // 페르소나 프로필 데이터
 const PERSONA_PROFILES: Record<string, {
@@ -87,6 +89,17 @@ export default function PersonaProfilePage() {
   const isFollowing = unlockedPersonas.includes(personaId);
 
   const profile = PERSONA_PROFILES[personaId];
+
+  // 프로필 조회 이벤트
+  useEffect(() => {
+    if (profile) {
+      analytics.trackViewContent({
+        contentId: personaId,
+        contentName: profile.displayName,
+        contentType: 'persona_profile',
+      });
+    }
+  }, [personaId, profile]);
 
   if (!profile) {
     return (

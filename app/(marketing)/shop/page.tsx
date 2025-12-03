@@ -1,12 +1,13 @@
 'use client';
 
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect, Suspense, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, Check } from 'lucide-react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { apiClient } from '@/lib/api-client';
 import { useTranslations, useLocale, t } from '@/lib/i18n';
+import analytics from '@/lib/analytics';
 
 type TabType = 'subscription' | 'credits';
 
@@ -57,6 +58,36 @@ function ShopContent() {
   const credits = searchParams.get('credits') || searchParams.get('tokens');
   const canceled = searchParams.get('canceled');
   const subscriptionStatus = searchParams.get('subscription');
+  const purchasePrice = searchParams.get('price');
+  const purchaseId = searchParams.get('package_id');
+
+  // 이벤트 중복 발송 방지
+  const eventTrackedRef = useRef(false);
+
+  // 결제 완료 이벤트 추적 (한 번만 실행)
+  useEffect(() => {
+    if (eventTrackedRef.current) return;
+
+    if (success === 'true' && credits) {
+      eventTrackedRef.current = true;
+      // 크레딧 구매 완료
+      analytics.trackPurchase({
+        transactionId: purchaseId || undefined,
+        items: [{ id: purchaseId || 'credits', name: `${credits} Credits`, price: parseInt(purchasePrice || '0') }],
+        totalValue: parseInt(purchasePrice || '0'),
+        currency: 'KRW',
+      });
+    } else if (subscriptionStatus === 'success') {
+      eventTrackedRef.current = true;
+      // 구독 결제 완료
+      analytics.trackSubscribe({
+        planId: 'pro',
+        planName: 'Pro Membership',
+        value: parseInt(purchasePrice || '9900'),
+        currency: 'KRW',
+      });
+    }
+  }, [success, credits, subscriptionStatus, purchasePrice, purchaseId]);
 
   useEffect(() => {
     const loadSubscription = async () => {
@@ -74,6 +105,17 @@ function ShopContent() {
   const handlePurchaseCredits = async (packageId: string) => {
     try {
       setLoading(packageId);
+
+      // 결제 시작 이벤트
+      const pkg = CREDIT_PACKAGES.find(p => p.id === packageId);
+      if (pkg) {
+        analytics.trackInitiateCheckout({
+          items: [{ id: packageId, name: `${pkg.credits} Credits`, price: pkg.price }],
+          totalValue: pkg.price,
+          currency: 'KRW',
+        });
+      }
+
       const { url } = await apiClient.purchaseTokens(packageId);
       if (url) window.location.href = url;
     } catch (error) {
@@ -87,6 +129,17 @@ function ShopContent() {
   const handleSubscribe = async (planId: string) => {
     try {
       setLoading(planId);
+
+      // 구독 결제 시작 이벤트
+      const plan = SUBSCRIPTION_PLANS[planId as keyof typeof SUBSCRIPTION_PLANS];
+      if (plan) {
+        analytics.trackInitiateCheckout({
+          items: [{ id: planId, name: `Pro ${plan.interval}`, price: plan.price }],
+          totalValue: plan.price,
+          currency: 'KRW',
+        });
+      }
+
       const { url } = await apiClient.subscribeToVIP(planId);
       if (url) window.location.href = url;
     } catch (error) {

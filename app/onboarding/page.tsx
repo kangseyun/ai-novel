@@ -7,6 +7,7 @@ import OnboardingB from '@/components/onboarding/variants/OnboardingB';
 import OnboardingC from '@/components/onboarding/variants/OnboardingC';
 import { apiClient } from '@/lib/api-client';
 import { useAuthStore } from '@/lib/stores/auth-store';
+import analytics from '@/lib/analytics';
 
 type Variant = 'a' | 'b' | 'c';
 
@@ -34,6 +35,9 @@ function OnboardingContent() {
     }
 
     setVariant(getRandomVariant());
+
+    // 온보딩 시작 이벤트
+    analytics.trackOnboardingStart();
   }, [searchParams]);
 
   const handleComplete = async () => {
@@ -48,6 +52,9 @@ function OnboardingContent() {
           choices_made: choicesMade,
         });
         setOnboardingCompleted();
+
+        // 온보딩 완료 이벤트
+        analytics.trackOnboardingComplete('jun');
       } catch (error) {
         console.error('Failed to complete onboarding:', error);
       }
