@@ -4,7 +4,85 @@
  */
 
 import { z } from 'zod';
-import type { PersonaMood, ChoiceTone, LLMDialogueResponse, DialogueChoice } from './types';
+import type { PersonaMood, ChoiceTone, LLMDialogueResponse, DialogueChoice, RelationshipStage } from './types';
+
+// ============================================
+// 검증 에러 타입
+// ============================================
+
+export interface ValidationError {
+  type: 'JSON_PARSE_ERROR' | 'VALIDATION_ERROR' | 'UNKNOWN_ERROR';
+  message: string;
+  field?: string;
+  rawResponse?: string;
+  timestamp: Date;
+}
+
+export interface ParseResult<T> {
+  success: boolean;
+  data: T | null;
+  errors: ValidationError[];
+  rawResponse: string;
+}
+
+// ============================================
+// 사용자 입력 검증 스키마
+// ============================================
+
+/** 세션 ID 스키마 */
+export const SessionIdSchema = z.string().uuid('Invalid session ID format');
+
+/** 사용자 메시지 스키마 */
+export const UserMessageSchema = z.string()
+  .min(1, 'Message cannot be empty')
+  .max(2000, 'Message exceeds maximum length of 2000 characters')
+  .transform(s => s.trim());
+
+/** 선택지 데이터 스키마 */
+export const ChoiceDataSchema = z.object({
+  choiceId: z.string().min(1, 'Choice ID is required'),
+  wasPremium: z.boolean(),
+}).optional();
+
+/** 메시지 처리 요청 스키마 */
+export const ProcessMessageRequestSchema = z.object({
+  sessionId: SessionIdSchema,
+  userMessage: UserMessageSchema,
+  choiceData: ChoiceDataSchema,
+});
+
+/** 관계 단계 스키마 */
+export const RelationshipStageSchema = z.enum([
+  'stranger',
+  'acquaintance',
+  'friend',
+  'close',
+  'intimate',
+  'lover',
+]);
+
+/** 시간 범위 스키마 */
+export const TimeRangeSchema = z.object({
+  start: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, 'Invalid time format (HH:mm)'),
+  end: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, 'Invalid time format (HH:mm)'),
+});
+
+/** 배달 조건 스키마 */
+export const DeliveryConditionsSchema = z.object({
+  minAffection: z.number().min(0).max(100).optional(),
+  maxAffection: z.number().min(0).max(100).optional(),
+  relationshipStage: z.array(RelationshipStageSchema).optional(),
+  timeRange: TimeRangeSchema.optional(),
+  requiredFlags: z.array(z.string()).optional(),
+  excludeFlags: z.array(z.string()).optional(),
+  hoursSinceLastActivity: z.object({
+    min: z.number().min(0).optional(),
+    max: z.number().min(0).optional(),
+  }).optional(),
+});
+
+/** 배달 조건 타입 */
+export type DeliveryConditions = z.infer<typeof DeliveryConditionsSchema>;
 
 // ============================================
 // 기본 타입 스키마 (types.ts와 일치)
@@ -114,7 +192,74 @@ function extractJSON(response: string): string {
 }
 
 /**
- * 안전한 대화 응답 파싱
+ * 에러 로깅 헬퍼
+ */
+function logParseError(
+  context: string,
+  error: unknown,
+  rawResponse: string
+): ValidationError {
+  const errorMessage = error instanceof Error ? error.message : String(error);
+  const isJsonError = error instanceof SyntaxError;
+  const isZodError = error instanceof z.ZodError;
+
+  // ZodError의 첫 번째 필드 경로 추출
+  let fieldPath: string | undefined;
+  if (isZodError) {
+    const zodError = error as z.ZodError;
+    fieldPath = zodError.issues[0]?.path.join('.');
+  }
+
+  const validationError: ValidationError = {
+    type: isJsonError ? 'JSON_PARSE_ERROR' : isZodError ? 'VALIDATION_ERROR' : 'UNKNOWN_ERROR',
+    message: errorMessage,
+    field: fieldPath,
+    rawResponse: rawResponse.substring(0, 500), // 로그 크기 제한
+    timestamp: new Date(),
+  };
+
+  console.error(`[Schema] ${context} parsing failed:`, {
+    errorType: validationError.type,
+    message: validationError.message,
+    field: validationError.field,
+    responsePreview: rawResponse.substring(0, 200),
+  });
+
+  return validationError;
+}
+
+/**
+ * 부분 복구 시도 - content 필드만이라도 추출
+ */
+function attemptPartialRecovery(response: string): Partial<LLMDialogueResponse> | null {
+  try {
+    // JSON에서 content 필드만 추출 시도
+    const contentMatch = response.match(/"content"\s*:\s*"([^"]+)"/);
+    if (contentMatch) {
+      return {
+        content: contentMatch[1],
+        emotion: 'neutral',
+        affectionModifier: 0,
+      };
+    }
+
+    // JSON이 아닌 경우 전체를 content로 사용
+    const cleanResponse = response.replace(/```json|```/g, '').trim();
+    if (cleanResponse.length > 0 && !cleanResponse.startsWith('{')) {
+      return {
+        content: cleanResponse,
+        emotion: 'neutral',
+        affectionModifier: 0,
+      };
+    }
+  } catch {
+    // 복구 실패
+  }
+  return null;
+}
+
+/**
+ * 안전한 대화 응답 파싱 (개선된 에러 로깅)
  */
 export function parseDialogueResponse(response: string): LLMDialogueResponse {
   try {
@@ -145,11 +290,71 @@ export function parseDialogueResponse(response: string): LLMDialogueResponse {
       } : undefined,
     };
   } catch (error) {
-    console.warn('[Zod] DialogueResponse parsing failed:', error);
+    logParseError('DialogueResponse', error, response);
+
+    // 부분 복구 시도
+    const recovered = attemptPartialRecovery(response);
+    if (recovered && recovered.content) {
+      console.warn('[Schema] Partial recovery successful for DialogueResponse');
+      return {
+        content: recovered.content,
+        emotion: recovered.emotion || 'neutral',
+        affectionModifier: recovered.affectionModifier || 0,
+      };
+    }
+
+    // 최후의 폴백
     return {
-      content: response,
+      content: response.substring(0, 500) || '응답을 처리할 수 없습니다.',
       emotion: 'neutral',
       affectionModifier: 0,
+    };
+  }
+}
+
+/**
+ * 안전한 대화 응답 파싱 (상세 결과 반환)
+ */
+export function parseDialogueResponseWithDetails(response: string): ParseResult<LLMDialogueResponse> {
+  try {
+    const jsonStr = extractJSON(response);
+    const parsed = JSON.parse(jsonStr);
+    const validated = DialogueResponseSchema.parse(parsed);
+
+    return {
+      success: true,
+      data: {
+        content: validated.content,
+        emotion: validated.emotion as PersonaMood,
+        innerThought: validated.innerThought,
+        affectionModifier: validated.affectionModifier,
+        flagsToSet: validated.flagsToSet as Record<string, boolean> | undefined,
+        suggestedChoices: validated.suggestedChoices?.map(c => ({
+          id: c.id,
+          text: c.text,
+          tone: (c.tone || 'neutral') as ChoiceTone,
+          isPremium: false,
+          estimatedAffectionChange: 0,
+        })),
+        scenarioTrigger: validated.scenarioTrigger?.shouldStart ? {
+          shouldStart: true,
+          scenarioType: (validated.scenarioTrigger.scenarioType || 'meeting') as 'meeting' | 'date' | 'confession' | 'conflict' | 'intimate' | 'custom',
+          scenarioContext: validated.scenarioTrigger.scenarioContext || '',
+          location: validated.scenarioTrigger.location,
+          transitionMessage: validated.scenarioTrigger.transitionMessage,
+        } : undefined,
+      },
+      errors: [],
+      rawResponse: response,
+    };
+  } catch (error) {
+    const validationError = logParseError('DialogueResponse', error, response);
+
+    return {
+      success: false,
+      data: null,
+      errors: [validationError],
+      rawResponse: response,
     };
   }
 }
@@ -172,7 +377,7 @@ export function parseChoicesResponse(response: string): DialogueChoice[] {
       nextBeatHint: c.nextBeatHint,
     }));
   } catch (error) {
-    console.warn('[Zod] ChoicesResponse parsing failed:', error);
+    logParseError('ChoicesResponse', error, response);
     return [
       { id: 'default_1', text: '...', tone: 'neutral', isPremium: false, estimatedAffectionChange: 0 },
     ];
@@ -193,9 +398,19 @@ export function parseEventMessageResponse(response: string): { content: string; 
       postType: validated.postType,
     };
   } catch (error) {
-    console.warn('[Zod] EventMessageResponse parsing failed:', error);
+    logParseError('EventMessageResponse', error, response);
+
+    // 부분 복구 시도
+    const recovered = attemptPartialRecovery(response);
+    if (recovered && recovered.content) {
+      return {
+        content: recovered.content,
+        emotion: 'neutral',
+      };
+    }
+
     return {
-      content: response,
+      content: response.substring(0, 500) || '메시지를 생성할 수 없습니다.',
       emotion: 'neutral',
     };
   }
@@ -218,11 +433,51 @@ export function parseStoryBranchResponse(
       flagsToSet: validated.flagsToSet as Record<string, boolean>,
     };
   } catch (error) {
-    console.warn('[Zod] StoryBranchResponse parsing failed:', error);
+    logParseError('StoryBranchResponse', error, response);
     return {
       selectedBranch: defaultBranchId,
-      reasoning: 'Failed to parse response',
+      reasoning: 'Failed to parse response - using default branch',
       flagsToSet: {},
     };
   }
+}
+
+// ============================================
+// 입력 검증 헬퍼 함수
+// ============================================
+
+/**
+ * 사용자 메시지 처리 요청 검증
+ */
+export function validateProcessMessageRequest(data: unknown): {
+  valid: boolean;
+  data?: z.infer<typeof ProcessMessageRequestSchema>;
+  error?: string;
+} {
+  const result = ProcessMessageRequestSchema.safeParse(data);
+  if (result.success) {
+    return { valid: true, data: result.data };
+  }
+  return {
+    valid: false,
+    error: result.error.issues.map((e: z.ZodIssue) => `${e.path.join('.')}: ${e.message}`).join(', '),
+  };
+}
+
+/**
+ * 배달 조건 검증
+ */
+export function validateDeliveryConditions(data: unknown): {
+  valid: boolean;
+  data?: DeliveryConditions;
+  error?: string;
+} {
+  const result = DeliveryConditionsSchema.safeParse(data);
+  if (result.success) {
+    return { valid: true, data: result.data };
+  }
+  return {
+    valid: false,
+    error: result.error.issues.map((e: z.ZodIssue) => `${e.path.join('.')}: ${e.message}`).join(', '),
+  };
 }

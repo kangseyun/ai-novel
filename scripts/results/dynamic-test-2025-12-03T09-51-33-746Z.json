@@ -1,0 +1,64 @@
+[
+  {
+    "timestamp": "2025-12-03T09:51:33.746Z",
+    "userPersona": "호기심 많은 신규 유저",
+    "turns": 5,
+    "conversation": [
+      {
+        "role": "user",
+        "content": ""
+      },
+      {
+        "role": "persona",
+        "content": "..."
+      },
+      {
+        "role": "user",
+        "content": ""
+      },
+      {
+        "role": "persona",
+        "content": "..."
+      },
+      {
+        "role": "user",
+        "content": ""
+      },
+      {
+        "role": "persona",
+        "content": "...뭐, 필요한 거라도 있어?"
+      },
+      {
+        "role": "user",
+        "content": ""
+      },
+      {
+        "role": "persona",
+        "content": "뭐, 할 말 없으면… 난 가봐야 하는데."
+      },
+      {
+        "role": "user",
+        "content": ""
+      },
+      {
+        "role": "persona",
+        "content": "..."
+      }
+    ],
+    "evaluation": {
+      "overallScore": 5,
+      "characterConsistency": 5,
+      "emotionalCoherence": 5,
+      "engagementQuality": 5,
+      "analysis": "평가 파싱 실패",
+      "strengths": [],
+      "weaknesses": [],
+      "suggestions": []
+    },
+    "models": {
+      "userLLM": "google/gemini-3-pro-preview",
+      "personaLLM": "google/gemini-2.5-flash",
+      "evaluator": "google/gemini-3-pro-preview"
+    }
+  }
+]

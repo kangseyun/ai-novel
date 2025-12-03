@@ -13,6 +13,7 @@
     "@stripe/stripe-js": "^8.5.3",
     "@supabase/ssr": "^0.8.0",
     "@supabase/supabase-js": "^2.84.0",
+    "airbridge-web-sdk-loader": "^1.10.6",
     "clsx": "^2.1.1",
     "firebase": "^12.6.0",
     "framer-motion": "^12.23.24",

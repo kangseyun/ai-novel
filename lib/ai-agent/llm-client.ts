@@ -14,7 +14,9 @@ import {
   buildResponsePrompt,
   buildChoiceGenerationPrompt,
   buildEventMessagePrompt,
+  EmotionalContextForPrompt,
 } from './prompt-builder';
+import { validateAndCorrectResponse } from './response-validator';
 import {
   ModelSelector,
   ModelSelectionLogger,
@@ -68,6 +70,28 @@ export interface LLMCallOptions {
 // LLM 클라이언트
 // ============================================
 
+// ============================================
+// 에러 클래스
+// ============================================
+
+export class LLMConfigError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'LLMConfigError';
+  }
+}
+
+export class LLMAPIError extends Error {
+  constructor(
+    message: string,
+    public statusCode?: number,
+    public model?: string
+  ) {
+    super(message);
+    this.name = 'LLMAPIError';
+  }
+}
+
 export class LLMClient {
   private apiKey: string;
   private defaultModel: string;
@@ -80,7 +104,25 @@ export class LLMClient {
     enableDynamicSelection?: boolean;
     enableBudgetGuard?: boolean;
   }) {
-    this.apiKey = apiKey || process.env.OPENROUTER_API_KEY || '';
+    // API 키 검증
+    const resolvedApiKey = apiKey || process.env.OPENROUTER_API_KEY;
+
+    if (!resolvedApiKey) {
+      throw new LLMConfigError(
+        'OPENROUTER_API_KEY is required. Set it in environment variables or pass it to constructor.'
+      );
+    }
+
+    if (resolvedApiKey.length < 10) {
+      throw new LLMConfigError('Invalid API key format: key is too short');
+    }
+
+    // 프로덕션 환경에서 테스트 키 사용 방지
+    if (process.env.NODE_ENV === 'production' && resolvedApiKey.startsWith('sk-test-')) {
+      throw new LLMConfigError('Test API key cannot be used in production environment');
+    }
+
+    this.apiKey = resolvedApiKey;
     this.defaultModel = options?.defaultModel || 'google/gemini-2.5-flash';
     this.enableDynamicSelection = options?.enableDynamicSelection ?? true;
     this.enableBudgetGuard = options?.enableBudgetGuard ?? true;
@@ -100,17 +142,22 @@ export class LLMClient {
    * @param options - LLM 호출 옵션
    */
   async generateResponse(
-    context: LLMContext & { memories?: string; previousSummaries?: string },
+    context: LLMContext & {
+      memories?: string;
+      previousSummaries?: string;
+      emotionalContext?: EmotionalContextForPrompt; // 감정 상태 컨텍스트 추가
+    },
     userMessage: string,
     options?: LLMCallOptions
   ): Promise<LLMDialogueResponse> {
     const systemPrompt = buildSystemPrompt(context);
-    // 기억과 요약을 프롬프트에 포함
+    // 기억, 요약, 감정 컨텍스트를 프롬프트에 포함
     const userPrompt = buildResponsePrompt(
       context,
       userMessage,
       context.memories,
-      context.previousSummaries
+      context.previousSummaries,
+      context.emotionalContext // 감정 상태 전달
     );
 
     // 작업 컨텍스트 구성
@@ -134,7 +181,21 @@ export class LLMClient {
       { ...options, taskContext }
     );
 
-    return parseDialogueResponse(response.content);
+    const parsedResponse = parseDialogueResponse(response.content);
+
+    // 응답 일관성 검증 및 수정 (감정 컨텍스트가 있는 경우)
+    if (context.emotionalContext) {
+      const { response: validatedResponse, wasModified, issues } =
+        validateAndCorrectResponse(parsedResponse, context.emotionalContext);
+
+      if (wasModified) {
+        console.log('[LLMClient] Response was corrected for emotional consistency:', issues);
+      }
+
+      return validatedResponse;
+    }
+
+    return parsedResponse;
   }
 
   /**
@@ -346,15 +407,33 @@ Respond in JSON:
       body: JSON.stringify({
         model: selectedModel,
         messages,
-        temperature: options?.temperature ?? 0.8,
+        // 온도 0.65로 조정: 일관성 유지를 위해 낮춤 (0.8 → 0.65)
+        // 너무 낮으면 창의성 저하, 너무 높으면 캐릭터 일탈
+        temperature: options?.temperature ?? 0.65,
         max_tokens: options?.maxTokens ?? (modelConfig?.maxTokens || 1000),
         response_format: { type: 'json_object' },
       }),
     });
 
     if (!response.ok) {
-      const error = await response.text();
-      throw new Error(`LLM API error (${selectedModel}): ${error}`);
+      const errorText = await response.text();
+      let errorMessage = `LLM API error (${selectedModel})`;
+
+      try {
+        const errorJson = JSON.parse(errorText);
+        errorMessage = errorJson.error?.message || errorJson.message || errorText;
+      } catch {
+        errorMessage = errorText || `HTTP ${response.status}`;
+      }
+
+      console.error('[LLMClient] API Error:', {
+        model: selectedModel,
+        status: response.status,
+        error: errorMessage,
+        taskType: options?.taskContext?.type,
+      });
+
+      throw new LLMAPIError(errorMessage, response.status, selectedModel);
     }
 
     const data: OpenRouterResponse = await response.json();

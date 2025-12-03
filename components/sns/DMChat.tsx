@@ -87,12 +87,18 @@ export default function DMChat({
   const updatePersonaAffection = useFeedStore(state => state.updatePersonaAffection);
   const initPersonaProgress = useFeedStore(state => state.initPersonaProgress);
 
+  // DM 열기 이벤트 중복 방지
+  const dmOpenTrackedRef = useRef(false);
+
   // Initialize persona progress on mount
   useEffect(() => {
     initPersonaProgress(personaId);
 
-    // DM 열기 이벤트
-    analytics.trackDMOpen(personaId, profile.displayName);
+    // DM 열기 이벤트 (중복 방지)
+    if (!dmOpenTrackedRef.current) {
+      dmOpenTrackedRef.current = true;
+      analytics.trackDMOpen(personaId, profile.displayName);
+    }
   }, [initPersonaProgress, personaId, profile.displayName]);
 
   // Scroll to bottom when messages change

@@ -21,18 +21,12 @@ export async function GET(request: NextRequest) {
         persona_id,
         event_type,
         scheduled_for,
-        priority,
         event_data,
-        personas (
-          name,
-          display_name,
-          avatar_url
-        )
+        trigger_rule_id
       `)
       .eq('user_id', user.id)
       .eq('status', 'pending')
       .lte('scheduled_for', new Date().toISOString())
-      .order('priority', { ascending: false })
       .order('scheduled_for', { ascending: true });
 
     if (error) {
@@ -41,13 +35,12 @@ export async function GET(request: NextRequest) {
     }
 
     return NextResponse.json({
-      events: events?.map((event: { id: string; persona_id: string; event_type: string; scheduled_for: string; priority: number; personas: unknown; event_data: Record<string, unknown> | null }) => ({
+      events: events?.map((event: { id: string; persona_id: string; event_type: string; scheduled_for: string; event_data: Record<string, unknown> | null; trigger_rule_id: string | null }) => ({
         id: event.id,
         personaId: event.persona_id,
         type: event.event_type,
         scheduledFor: event.scheduled_for,
-        priority: event.priority,
-        persona: event.personas,
+        triggerRuleId: event.trigger_rule_id,
         preview: event.event_data?.preview || null,
       })) || [],
     });

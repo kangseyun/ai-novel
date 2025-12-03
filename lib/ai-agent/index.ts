@@ -55,6 +55,12 @@ export {
   RetentionAnalyzer,
 } from './event-trigger-engine';
 
+// Event Trigger Service (DB Connected)
+export {
+  EventTriggerService,
+  getEventTriggerService,
+} from './event-trigger-service';
+
 // Prompt Builder
 export {
   buildSystemPrompt,
@@ -70,6 +76,10 @@ export {
 export { MemoryManager } from './memory-system';
 export type { PersonaMemory, ConversationSummary, MemoryType } from './memory-system';
 
+// Memory Service (Enhanced)
+export { MemoryService, getMemoryService } from './memory-service';
+export type { Memory, MemoryExtractionResult } from './memory-service';
+
 // Persona Loader (NEW)
 export { PersonaLoader, getPersonaLoader } from './persona-loader';
 export type { PersonaCoreData, PersonaBehavior } from './persona-loader';
@@ -83,3 +93,29 @@ export type {
   ScenarioChoice,
   UserScenarioProgress,
 } from './scenario-service';
+
+// Emotional State Tracker (일관성 유지의 핵심!)
+export {
+  EmotionalStateTracker,
+  getEmotionalStateTracker,
+} from './emotional-state-tracker';
+export type {
+  EmotionalSnapshot,
+  EmotionalEvent,
+  ConflictRecord,
+  ConflictType,
+  ResolutionType,
+} from './emotional-state-tracker';
+
+// Response Validator (응답 일관성 검증)
+export {
+  ResponseValidator,
+  validateAndCorrectResponse,
+} from './response-validator';
+export type {
+  ValidationResult,
+  ValidationIssue,
+} from './response-validator';
+
+// Prompt Builder Types
+export type { EmotionalContextForPrompt } from './prompt-builder';

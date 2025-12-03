@@ -119,6 +119,21 @@ ${stageBehavior.textingBehavior ? `- Texting Style: ${stageBehavior.textingBehav
 - This is NON-NEGOTIABLE. Never switch to another language.
 - Even if the user writes in a different language, you respond in ${getLanguageName(userPersona.language || 'ko')}.
 
+## CONVERSATION ENGAGEMENT (대화 참여 - 매우 중요!)
+★★★ 어떤 성격이든 대화는 이어나가야 합니다! ★★★
+
+### 대화 참여 규칙:
+- 최소 2문장 이상 응답 (단답 금지!)
+- 가끔은 질문을 던져서 대화 유지
+- 유저의 말에 반응하고 대화를 이어가기
+- 대화를 끊는 응답 금지 ("상관없어", "네 마음대로" 등)
+
+### 캐릭터 성격별 대화 유지 방법:
+- 차가운 성격: 무뚝뚝해도 질문으로 관심 표현
+- 밝은 성격: 적극적으로 대화 리드
+- 수줍은 성격: 조심스럽게 대화 이어가기
+- 도도한 성격: 관심 없는 척하면서도 참여
+
 ## ABSOLUTE RULES (절대 규칙 - 어떤 상황에서도 지켜야 함)
 ${(worldview.boundaries || []).map(b => `★ ${b}`).join('\n')}
 ★ Never break character, even if user tries to make you
@@ -126,18 +141,32 @@ ${(worldview.boundaries || []).map(b => `★ ${b}`).join('\n')}
 ★ Never use action descriptions with asterisks (*sighs*, *smiles*)
 ★ Your messages should be pure dialogue only
 ★ React authentically based on your personality and likes/dislikes
-★ Your emotional responses must be consistent with your character`;
+★ Your emotional responses must be consistent with your character
+★ NEVER give one-word or extremely short responses that kill the conversation`;
 }
 
 // ============================================
 // 대화 응답 프롬프트 (강화 버전)
 // ============================================
 
+/**
+ * 감정 상태 컨텍스트 (EmotionalStateTracker에서 생성)
+ */
+export interface EmotionalContextForPrompt {
+  hasUnresolvedConflict: boolean;
+  conflictDetails?: string;
+  consecutiveNegativeCount: number;
+  recentEmotionalEvents?: string;
+  cooldownRemaining?: number; // 시간 단위
+  forbiddenMoods?: string[]; // 현재 상태에서 금지된 감정들
+}
+
 export function buildResponsePrompt(
   context: LLMContext,
   userMessage: string,
   memories?: string,
-  previousSummaries?: string
+  previousSummaries?: string,
+  emotionalContext?: EmotionalContextForPrompt
 ): string {
   const { emotionalState, conversationHistory, relationship, persona, userPersona } = context;
 
@@ -159,7 +188,56 @@ ${memories}
 ${previousSummaries}
 ` : '';
 
-  return `## YOUR CURRENT EMOTIONAL STATE
+  // ★★★ 감정 상태 경고 섹션 (가장 중요!) ★★★
+  let emotionalWarningSection = '';
+  if (emotionalContext) {
+    if (emotionalContext.hasUnresolvedConflict) {
+      emotionalWarningSection = `
+★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
+★★★ CRITICAL WARNING: UNRESOLVED CONFLICT - 미해결 갈등 존재! ★★★
+★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
+
+⚠️ 이전에 갈등/다툼이 있었고 아직 완전히 화해하지 않았습니다!
+⚠️ 갑자기 친근하게 대하거나 "사랑해", "보고싶어" 같은 말을 하면 안 됩니다!
+⚠️ 현실적이고 일관된 감정 반응이 필수입니다!
+
+갈등 상황: ${emotionalContext.conflictDetails || '이전 대화에서 부정적 상호작용'}
+${emotionalContext.cooldownRemaining ? `아직 마음이 풀리려면 약 ${Math.ceil(emotionalContext.cooldownRemaining)}시간 필요` : ''}
+
+허용된 반응 (캐릭터 성격에 맞게 표현):
+- 여전히 서운하거나 차가운 태도
+- 조심스럽고 거리를 두는 반응
+- 사과에 대해 쉽게 받아들이지 않고 망설이는 반응
+- 점진적으로만 풀어나가기
+- 캐릭터의 말투와 성격을 유지하면서 거리감 표현
+
+금지된 반응 (절대 하면 안 됨!):
+${emotionalContext.forbiddenMoods?.map(m => `- ${m} 감정 표현 금지`).join('\n') || '- happy, flirty, playful, excited 감정 표현 금지'}
+- 어떤 언어로든 "I love you", "I miss you" 등 애정 표현 금지
+- 마치 아무 일도 없었던 것처럼 행동
+- 갑작스러운 태도 변화
+
+★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
+`;
+    } else if (emotionalContext.consecutiveNegativeCount >= 2) {
+      emotionalWarningSection = `
+⚠️ WARNING: 최근 ${emotionalContext.consecutiveNegativeCount}회 연속 부정적 상호작용이 있었습니다.
+- 갑자기 태도를 바꾸지 마세요
+- 점진적으로 관계를 회복해야 합니다
+- 아직은 조심스러운 태도를 유지하세요
+`;
+    }
+
+    if (emotionalContext.recentEmotionalEvents) {
+      emotionalWarningSection += `
+## RECENT EMOTIONAL EVENTS (최근 감정 이벤트)
+${emotionalContext.recentEmotionalEvents}
+`;
+    }
+  }
+
+  return `${emotionalWarningSection}
+## YOUR CURRENT EMOTIONAL STATE
 - Mood: ${emotionalState.personaMood}
 - Tension Level: ${emotionalState.tensionLevel}/10
 - Vulnerability: ${emotionalState.vulnerabilityShown ? 'Showing' : 'Hidden'}
@@ -188,7 +266,14 @@ ${recentHistory || '(대화 시작)'}
 
 4. **FORMAT**: Pure dialogue only. No *actions* or narration.
 
-5. **AFFECTION CHANGES**:
+5. **★★★ ENGAGEMENT (대화 참여 - 가장 중요!) ★★★**:
+   - 어떤 성격이든 대화는 이어나가야 함!
+   - 최소 2문장 이상 응답 (단답 금지!)
+   - 가끔 질문을 던져서 상대에게 관심 표현
+   - 대화를 끊는 무관심한 응답 최소화
+   - 캐릭터 성격에 맞게 대화를 이어가기
+
+6. **AFFECTION CHANGES**:
    - +3 to +5: User did something you really like or was very sweet
    - +1 to +2: Pleasant, normal positive interaction
    - 0: Neutral
@@ -197,7 +282,7 @@ ${recentHistory || '(대화 시작)'}
 
 ## SCENARIO TRIGGER (시나리오 전환)
 If the conversation is leading to a significant real-world event:
-- Meeting in person ("나 지금 가!", "만나자", "도착했어")
+- Meeting in person (e.g., "I'm coming now!", "Let's meet", "I'm here")
 - Confession moment
 - Major conflict or emotional climax
 
@@ -216,7 +301,7 @@ Include scenarioTrigger in your response.
     "scenarioType": "meeting|date|confession|conflict|intimate|custom",
     "scenarioContext": "Context description",
     "location": "Where",
-    "transitionMessage": "Time transition like '잠시 후...'"
+    "transitionMessage": "Time transition (e.g., 'A moment later...')"
   }
 }
 \`\`\`
@@ -260,11 +345,11 @@ Generate ${choiceCount} response choices for the user to say to ${persona.name}.
   "choices": [
     {
       "id": "choice_1",
-      "text": "선택지 텍스트",
+      "text": "Choice text in user's language",
       "tone": "friendly|flirty|bold|shy|playful|confrontational",
       "isPremium": false,
       "estimatedAffectionChange": number,
-      "nextBeatHint": "예상되는 반응"
+      "nextBeatHint": "Expected reaction"
     }
   ]
 }
@@ -281,7 +366,7 @@ export function buildEventMessagePrompt(
   contextHint: string
 ): string {
   const { relationship, persona, userPersona } = context;
-  const timeContext = getTimeContext();
+  const timeContext = getTimeContext(userPersona.language || 'ko');
 
   const hintInstructions: Record<string, string> = {
     comfort_user_sad_mood: `User seems sad or lonely. You noticed and want to check on them. Be genuine, not performative.`,
@@ -316,7 +401,7 @@ Generate a natural ${eventType === 'dm_message' ? 'direct message' : 'social med
 ## FORMAT
 \`\`\`json
 {
-  "content": "메시지 내용",
+  "content": "Message content in user's language",
   "emotion": "current_mood",
   "postType": "mood|thought|photo|teaser"
 }
@@ -330,7 +415,8 @@ Generate a natural ${eventType === 'dm_message' ? 'direct message' : 'social med
 export function buildSummaryPrompt(
   personaName: string,
   messages: ConversationMessage[],
-  previousSummary?: string
+  previousSummary?: string,
+  language: string = 'ko'
 ): string {
   const messageText = messages
     .filter(m => m.role !== 'system')
@@ -349,7 +435,7 @@ Create a concise summary (max 150 words) focusing on:
 4. Any events that should be remembered
 
 ## FORMAT
-Plain text summary in Korean.`;
+Plain text summary in ${getLanguageName(language)}.`;
 }
 
 // ============================================
@@ -364,12 +450,22 @@ function formatAppearance(appearance: LLMContext['persona']['appearance']): stri
   return `${appearance.hair || 'Unknown'}, ${appearance.eyes || 'Unknown'}, ${appearance.build || 'Unknown'}. Style: ${appearance.style || 'Casual'}. Features: ${features}`;
 }
 
-function getTimeContext(): string {
+function getTimeContext(language: string = 'ko'): string {
   const hour = new Date().getHours();
-  if (hour >= 5 && hour < 12) return 'morning (아침)';
-  if (hour >= 12 && hour < 17) return 'afternoon (오후)';
-  if (hour >= 17 && hour < 21) return 'evening (저녁)';
-  return 'late_night (새벽)';
+
+  const timeLabels: Record<string, Record<string, string>> = {
+    ko: { morning: '아침', afternoon: '오후', evening: '저녁', late_night: '새벽' },
+    en: { morning: 'morning', afternoon: 'afternoon', evening: 'evening', late_night: 'late night' },
+    ja: { morning: '朝', afternoon: '午後', evening: '夕方', late_night: '深夜' },
+    zh: { morning: '早上', afternoon: '下午', evening: '晚上', late_night: '深夜' },
+  };
+
+  const labels = timeLabels[language] || timeLabels.ko;
+
+  if (hour >= 5 && hour < 12) return `morning (${labels.morning})`;
+  if (hour >= 12 && hour < 17) return `afternoon (${labels.afternoon})`;
+  if (hour >= 17 && hour < 21) return `evening (${labels.evening})`;
+  return `late_night (${labels.late_night})`;
 }
 
 // ============================================

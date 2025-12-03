@@ -7,8 +7,6 @@ import analytics from '@/lib/analytics';
 
 // 환경변수
 const META_PIXEL_ID = process.env.NEXT_PUBLIC_META_PIXEL_ID || '';
-const AIRBRIDGE_APP = process.env.NEXT_PUBLIC_AIRBRIDGE_APP || '';
-const AIRBRIDGE_WEB_TOKEN = process.env.NEXT_PUBLIC_AIRBRIDGE_WEB_TOKEN || '';
 
 // 페이지뷰 추적 (SPA 라우팅)
 function PageViewTracker() {
@@ -63,26 +61,7 @@ export default function AnalyticsProvider() {
         </>
       )}
 
-      {/* ===== Airbridge (MMP) ===== */}
-      {AIRBRIDGE_APP && AIRBRIDGE_WEB_TOKEN && (
-        <Script
-          id="airbridge-sdk"
-          strategy="afterInteractive"
-          dangerouslySetInnerHTML={{
-            __html: `
-              (function(a,i,r,b,R,I,D,g,e){a[R]=a[R]||function(){(a[R].q=a[R].q||[]).push(arguments)};
-              g=i.createElement(r);e=i.getElementsByTagName(r)[0];g.async=1;g.src=b;
-              e.parentNode.insertBefore(g,e)})(window,document,'script','https://static.airbridge.io/sdk/latest/airbridge.min.js','airbridge');
-              airbridge.init({
-                app: '${AIRBRIDGE_APP}',
-                webToken: '${AIRBRIDGE_WEB_TOKEN}',
-                utmParsing: true,
-                cookieWindow: 90,
-              });
-            `,
-          }}
-        />
-      )}
+      {/* Airbridge는 lib/analytics.ts에서 npm 패키지로 초기화됨 */}
 
       {/* SPA 페이지뷰 추적 */}
       <Suspense fallback={null}>

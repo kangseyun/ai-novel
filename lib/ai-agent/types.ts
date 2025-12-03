@@ -244,6 +244,23 @@ export interface EventTemplate {
   referenceEpisode?: boolean;
 }
 
+/** 배달 조건 타입 (타입 안전한 버전) */
+export interface DeliveryConditions {
+  minAffection?: number;
+  maxAffection?: number;
+  relationshipStage?: RelationshipStage[];
+  timeRange?: {
+    start: string; // HH:mm 형식
+    end: string;   // HH:mm 형식
+  };
+  requiredFlags?: string[];
+  excludeFlags?: string[];
+  hoursSinceLastActivity?: {
+    min?: number;
+    max?: number;
+  };
+}
+
 export interface ScheduledEvent {
   id: string;
   userId: string;
@@ -252,7 +269,7 @@ export interface ScheduledEvent {
   eventData: EventData;
   scheduledFor: Date;
   status: 'pending' | 'delivered' | 'cancelled' | 'expired';
-  deliveryConditions: Record<string, unknown>;
+  deliveryConditions: DeliveryConditions;
 }
 
 export interface EventData {
@@ -342,3 +359,128 @@ export type UserActionType =
   | 'episode_completed'
   | 'profile_viewed'
   | 'notification_clicked';
+
+// ============================================
+// 메모리 시스템 타입 (통합)
+// ============================================
+
+/**
+ * 메모리 타입 - 14가지 기억 카테고리
+ * memory-system.ts와 memory-service.ts에서 공통으로 사용
+ */
+export type MemoryType =
+  | 'first_meeting'       // 첫 만남
+  | 'promise'             // 유저와의 약속
+  | 'secret_shared'       // 공유된 비밀
+  | 'conflict'            // 갈등/다툼
+  | 'reconciliation'      // 화해
+  | 'intimate_moment'     // 친밀한 순간
+  | 'gift_received'       // 선물 받음
+  | 'milestone'           // 관계 마일스톤
+  | 'user_preference'     // 유저 취향/선호도
+  | 'emotional_event'     // 감정적 사건
+  | 'location_memory'     // 함께 간 장소
+  | 'nickname'            // 별명
+  | 'inside_joke'         // 둘만의 농담
+  | 'important_date';     // 중요한 날짜
+
+/**
+ * 메모리 타입별 라벨 (UI 표시용)
+ */
+export const MEMORY_TYPE_LABELS: Record<MemoryType, string> = {
+  first_meeting: '첫 만남',
+  promise: '약속',
+  secret_shared: '공유된 비밀',
+  conflict: '갈등',
+  reconciliation: '화해',
+  intimate_moment: '친밀한 순간',
+  gift_received: '받은 선물',
+  milestone: '관계 마일스톤',
+  user_preference: '유저 취향',
+  emotional_event: '감정적 사건',
+  location_memory: '함께 간 장소',
+  nickname: '별명',
+  inside_joke: '둘만의 농담',
+  important_date: '중요한 날짜',
+};
+
+/**
+ * 통합 메모리 인터페이스
+ * PersonaMemory(memory-system)와 Memory(memory-service)를 통합
+ */
+export interface PersonaMemory {
+  id: string;
+  userId: string;
+  personaId: string;
+  memoryType: MemoryType;
+  summary: string;
+  details: Record<string, unknown>;
+  emotionalWeight: number;       // 감정적 가중치 (1-10)
+  affectionAtTime: number;       // 기억 생성 시점의 호감도
+  importanceScore?: number;      // 중요도 점수 (1-10)
+  isActive?: boolean;            // 활성 상태 (기본: true)
+  sourceType?: MemorySourceType; // 기억 출처
+  sourceId?: string;             // 출처 ID (세션 ID 등)
+  lastReferencedAt: Date | null;
+  referenceCount: number;
+  expiresAt?: Date | null;       // 만료일 (null이면 영구)
+  createdAt: Date;
+}
+
+/**
+ * 메모리 출처 타입
+ */
+export type MemorySourceType = 'dm' | 'scenario' | 'event' | 'system';
+
+/**
+ * 대화 요약 인터페이스
+ */
+export interface ConversationSummary {
+  id: string;
+  userId: string;
+  personaId: string;
+  sessionId: string | null;
+  summaryType: 'session' | 'daily' | 'weekly' | 'relationship_arc';
+  summary: string;
+  topics: string[];
+  emotionalArc: Record<string, unknown>;
+  affectionStart: number;
+  affectionEnd: number;
+  flagsSet: Record<string, boolean>;
+  periodStart: Date;
+  periodEnd: Date;
+  createdAt: Date;
+}
+
+/**
+ * 메모리 추출 결과
+ */
+export interface MemoryExtractionResult {
+  shouldSave: boolean;
+  memoryType?: MemoryType;
+  summary?: string;
+  details?: Record<string, unknown>;
+  emotionalWeight?: number;
+  importanceScore?: number;
+}
+
+/**
+ * 메모리 저장 옵션
+ */
+export interface MemorySaveOptions {
+  emotionalWeight?: number;
+  importanceScore?: number;
+  sourceType?: MemorySourceType;
+  sourceId?: string;
+}
+
+/**
+ * 메모리 조회 옵션
+ */
+export interface MemoryQueryOptions {
+  types?: MemoryType[];
+  limit?: number;
+  minEmotionalWeight?: number;
+  minImportance?: number;
+  activeOnly?: boolean;
+}

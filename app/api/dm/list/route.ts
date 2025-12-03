@@ -32,7 +32,7 @@ export async function GET(request: NextRequest) {
     }
 
     // 페르소나별로 가장 최근 세션만 유지
-    const latestSessionsByPersona = new Map<string, typeof sessions[0]>();
+    const latestSessionsByPersona = new Map<string, (typeof sessions)[0]>();
     for (const session of sessions || []) {
       if (!latestSessionsByPersona.has(session.persona_id)) {
         latestSessionsByPersona.set(session.persona_id, session);
@@ -46,9 +46,10 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ conversations: [] });
     }
 
+    // 새로운 컬럼들 조회 (없으면 fallback)
     const { data: personas, error: personasError } = await supabase
       .from('personas')
-      .select('id, name, display_name, avatar_url')
+      .select('id, name, display_name, avatar_url, is_verified')
       .in('id', personaIds);
 
     if (personasError) {
@@ -70,20 +71,16 @@ export async function GET(request: NextRequest) {
           .limit(1)
           .single();
 
-        // 읽지 않은 메시지 수 조회 (assistant 메시지 중 read=false인 것)
-        const { count: unreadCount } = await supabase
-          .from('conversation_messages')
-          .select('*', { count: 'exact', head: true })
-          .eq('session_id', session.id)
-          .eq('role', 'assistant')
-          .eq('read', false);
+        // 읽지 않은 메시지 수 - 현재 read 컬럼이 없으므로 0으로 설정
+        // TODO: read 컬럼 추가 후 구현 필요
+        const unreadCount = 0;
 
         return {
           personaId,
           personaName: persona?.name || 'Unknown',
           personaDisplayName: persona?.display_name || persona?.name || 'Unknown',
           personaImage: persona?.avatar_url || '/default-avatar.png',
-          isVerified: true, // 모든 페르소나는 verified
+          isVerified: persona?.is_verified ?? true,
           lastMessage: lastMessage?.content || '대화를 시작해보세요',
           lastMessageAt: lastMessage?.created_at || session.last_message_at || session.created_at,
           unreadCount: unreadCount || 0,

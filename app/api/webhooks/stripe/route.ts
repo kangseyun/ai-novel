@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { stripe } from '@/lib/stripe';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { trackPurchaseServer, trackSubscribeServer } from '@/lib/analytics-server';
 
 // Supabase admin client (bypasses RLS) - lazy initialization
 let supabaseAdmin: SupabaseClient | null = null;
@@ -117,6 +118,21 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
       currency: session.currency || 'usd',
       stripe_session_id: session.id,
     });
+
+    // 서버사이드 애널리틱스 (Meta CAPI, Mixpanel)
+    const price = session.amount_total ? session.amount_total / 100 : 0;
+    await trackPurchaseServer({
+      userId,
+      email: session.customer_email || undefined,
+      value: price,
+      currency: (session.currency || 'krw').toUpperCase(),
+      transactionId: session.id,
+      items: [{
+        id: session.metadata?.package_id || 'credits',
+        name: `${tokenAmount} Credits`,
+        price,
+      }],
+    });
   }
 
   // 구독인 경우 subscription 이벤트에서 처리
@@ -178,6 +194,22 @@ async function handleSubscriptionUpdate(subscription: Stripe.Subscription) {
   if (userError) {
     console.error('Failed to update user premium status:', userError);
     throw userError;
+  }
+
+  // 신규 구독인 경우 서버사이드 애널리틱스 전송
+  if (isActive && status === 'active') {
+    const price = subscriptionItem?.price;
+    const amount = price?.unit_amount ? price.unit_amount / 100 : 9900;
+
+    await trackSubscribeServer({
+      userId,
+      email: (customer as Stripe.Customer).email || undefined,
+      planId: plan,
+      planName: `Pro ${plan.includes('yearly') ? 'Yearly' : 'Monthly'}`,
+      value: amount,
+      currency: (price?.currency || 'krw').toUpperCase(),
+      transactionId: subscription.id,
+    });
   }
 }
 

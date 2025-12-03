@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useEffect, useState } from 'react';
+import { Suspense, useEffect, useState, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import OnboardingA from '@/components/onboarding/variants/OnboardingA';
 import OnboardingB from '@/components/onboarding/variants/OnboardingB';
@@ -23,6 +23,7 @@ function OnboardingContent() {
   const [variant, setVariant] = useState<Variant | null>(null);
   const [affectionGained, setAffectionGained] = useState(0);
   const [choicesMade, setChoicesMade] = useState<Array<{ scene_id: string; choice_id: string }>>([]);
+  const eventTrackedRef = useRef(false);
 
   useEffect(() => {
     // OAuth 콜백에서 토큰 처리
@@ -34,10 +35,14 @@ function OnboardingContent() {
       localStorage.setItem('refresh_token', refreshToken);
     }
 
-    setVariant(getRandomVariant());
+    const selectedVariant = getRandomVariant();
+    setVariant(selectedVariant);
 
-    // 온보딩 시작 이벤트
-    analytics.trackOnboardingStart();
+    // 온보딩 시작 이벤트 (중복 방지)
+    if (!eventTrackedRef.current) {
+      eventTrackedRef.current = true;
+      analytics.trackOnboardingStart(selectedVariant);
+    }
   }, [searchParams]);
 
   const handleComplete = async () => {
@@ -53,8 +58,8 @@ function OnboardingContent() {
         });
         setOnboardingCompleted();
 
-        // 온보딩 완료 이벤트
-        analytics.trackOnboardingComplete('jun');
+        // 온보딩 완료 이벤트 (variant 포함)
+        analytics.trackOnboardingComplete('jun', variant);
       } catch (error) {
         console.error('Failed to complete onboarding:', error);
       }

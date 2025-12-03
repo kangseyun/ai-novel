@@ -1,46 +1,93 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
+import { createServerClient } from '@/lib/supabase-server';
 
-// GET /api/personas - 페르소나 목록 조회
-export async function GET() {
-  // 정적 페르소나 데이터 (나중에 DB로 이동 가능)
-  const personas = [
-    {
-      id: 'jun',
-      name: 'Jun',
-      full_name: '이준혁',
-      age: 24,
-      occupation: '아이돌',
-      image: '/personas/jun-profile.jpg',
-      color: '#8B5CF6',
-      teaser_line: '...잠이 안 와. 너도?',
-      available: true,
-      episode_count: 5,
-    },
-    {
-      id: 'minho',
-      name: 'Minho',
-      full_name: '강민호',
-      age: 27,
-      occupation: 'CEO',
-      image: '/personas/minho-profile.jpg',
-      color: '#3B82F6',
-      teaser_line: '시간 없어. 짧게 말해.',
-      available: false,
-      episode_count: 0,
-    },
-    {
-      id: 'yuna',
-      name: 'Yuna',
-      full_name: '한유나',
-      age: 23,
-      occupation: '배우',
-      image: '/personas/yuna-profile.jpg',
-      color: '#EC4899',
-      teaser_line: '오빠, 나 심심해~',
-      available: false,
-      episode_count: 0,
-    },
-  ];
+/**
+ * GET /api/personas - 페르소나 목록 조회
+ *
+ * Query params:
+ * - active: boolean (기본 true) - 활성화된 페르소나만
+ * - category: string - 카테고리 필터
+ * - premium: boolean - 프리미엄 페르소나 필터
+ */
+export async function GET(request: NextRequest) {
+  try {
+    const supabase = await createServerClient();
+    const { searchParams } = new URL(request.url);
 
-  return NextResponse.json({ personas });
+    const activeOnly = searchParams.get('active') !== 'false';
+    const category = searchParams.get('category');
+    const premiumOnly = searchParams.get('premium') === 'true';
+
+    let query = supabase
+      .from('personas')
+      .select(`
+        id,
+        name,
+        display_name,
+        username,
+        bio,
+        avatar_url,
+        cover_image_url,
+        is_verified,
+        is_active,
+        is_premium,
+        category,
+        sort_order,
+        followers_count,
+        following_count,
+        posts_count,
+        tags
+      `)
+      .order('sort_order', { ascending: true });
+
+    if (activeOnly) {
+      query = query.eq('is_active', true);
+    }
+
+    if (category) {
+      query = query.eq('category', category);
+    }
+
+    if (premiumOnly) {
+      query = query.eq('is_premium', true);
+    }
+
+    const { data: personas, error } = await query;
+
+    if (error) {
+      console.error('[Personas] Error:', error);
+      return NextResponse.json(
+        { error: 'Failed to fetch personas', details: error },
+        { status: 500 }
+      );
+    }
+
+    // 응답 데이터 매핑 (snake_case -> camelCase)
+    const mappedPersonas = (personas || []).map(p => ({
+      id: p.id,
+      name: p.name,
+      displayName: p.display_name || p.name,
+      username: p.username || p.name,
+      bio: p.bio || '',
+      avatarUrl: p.avatar_url || '/default-avatar.png',
+      coverImageUrl: p.cover_image_url,
+      isVerified: p.is_verified ?? true,
+      isActive: p.is_active ?? true,
+      isPremium: p.is_premium ?? false,
+      category: p.category || 'other',
+      sortOrder: p.sort_order || 0,
+      followersCount: p.followers_count || '0',
+      followingCount: p.following_count || 0,
+      postsCount: p.posts_count || 0,
+      tags: p.tags || [],
+    }));
+
+    return NextResponse.json({ personas: mappedPersonas });
+  } catch (error) {
+    console.error('[Personas] Unexpected error:', error);
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
+  }
 }

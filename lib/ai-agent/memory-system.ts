@@ -4,58 +4,26 @@
  */
 
 import { SupabaseClient } from '@supabase/supabase-js';
-import { RelationshipState, ConversationMessage, PersonaMood } from './types';
+import {
+  ConversationMessage,
+  PersonaMood,
+  MemoryType,
+  PersonaMemory,
+  ConversationSummary,
+  MemoryQueryOptions,
+  MEMORY_TYPE_LABELS,
+} from './types';
+import {
+  asString,
+  asNumber,
+  asDate,
+  asNullableDate,
+  asObject,
+  DBRecord,
+} from '../utils/db-mapper';
 
-// ============================================
-// 기억 타입 정의
-// ============================================
-
-export type MemoryType =
-  | 'first_meeting'
-  | 'promise'
-  | 'secret_shared'
-  | 'conflict'
-  | 'reconciliation'
-  | 'intimate_moment'
-  | 'gift_received'
-  | 'milestone'
-  | 'user_preference'
-  | 'emotional_event'
-  | 'location_memory'
-  | 'nickname'
-  | 'inside_joke'
-  | 'important_date';
-
-export interface PersonaMemory {
-  id: string;
-  userId: string;
-  personaId: string;
-  memoryType: MemoryType;
-  summary: string;
-  details: Record<string, unknown>;
-  emotionalWeight: number;
-  affectionAtTime: number;
-  lastReferencedAt: Date | null;
-  referenceCount: number;
-  createdAt: Date;
-}
-
-export interface ConversationSummary {
-  id: string;
-  userId: string;
-  personaId: string;
-  sessionId: string | null;
-  summaryType: 'session' | 'daily' | 'weekly' | 'relationship_arc';
-  summary: string;
-  topics: string[];
-  emotionalArc: Record<string, unknown>;
-  affectionStart: number;
-  affectionEnd: number;
-  flagsSet: Record<string, boolean>;
-  periodStart: Date;
-  periodEnd: Date;
-  createdAt: Date;
-}
+// Re-export for backward compatibility
+export type { MemoryType, PersonaMemory, ConversationSummary } from './types';
 
 // ============================================
 // Memory Manager
@@ -171,11 +139,7 @@ export class MemoryManager {
   async getMemories(
     userId: string,
     personaId: string,
-    options?: {
-      types?: MemoryType[];
-      limit?: number;
-      minEmotionalWeight?: number;
-    }
+    options?: MemoryQueryOptions
   ): Promise<PersonaMemory[]> {
     let query = this.supabase
       .from('persona_memories')
@@ -225,24 +189,7 @@ export class MemoryManager {
     }
 
     const memoryStrings = memories.map(m => {
-      const typeLabels: Record<MemoryType, string> = {
-        first_meeting: '첫 만남',
-        promise: '약속',
-        secret_shared: '공유된 비밀',
-        conflict: '갈등',
-        reconciliation: '화해',
-        intimate_moment: '친밀한 순간',
-        gift_received: '받은 선물',
-        milestone: '관계 마일스톤',
-        user_preference: '유저 취향',
-        emotional_event: '감정적 사건',
-        location_memory: '함께 간 장소',
-        nickname: '별명',
-        inside_joke: '둘만의 농담',
-        important_date: '중요한 날짜',
-      };
-
-      return `- [${typeLabels[m.memoryType]}] ${m.summary}`;
+      return `- [${MEMORY_TYPE_LABELS[m.memoryType]}] ${m.summary}`;
     });
 
     return memoryStrings.join('\n');
@@ -414,40 +361,38 @@ export class MemoryManager {
     return `${messageCount}개의 메시지 교환. 주제: ${topicStr}. 유저 메시지 ${userMessages}개.`;
   }
 
-  private mapMemory(data: Record<string, unknown>): PersonaMemory {
+  private mapMemory(data: DBRecord): PersonaMemory {
     return {
-      id: data.id as string,
-      userId: data.user_id as string,
-      personaId: data.persona_id as string,
+      id: asString(data.id),
+      userId: asString(data.user_id),
+      personaId: asString(data.persona_id),
       memoryType: data.memory_type as MemoryType,
-      summary: data.summary as string,
-      details: data.details as Record<string, unknown>,
-      emotionalWeight: data.emotional_weight as number,
-      affectionAtTime: data.affection_at_time as number,
-      lastReferencedAt: data.last_referenced_at
-        ? new Date(data.last_referenced_at as string)
-        : null,
-      referenceCount: data.reference_count as number,
-      createdAt: new Date(data.created_at as string),
+      summary: asString(data.summary),
+      details: asObject(data.details),
+      emotionalWeight: asNumber(data.emotional_weight, 5),
+      affectionAtTime: asNumber(data.affection_at_time, 0),
+      lastReferencedAt: asNullableDate(data.last_referenced_at),
+      referenceCount: asNumber(data.reference_count, 0),
+      createdAt: asDate(data.created_at),
     };
   }
 
-  private mapSummary(data: Record<string, unknown>): ConversationSummary {
+  private mapSummary(data: DBRecord): ConversationSummary {
     return {
-      id: data.id as string,
-      userId: data.user_id as string,
-      personaId: data.persona_id as string,
+      id: asString(data.id),
+      userId: asString(data.user_id),
+      personaId: asString(data.persona_id),
       sessionId: data.session_id as string | null,
       summaryType: data.summary_type as ConversationSummary['summaryType'],
-      summary: data.summary as string,
+      summary: asString(data.summary),
       topics: data.topics as string[],
-      emotionalArc: data.emotional_arc as Record<string, unknown>,
-      affectionStart: data.affection_start as number,
-      affectionEnd: data.affection_end as number,
-      flagsSet: data.flags_set as Record<string, boolean>,
-      periodStart: new Date(data.period_start as string),
-      periodEnd: new Date(data.period_end as string),
-      createdAt: new Date(data.created_at as string),
+      emotionalArc: asObject(data.emotional_arc),
+      affectionStart: asNumber(data.affection_start, 0),
+      affectionEnd: asNumber(data.affection_end, 0),
+      flagsSet: asObject<Record<string, boolean>>(data.flags_set),
+      periodStart: asDate(data.period_start),
+      periodEnd: asDate(data.period_end),
+      createdAt: asDate(data.created_at),
     };
   }
 }

@@ -11,6 +11,7 @@
 import mixpanel from 'mixpanel-browser';
 import { logEvent, Analytics } from 'firebase/analytics';
 import { initAnalytics as initFirebaseAnalytics } from './firebase';
+import airbridge from 'airbridge-web-sdk-loader';
 
 // ============ 타입 정의 ============
 
@@ -158,7 +159,15 @@ export const initAllAnalytics = async (): Promise<void> => {
       firebaseAnalytics = await initFirebaseAnalytics();
     }
 
-    // Airbridge - window에서 로드됨 (스크립트로 삽입)
+    // Airbridge
+    if (config.airbridge && process.env.NEXT_PUBLIC_AIRBRIDGE_APP && process.env.NEXT_PUBLIC_AIRBRIDGE_WEB_TOKEN) {
+      airbridge.init({
+        app: process.env.NEXT_PUBLIC_AIRBRIDGE_APP,
+        webToken: process.env.NEXT_PUBLIC_AIRBRIDGE_WEB_TOKEN,
+        utmParsing: true,
+      });
+    }
+
     // Meta Pixel - 별도 Provider에서 초기화됨
 
     isInitialized = true;
@@ -195,12 +204,11 @@ export const identifyUser = (userId: string, properties?: UserProperties): void 
     }
 
     // Airbridge
-    if (config.airbridge && window.airbridge) {
-      window.airbridge.setUser({
-        ID: userId,
-        email: properties?.email as string,
-        name: properties?.name as string,
-      });
+    if (config.airbridge) {
+      airbridge.setUserID(userId);
+      if (properties?.email) {
+        airbridge.setUserEmail(properties.email as string);
+      }
     }
 
     console.log('[Analytics] User identified:', userId);
@@ -218,8 +226,8 @@ export const resetUser = (): void => {
     if (config.mixpanel) {
       mixpanel.reset();
     }
-    if (config.airbridge && window.airbridge) {
-      window.airbridge.clearUser();
+    if (config.airbridge) {
+      airbridge.clearUser();
     }
     console.log('[Analytics] User reset');
   } catch (error) {
@@ -265,8 +273,8 @@ export const trackStandard = (
     }
 
     // 4. Airbridge
-    if (platforms.airbridge && window.airbridge) {
-      window.airbridge.trackEvent(mapping.airbridge, {
+    if (platforms.airbridge) {
+      airbridge.events.send(mapping.airbridge, {
         customAttributes: params,
       });
     }
@@ -318,8 +326,8 @@ export const track = (
     }
 
     // 4. Airbridge
-    if (platforms.airbridge && window.airbridge) {
-      window.airbridge.trackEvent(eventName, {
+    if (platforms.airbridge) {
+      airbridge.events.send(eventName, {
         customAttributes: params,
       });
     }
@@ -419,15 +427,19 @@ export const trackSubscribe = (params: {
 
 // ============ 앱 특화 이벤트 (커스텀) ============
 
-// 온보딩 시작
-export const trackOnboardingStart = (): void => {
-  trackStandard('Lead', { content_name: 'onboarding_start' });
+// 온보딩 시작 (A/B 테스트 variant 포함)
+export const trackOnboardingStart = (variant?: string): void => {
+  trackStandard('Lead', {
+    content_name: 'onboarding_start',
+    variant: variant,
+  });
 };
 
-// 온보딩 완료
-export const trackOnboardingComplete = (selectedPersonaId?: string): void => {
+// 온보딩 완료 (A/B 테스트 variant 포함)
+export const trackOnboardingComplete = (selectedPersonaId?: string, variant?: string): void => {
   track('OnboardingComplete', {
     persona_id: selectedPersonaId,
+    variant: variant,
   });
 };
 
@@ -490,12 +502,6 @@ export const trackCharacterUnlock = (params: {
 declare global {
   interface Window {
     fbq: (type: string, eventName: string, params?: Record<string, unknown>) => void;
-    airbridge: {
-      init: (config: { app: string; webToken: string }) => void;
-      setUser: (user: { ID?: string; email?: string; name?: string }) => void;
-      clearUser: () => void;
-      trackEvent: (eventName: string, options?: { customAttributes?: Record<string, unknown> }) => void;
-    };
   }
 }
 

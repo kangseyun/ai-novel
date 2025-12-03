@@ -102,10 +102,10 @@ export async function GET(request: NextRequest) {
         image: core?.appearance?.profile_image || `https://i.pravatar.cc/400?u=${rel.persona_id}`,
 
         // 관계 수치
-        affection: rel.affection_level || 0,
+        affection: rel.affection || 0,
         trust: rel.trust_level || 0,
         intimacy: rel.intimacy_level || 0,
-        stage: rel.current_stage || 'stranger',
+        stage: rel.relationship_stage || 'stranger',
 
         // 진행도
         storyProgress: completedScenarios,
@@ -126,7 +126,7 @@ export async function GET(request: NextRequest) {
         })),
 
         // 관계 상세
-        relationship: getRelationshipLabel(rel.current_stage),
+        relationship: getRelationshipLabel(rel.relationship_stage),
         currentArc: getArcLabel(completedScenarios),
 
         // 별명

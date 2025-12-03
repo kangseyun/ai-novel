@@ -16,81 +16,135 @@ export async function POST(request: NextRequest) {
 
     const { personaId, message, sessionId, choiceData } = await request.json();
 
-    if (!personaId || !message) {
-      return badRequest('personaId and message are required');
+    // 입력 검증
+    if (!personaId || typeof personaId !== 'string') {
+      return badRequest('Invalid personaId');
+    }
+
+    if (!message || typeof message !== 'string' || message.trim().length === 0) {
+      return badRequest('Message cannot be empty');
     }
 
     const supabase = await createServerClient();
+    const agent = getAIAgent();
 
-    // 토큰 잔액 확인
-    const { data: userData, error: userError } = await supabase
-      .from('users')
-      .select('tokens')
-      .eq('id', user.id)
-      .single();
+    // 원자적 토큰 차감 (Race Condition 방지)
+    const { data: tokenResult, error: tokenError } = await supabase.rpc('deduct_tokens', {
+      p_user_id: user.id,
+      p_amount: TOKEN_COST_PER_MESSAGE,
+      p_min_balance: 0
+    });
 
-    if (userError) {
-      console.error('[AI Chat] User fetch error:', userError);
-      return serverError(userError);
+    if (tokenError) {
+      console.error('[AI Chat] Token deduction error:', tokenError);
+      return serverError(tokenError);
     }
 
-    const currentTokens = userData?.tokens ?? 0;
-    if (currentTokens < TOKEN_COST_PER_MESSAGE) {
+    if (!tokenResult?.[0]?.success) {
       return NextResponse.json(
-        { error: 'insufficient_tokens', message: '토큰이 부족합니다.' },
+        {
+          error: 'insufficient_tokens',
+          message: '토큰이 부족합니다.',
+          currentBalance: tokenResult?.[0]?.previous_balance || 0,
+          required: TOKEN_COST_PER_MESSAGE
+        },
         { status: 402 }
       );
     }
 
-    const agent = getAIAgent();
+    const newTokenBalance = tokenResult[0].new_balance;
 
-    // 세션 가져오기 또는 생성
-    // sessionId가 전달되면 해당 세션을 사용하고, 없으면 새로 생성/조회
-    const session = sessionId
-      ? await agent.getSession(sessionId) ?? await agent.getOrCreateSession(user.id, personaId)
-      : await agent.getOrCreateSession(user.id, personaId);
+    // 세션 처리 (개선된 버전)
+    let session = null;
 
-    // 메시지 처리 및 응답 생성
-    const result = await agent.processUserMessage(
-      session.id,
-      message,
-      choiceData
-    );
+    if (sessionId) {
+      session = await agent.getSession(sessionId);
 
-    // 토큰 차감
-    const newTokenBalance = currentTokens - TOKEN_COST_PER_MESSAGE;
-    const { error: updateError } = await supabase
-      .from('users')
-      .update({ tokens: newTokenBalance })
-      .eq('id', user.id);
+      if (session) {
+        // 세션이 현재 유저 소유인지 확인
+        if (session.userId !== user.id) {
+          // 토큰 환불
+          await supabase.rpc('add_tokens', {
+            p_user_id: user.id,
+            p_amount: TOKEN_COST_PER_MESSAGE
+          });
+          return NextResponse.json(
+            { error: 'Session does not belong to current user' },
+            { status: 403 }
+          );
+        }
 
-    if (updateError) {
-      console.error('[AI Chat] Token update error:', updateError);
-      // 토큰 차감 실패해도 응답은 반환 (다음에 차감)
+        // 세션이 요청된 페르소나와 일치하는지 확인
+        if (session.personaId !== personaId) {
+          // 토큰 환불
+          await supabase.rpc('add_tokens', {
+            p_user_id: user.id,
+            p_amount: TOKEN_COST_PER_MESSAGE
+          });
+          return NextResponse.json(
+            { error: 'Session belongs to different persona' },
+            { status: 400 }
+          );
+        }
+      }
     }
 
-    // 이벤트 트리거 체크 (비동기로 실행)
-    agent.checkEventTriggers(user.id, personaId, {
-      userId: user.id,
-      personaId,
-      actionType: choiceData?.wasPremium ? 'premium_purchased' : 'message_sent',
-      actionData: { message, sessionId: session.id },
-      timestamp: new Date(),
-    }).catch(console.error);
+    // 세션이 없으면 새로 생성
+    if (!session) {
+      session = await agent.getOrCreateSession(user.id, personaId);
+    }
 
-    return NextResponse.json({
-      sessionId: session.id,
-      response: {
-        content: result.response.content,
-        emotion: result.response.emotion,
-        innerThought: result.response.innerThought,
-      },
-      choices: result.choices,
-      affectionChange: result.affectionChange,
-      tokenBalance: newTokenBalance,
-      // 시나리오 전환 트리거
-      scenarioTrigger: result.scenarioTrigger,
-    });
+    // 세션 생성 실패 체크
+    if (!session) {
+      // 토큰 환불
+      await supabase.rpc('add_tokens', {
+        p_user_id: user.id,
+        p_amount: TOKEN_COST_PER_MESSAGE
+      });
+      return NextResponse.json(
+        { error: 'Failed to create conversation session' },
+        { status: 500 }
+      );
+    }
+
+    // 메시지 처리 및 응답 생성
+    try {
+      const result = await agent.processUserMessage(
+        session.id,
+        message,
+        choiceData
+      );
+
+      // 이벤트 트리거 체크 (비동기로 실행)
+      agent.checkEventTriggers(user.id, personaId, {
+        userId: user.id,
+        personaId,
+        actionType: choiceData?.wasPremium ? 'premium_purchased' : 'message_sent',
+        actionData: { message, sessionId: session.id },
+        timestamp: new Date(),
+      }).catch(console.error);
+
+      return NextResponse.json({
+        sessionId: session.id,
+        response: {
+          content: result.response.content,
+          emotion: result.response.emotion,
+          innerThought: result.response.innerThought,
+        },
+        choices: result.choices,
+        affectionChange: result.affectionChange,
+        tokenBalance: newTokenBalance,
+        scenarioTrigger: result.scenarioTrigger,
+      });
+    } catch (processError) {
+      // 메시지 처리 실패 시 토큰 환불
+      console.error('[AI Chat] Processing error, refunding tokens:', processError);
+      await supabase.rpc('add_tokens', {
+        p_user_id: user.id,
+        p_amount: TOKEN_COST_PER_MESSAGE
+      });
+      throw processError;
+    }
   } catch (error) {
     console.error('[AI Chat] Error:', error);
     return serverError(error);

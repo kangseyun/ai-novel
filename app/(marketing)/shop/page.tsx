@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, Suspense, useRef } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, Check } from 'lucide-react';
 import Link from 'next/link';
@@ -58,36 +58,9 @@ function ShopContent() {
   const credits = searchParams.get('credits') || searchParams.get('tokens');
   const canceled = searchParams.get('canceled');
   const subscriptionStatus = searchParams.get('subscription');
-  const purchasePrice = searchParams.get('price');
-  const purchaseId = searchParams.get('package_id');
 
-  // 이벤트 중복 발송 방지
-  const eventTrackedRef = useRef(false);
-
-  // 결제 완료 이벤트 추적 (한 번만 실행)
-  useEffect(() => {
-    if (eventTrackedRef.current) return;
-
-    if (success === 'true' && credits) {
-      eventTrackedRef.current = true;
-      // 크레딧 구매 완료
-      analytics.trackPurchase({
-        transactionId: purchaseId || undefined,
-        items: [{ id: purchaseId || 'credits', name: `${credits} Credits`, price: parseInt(purchasePrice || '0') }],
-        totalValue: parseInt(purchasePrice || '0'),
-        currency: 'KRW',
-      });
-    } else if (subscriptionStatus === 'success') {
-      eventTrackedRef.current = true;
-      // 구독 결제 완료
-      analytics.trackSubscribe({
-        planId: 'pro',
-        planName: 'Pro Membership',
-        value: parseInt(purchasePrice || '9900'),
-        currency: 'KRW',
-      });
-    }
-  }, [success, credits, subscriptionStatus, purchasePrice, purchaseId]);
+  // 구매/구독 완료 이벤트는 Stripe Webhook에서 서버사이드로 처리됨
+  // (Meta CAPI, Mixpanel 서버사이드 전송으로 더 정확한 어트리뷰션)
 
   useEffect(() => {
     const loadSubscription = async () => {

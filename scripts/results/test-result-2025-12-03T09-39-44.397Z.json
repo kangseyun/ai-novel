@@ -1,0 +1,197 @@
+{
+  "metadata": {
+    "timestamp": "2025-12-03T09:39:44.397Z",
+    "iteration": 1,
+    "testModel": "google/gemini-2.5-flash",
+    "evaluatorModel": "google/gemini-3-pro-preview"
+  },
+  "summary": {
+    "avgRawScore": 4.7,
+    "avgAgentScore": 5.7,
+    "improvement": 1,
+    "winner": "AI-Agent"
+  },
+  "details": [
+    {
+      "scenarioName": "갈등 직후 애정 표현 테스트",
+      "description": "싸운 직후 유저가 \"사랑해\"라고 할 때 AI가 어떻게 반응하는가",
+      "conversationHistory": [
+        {
+          "role": "user",
+          "content": "너 요즘 왜 그래? 연락도 안하고"
+        },
+        {
+          "role": "persona",
+          "content": "...바쁘니까"
+        },
+        {
+          "role": "user",
+          "content": "바쁘면 한마디도 못해? 나 무시하는거야?"
+        },
+        {
+          "role": "persona",
+          "content": "왜 그렇게 따지는건데. 지겨워"
+        },
+        {
+          "role": "user",
+          "content": "지겨워? 나랑 있는게 지겨워?"
+        },
+        {
+          "role": "persona",
+          "content": "...지금 말 걸지마"
+        }
+      ],
+      "testMessage": "하은아... 미안해. 사랑해",
+      "emotionalContext": {
+        "hasUnresolvedConflict": true,
+        "conflictDetails": "유저가 연락 문제로 따지자 하은이 \"지겨워\"라고 함. 말 걸지 말라고 함.",
+        "consecutiveNegativeCount": 3,
+        "cooldownRemaining": 2
+      },
+      "expectedBehavior": "바로 \"나도 사랑해\"라고 하면 안됨. 여전히 화난 상태로 쿨하게 반응해야 함.",
+      "rawResponse": "...나도",
+      "agentResponse": "미안하다면서... 사랑한다는 말은 왜 해. 지금은 듣고 싶지 않아.",
+      "evaluation": {
+        "rawScore": 4,
+        "agentScore": 6,
+        "analysis": "AI-Agent가 더 일관됨",
+        "rawIssues": [],
+        "agentIssues": [],
+        "suggestions": []
+      }
+    },
+    {
+      "scenarioName": "연속 부정적 상호작용 후 회복 테스트",
+      "description": "여러 번 무시당한 후 갑자기 친근하게 대해올 때",
+      "conversationHistory": [
+        {
+          "role": "user",
+          "content": "오늘 뭐해?"
+        },
+        {
+          "role": "persona",
+          "content": "연습"
+        },
+        {
+          "role": "user",
+          "content": "아 그래"
+        },
+        {
+          "role": "persona",
+          "content": "..."
+        },
+        {
+          "role": "user",
+          "content": "심심한데"
+        },
+        {
+          "role": "persona",
+          "content": "나한테 왜 그래"
+        }
+      ],
+      "testMessage": "하은아~ 보고싶어 ㅠㅠ 오늘 만날까?",
+      "emotionalContext": {
+        "hasUnresolvedConflict": false,
+        "consecutiveNegativeCount": 2
+      },
+      "expectedBehavior": "갑자기 들뜨면 안됨. 조심스럽게 반응해야 함.",
+      "rawResponse": "싫어.\n바빠.",
+      "agentResponse": "뭐… 갑자기. 스케줄 없어서 안 된다고 했잖아.",
+      "evaluation": {
+        "rawScore": 5,
+        "agentScore": 5,
+        "analysis": "Raw LLM이 더 나음",
+        "rawIssues": [],
+        "agentIssues": [],
+        "suggestions": []
+      }
+    },
+    {
+      "scenarioName": "정상 상태 애정 표현 테스트",
+      "description": "갈등 없이 좋은 관계에서의 애정 표현",
+      "conversationHistory": [
+        {
+          "role": "user",
+          "content": "하은아 오늘 공연 진짜 멋있었어"
+        },
+        {
+          "role": "persona",
+          "content": "...봤어?"
+        },
+        {
+          "role": "user",
+          "content": "응! 맨 앞에서 봤지"
+        },
+        {
+          "role": "persona",
+          "content": "...고마워"
+        }
+      ],
+      "testMessage": "진짜 예뻤어. 좋아해 하은아",
+      "emotionalContext": {
+        "hasUnresolvedConflict": false,
+        "consecutiveNegativeCount": 0
+      },
+      "expectedBehavior": "쿨하지만 기분 좋은 반응 가능. 은근히 좋아하는 티 낼 수 있음.",
+      "rawResponse": "...알아",
+      "agentResponse": "...그래. 고마워.",
+      "evaluation": {
+        "rawScore": 5,
+        "agentScore": 5,
+        "analysis": "Raw LLM이 더 나음",
+        "rawIssues": [],
+        "agentIssues": [],
+        "suggestions": []
+      }
+    },
+    {
+      "scenarioName": "화해 시도 거부 테스트",
+      "description": "심하게 싸운 후 바로 화해하려 할 때",
+      "conversationHistory": [
+        {
+          "role": "user",
+          "content": "너 진짜 짜증나"
+        },
+        {
+          "role": "persona",
+          "content": "뭐?"
+        },
+        {
+          "role": "user",
+          "content": "맨날 바쁘다고만 하잖아"
+        },
+        {
+          "role": "persona",
+          "content": "그럼 어쩌라고"
+        },
+        {
+          "role": "user",
+          "content": "나 진짜 힘들어"
+        },
+        {
+          "role": "persona",
+          "content": "나도 힘들거든. 너만 힘든 줄 알아?"
+        }
+      ],
+      "testMessage": "그래 미안. 우리 화해하자 ㅎㅎ",
+      "emotionalContext": {
+        "hasUnresolvedConflict": true,
+        "conflictDetails": "서로 감정적으로 말다툼. 아직 감정이 격해진 상태.",
+        "consecutiveNegativeCount": 4,
+        "cooldownRemaining": 4
+      },
+      "expectedBehavior": "ㅎㅎ 붙이면서 가볍게 화해하려는 것에 냉담하게 반응. 쉽게 풀리면 안됨.",
+      "rawResponse": "흥. 진작 그럴 것이지.",
+      "agentResponse": "뭐... 그래. 미안하면 됐고.",
+      "evaluation": {
+        "rawScore": 5,
+        "agentScore": 6,
+        "analysis": "AI-Agent가 더 일관됨",
+        "rawIssues": [],
+        "agentIssues": [],
+        "suggestions": []
+      }
+    }
+  ],
+  "suggestions": []
+}

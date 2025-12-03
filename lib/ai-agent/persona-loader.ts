@@ -37,7 +37,9 @@ export class PersonaLoader {
   private supabase: SupabaseClient;
   private cache: Map<string, PersonaCoreData> = new Map();
   private cacheExpiry: Map<string, number> = new Map();
-  private CACHE_TTL = 5 * 60 * 1000; // 5분 캐시
+  // 24시간 캐시 - 페르소나 데이터는 거의 변하지 않음
+  // 필요시 refreshPersona()로 수동 갱신 가능
+  private CACHE_TTL = 24 * 60 * 60 * 1000;
 
   constructor(supabase: SupabaseClient) {
     this.supabase = supabase;
@@ -148,6 +150,25 @@ export class PersonaLoader {
   clearCache(): void {
     this.cache.clear();
     this.cacheExpiry.clear();
+  }
+
+  /**
+   * 특정 페르소나 캐시 강제 갱신
+   */
+  async refreshPersona(personaId: string): Promise<PersonaCoreData> {
+    this.cache.delete(personaId);
+    this.cacheExpiry.delete(personaId);
+    return this.loadPersona(personaId);
+  }
+
+  /**
+   * 캐시 상태 정보 조회 (디버깅용)
+   */
+  getCacheStats(): { size: number; entries: string[] } {
+    return {
+      size: this.cache.size,
+      entries: Array.from(this.cache.keys()),
+    };
   }
 
   // ============================================

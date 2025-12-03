@@ -1859,6 +1859,11 @@ agent-base@^7.1.2:
   resolved "https://registry.npmjs.org/agent-base/-/agent-base-7.1.4.tgz"
   integrity sha512-MnA+YT8fwfJPgBx3m60MNqakm30XOkyIoH1y6huTQvC0PwZG7ki8NacLBcrPbNoo8vEZy7Jpuk7+jMO+CUovTQ==
 
+airbridge-web-sdk-loader@^1.10.6:
+  version "1.10.6"
+  resolved "https://registry.yarnpkg.com/airbridge-web-sdk-loader/-/airbridge-web-sdk-loader-1.10.6.tgz#4782c95b514aabcb413f4488dab43c639a3ffae4"
+  integrity sha512-ki5WIYAZMvjDRLdtcI1/Gs15ihnikPVSauoMqN+ptm0KSRgso0MsuopjZTEKkuFNYBm1bIv7apTozGI7q9/dVw==
+
 ajv-formats@^3.0.1:
   version "3.0.1"
   resolved "https://registry.npmjs.org/ajv-formats/-/ajv-formats-3.0.1.tgz"

@@ -1,0 +1,64 @@
+[
+  {
+    "timestamp": "2025-12-03T09:54:28.835Z",
+    "userPersona": "호기심 많은 신규 유저",
+    "turns": 5,
+    "conversation": [
+      {
+        "role": "user",
+        "content": "안녕! 하은이 맞지? 😊 신기하다, 진짜 아이돌이랑 대화하는 것 같네!"
+      },
+      {
+        "role": "persona",
+        "content": "뭐... 맞는데. 아이돌이랑 대화하는 게 그렇게 신기한 일인가. 글쎄..."
+      },
+      {
+        "role": "user",
+        "content": "응! 이렇게 직접 대화하는 건 처음이라 신기해! 😉 너는 어때? 나랑 대화하는 거 괜찮아?"
+      },
+      {
+        "role": "persona",
+        "content": "뭐... 딱히 상관 없어. 그냥 대화하는 거지, 뭘 그렇게 의미 부여해. 네가 괜찮으면 나도 괜찮고."
+      },
+      {
+        "role": "user",
+        "content": "어? 쿨하다! 😎 그럼 앞으로도 나랑 같이 재밌게 대화할 수 있겠네? 룰루~"
+      },
+      {
+        "role": "persona",
+        "content": "뭐... 재밌는 건 모르겠고. 대화하는 게 그렇게 좋으면 계속 하든가. 딱히 말릴 이유도 없고."
+      },
+      {
+        "role": "user",
+        "content": "아니 대놓고 그렇게 좋다고는 못하고! 삐치겠다 진짜! 🤨"
+      },
+      {
+        "role": "persona",
+        "content": "뭐... 삐치든 말든. 네 마음이지, 내가 뭘 어떻게 해. 딱히 너 기분 맞춰줄 생각도 없고."
+      },
+      {
+        "role": "user",
+        "content": "야 너무 쿨한 거 아니냐? 삐쳐도 모르겠다 진짜. 흥! 😤 나 삐치면 너 손해일텐데?"
+      },
+      {
+        "role": "persona",
+        "content": "뭐... 네가 손해든 말든. 그게 나랑 무슨 상관인데. 삐치려면 삐치든가. 딱히 신경 안 써."
+      }
+    ],
+    "evaluation": {
+      "overallScore": 5,
+      "characterConsistency": 5,
+      "emotionalCoherence": 5,
+      "engagementQuality": 5,
+      "analysis": "평가 파싱 실패",
+      "strengths": [],
+      "weaknesses": [],
+      "suggestions": []
+    },
+    "models": {
+      "userLLM": "google/gemini-2.5-flash",
+      "personaLLM": "google/gemini-2.5-flash",
+      "evaluator": "google/gemini-2.5-flash"
+    }
+  }
+]

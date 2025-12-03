@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { apiClient } from '@/lib/api-client';
@@ -11,8 +11,13 @@ export default function AuthCallbackPage() {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const loadUser = useAuthStore(state => state.loadUser);
+  const callbackProcessedRef = useRef(false);
 
   useEffect(() => {
+    // 중복 실행 방지
+    if (callbackProcessedRef.current) return;
+    callbackProcessedRef.current = true;
+
     const handleCallback = async () => {
       try {
         // URL hash에서 토큰 추출 (implicit flow)

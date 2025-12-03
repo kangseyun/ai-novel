@@ -42,6 +42,19 @@ export class AIAgent {
   private memoryManager: MemoryManager;
   private personaLoader: PersonaLoader;
 
+  // 메모리 추출 큐 시스템
+  private memoryExtractionQueue: Array<{
+    userId: string;
+    personaId: string;
+    messages: Array<{ role: string; content: string }>;
+    affection: number;
+    retryCount: number;
+    sessionId: string;
+  }> = [];
+  private isProcessingMemoryQueue = false;
+  private readonly MAX_RETRY_COUNT = 3;
+  private readonly RETRY_DELAY_MS = 5000;
+
   constructor(supabaseUrl: string, supabaseKey: string) {
     this.supabase = createClient(supabaseUrl, supabaseKey);
     this.llmClient = getLLMClient();
@@ -172,6 +185,7 @@ export class AIAgent {
     await this.updateRelationship(session.userId, session.personaId, {
       affectionChange: llmResponse.affectionModifier,
       flagsToSet: llmResponse.flagsToSet,
+      incrementMessages: true,
     });
 
     // 선택지 생성 (standard tier 사용 - 비용 효율)
@@ -209,6 +223,18 @@ export class AIAgent {
       sessionId,
       wasPremium: choiceData?.wasPremium,
     });
+
+    // 대화에서 기억 추출 (큐 시스템 사용)
+    this.queueMemoryExtraction(
+      session.userId,
+      session.personaId,
+      [
+        { role: 'user', content: userMessage },
+        { role: 'persona', content: personaMsg.content },
+      ],
+      context.relationship.affection,
+      sessionId
+    );
 
     return {
       response: personaMsg,
@@ -306,6 +332,7 @@ export class AIAgent {
   async processScheduledEvent(eventId: string): Promise<{
     delivered: boolean;
     content?: string;
+    message?: string;
   }> {
     const { data: event } = await this.supabase
       .from('scheduled_events')
@@ -317,8 +344,27 @@ export class AIAgent {
       return { delivered: false };
     }
 
-    // 전달 조건 재확인
-    // TODO: delivery_conditions 체크
+    // delivery_conditions 검증
+    if (event.delivery_conditions && Object.keys(event.delivery_conditions).length > 0) {
+      const canDeliver = await this.validateDeliveryConditions(
+        event.delivery_conditions,
+        event.user_id,
+        event.persona_id
+      );
+
+      if (!canDeliver) {
+        // 조건 미충족 시 만료 처리
+        await this.supabase
+          .from('scheduled_events')
+          .update({
+            status: 'expired',
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', eventId);
+
+        return { delivered: false, message: 'Delivery conditions not met' };
+      }
+    }
 
     // LLM으로 실제 메시지 생성
     const context = await this.buildLLMContext(event.user_id, event.persona_id);
@@ -468,6 +514,187 @@ export class AIAgent {
     return 'stranger';
   }
 
+  /**
+   * 이벤트 전달 조건 검증
+   */
+  private async validateDeliveryConditions(
+    conditions: Record<string, unknown>,
+    userId: string,
+    personaId: string
+  ): Promise<boolean> {
+    // 1. 현재 유저-페르소나 관계 조회
+    const { data: relationship } = await this.supabase
+      .from('user_persona_relationships')
+      .select('affection, relationship_stage, story_flags')
+      .eq('user_id', userId)
+      .eq('persona_id', personaId)
+      .single();
+
+    if (!relationship) return false;
+
+    // 2. 호감도 조건 체크
+    if (conditions.minAffection !== undefined) {
+      if (relationship.affection < (conditions.minAffection as number)) {
+        return false;
+      }
+    }
+
+    if (conditions.maxAffection !== undefined) {
+      if (relationship.affection > (conditions.maxAffection as number)) {
+        return false;
+      }
+    }
+
+    // 3. 관계 단계 조건 체크
+    if (conditions.relationshipStage) {
+      const allowedStages = conditions.relationshipStage as string[];
+      if (!allowedStages.includes(relationship.relationship_stage)) {
+        return false;
+      }
+    }
+
+    // 4. 시간대 조건 체크
+    if (conditions.timeRange) {
+      const { start, end } = conditions.timeRange as { start: string; end: string };
+      const now = new Date();
+      const currentHour = now.getHours();
+      const currentMinute = now.getMinutes();
+      const currentTime = `${currentHour.toString().padStart(2, '0')}:${currentMinute.toString().padStart(2, '0')}`;
+
+      // 시간 범위 체크 (자정을 넘어가는 경우 고려)
+      if (start <= end) {
+        if (currentTime < start || currentTime > end) return false;
+      } else {
+        // 예: 22:00 ~ 02:00
+        if (currentTime < start && currentTime > end) return false;
+      }
+    }
+
+    // 5. 필수 플래그 체크
+    if (conditions.requiredFlags) {
+      const requiredFlags = conditions.requiredFlags as string[];
+      const userFlags = relationship.story_flags || {};
+      for (const flag of requiredFlags) {
+        if (!userFlags[flag]) return false;
+      }
+    }
+
+    // 6. 제외 플래그 체크
+    if (conditions.excludeFlags) {
+      const excludeFlags = conditions.excludeFlags as string[];
+      const userFlags = relationship.story_flags || {};
+      for (const flag of excludeFlags) {
+        if (userFlags[flag]) return false;
+      }
+    }
+
+    return true;
+  }
+
+  // ============================================
+  // 메모리 추출 큐 시스템
+  // ============================================
+
+  private queueMemoryExtraction(
+    userId: string,
+    personaId: string,
+    messages: Array<{ role: string; content: string }>,
+    affection: number,
+    sessionId: string
+  ): void {
+    this.memoryExtractionQueue.push({
+      userId,
+      personaId,
+      messages,
+      affection,
+      retryCount: 0,
+      sessionId,
+    });
+
+    if (!this.isProcessingMemoryQueue) {
+      this.processMemoryQueue();
+    }
+  }
+
+  private async processMemoryQueue(): Promise<void> {
+    if (this.isProcessingMemoryQueue || this.memoryExtractionQueue.length === 0) {
+      return;
+    }
+
+    this.isProcessingMemoryQueue = true;
+
+    while (this.memoryExtractionQueue.length > 0) {
+      const item = this.memoryExtractionQueue.shift()!;
+
+      try {
+        // ConversationMessage 형식으로 변환
+        const conversationMessages = item.messages.map((m, idx) => ({
+          id: `temp-${idx}`,
+          sessionId: item.sessionId,
+          role: m.role as 'user' | 'persona',
+          content: m.content,
+          affectionChange: 0,
+          flagsChanged: {},
+          sequenceNumber: idx,
+          createdAt: new Date(),
+        }));
+
+        await this.memoryManager.extractMemoriesFromConversation(
+          item.userId,
+          item.personaId,
+          conversationMessages,
+          item.affection
+        );
+
+        console.log(`[AIAgent] Memory extraction successful for session ${item.sessionId}`);
+      } catch (error) {
+        console.error(`[AIAgent] Memory extraction error (attempt ${item.retryCount + 1}):`, error);
+
+        if (item.retryCount < this.MAX_RETRY_COUNT) {
+          // 재시도 큐에 추가 (지연 후)
+          setTimeout(() => {
+            this.memoryExtractionQueue.push({
+              ...item,
+              retryCount: item.retryCount + 1,
+            });
+            this.processMemoryQueue();
+          }, this.RETRY_DELAY_MS * (item.retryCount + 1));
+        } else {
+          // 최대 재시도 초과 - 에러 로깅 테이블에 저장
+          await this.logCriticalError('memory_extraction_failed', error as Error, {
+            userId: item.userId,
+            personaId: item.personaId,
+            sessionId: item.sessionId,
+            messages: item.messages,
+            retryCount: item.retryCount,
+          });
+        }
+      }
+    }
+
+    this.isProcessingMemoryQueue = false;
+  }
+
+  private async logCriticalError(
+    errorType: string,
+    error: Error,
+    context: Record<string, unknown>
+  ): Promise<void> {
+    try {
+      await this.supabase.from('error_logs').insert({
+        error_type: errorType,
+        error_message: error.message,
+        error_stack: error.stack,
+        context,
+        created_at: new Date().toISOString(),
+      });
+    } catch (logError) {
+      // 에러 로깅 실패 시 콘솔에만 출력
+      console.error('[AIAgent] Failed to log critical error:', logError);
+      console.error('[AIAgent] Original error:', { errorType, error, context });
+    }
+  }
+
   // ============================================
   // LLM 컨텍스트 구축 (개선된 버전)
   // ============================================
@@ -477,108 +704,94 @@ export class AIAgent {
     personaId: string,
     sessionId?: string
   ): Promise<LLMContext & { memories?: string; previousSummaries?: string }> {
-    // 1. 페르소나 코어 데이터 로드 (캐싱됨, 절대 변하지 않음)
+    // 병렬 쿼리 실행으로 성능 최적화
+    // 모든 독립적인 쿼리를 동시에 실행
+
+    // 1단계: 모든 독립적인 데이터 병렬 로드
+    const [
+      personaResult,
+      userResult,
+      relationshipResult,
+      memoriesResult,
+      summariesResult,
+      messagesResult,
+      sessionResult,
+    ] = await Promise.allSettled([
+      // 페르소나 코어 데이터 (캐싱됨)
+      this.personaLoader.loadPersona(personaId),
+      // 유저 데이터
+      this.supabase.from('users').select('*').eq('id', userId).single(),
+      // 관계 상태
+      this.getRelationship(userId, personaId),
+      // 기억 시스템
+      this.memoryManager.getMemoriesForPrompt(userId, personaId),
+      this.memoryManager.getSummariesForPrompt(userId, personaId),
+      // 대화 기록 (세션이 있는 경우만)
+      sessionId
+        ? this.supabase
+            .from('conversation_messages')
+            .select('*')
+            .eq('session_id', sessionId)
+            .order('sequence_number', { ascending: true })
+            .limit(50)
+        : Promise.resolve({ data: null }),
+      // 세션 정보 (세션이 있는 경우만)
+      sessionId
+        ? this.supabase
+            .from('conversation_sessions')
+            .select('emotional_state')
+            .eq('id', sessionId)
+            .single()
+        : Promise.resolve({ data: null }),
+    ]);
+
+    // 2단계: 결과 처리
+
+    // 페르소나 처리
     let mappedPersona: Persona;
     let mappedTraits: PersonaTraits;
     let mappedWorldview: PersonaWorldview;
 
-    try {
-      const coreData = await this.personaLoader.loadPersona(personaId);
+    if (personaResult.status === 'fulfilled') {
+      const coreData = personaResult.value;
       mappedPersona = coreData.persona;
       mappedTraits = coreData.traits;
       mappedWorldview = coreData.worldview;
-    } catch {
-      // persona_core 테이블이 없거나 데이터가 없으면 기존 방식으로 폴백
-      const { data: persona } = await this.supabase
-        .from('personas')
-        .select('*')
-        .eq('id', personaId)
-        .single();
-
-      const { data: traits } = await this.supabase
-        .from('persona_traits')
-        .select('*')
-        .eq('persona_id', personaId)
-        .single();
-
-      const { data: worldview } = await this.supabase
-        .from('persona_worldview')
-        .select('*')
-        .eq('persona_id', personaId)
-        .single();
-
-      const defaultData = getDefaultPersonaData(personaId);
-
-      if (persona) {
-        mappedPersona = this.mapPersona(persona);
-      } else if (defaultData) {
-        mappedPersona = defaultData.persona;
-      } else {
-        mappedPersona = this.mapPersona(null);
-      }
-
-      if (traits) {
-        mappedTraits = this.mapTraits(traits);
-      } else if (defaultData) {
-        mappedTraits = defaultData.traits;
-      } else {
-        mappedTraits = this.mapTraits(null);
-      }
-
-      if (worldview) {
-        mappedWorldview = this.mapWorldview(worldview);
-      } else if (defaultData) {
-        mappedWorldview = defaultData.worldview;
-      } else {
-        mappedWorldview = this.mapWorldview(null);
-      }
+    } else {
+      // 폴백: 기존 테이블에서 병렬 로드
+      console.warn('[AIAgent] PersonaLoader failed, falling back:', personaResult.reason);
+      const fallbackResult = await this.loadPersonaFallback(personaId);
+      mappedPersona = fallbackResult.persona;
+      mappedTraits = fallbackResult.traits;
+      mappedWorldview = fallbackResult.worldview;
     }
 
-    // 2. 유저 데이터 조회
-    const { data: user } = await this.supabase
-      .from('users')
-      .select('*')
-      .eq('id', userId)
-      .single();
+    // 유저 데이터 처리
+    const user = userResult.status === 'fulfilled' ? userResult.value.data : null;
 
-    // 3. 관계 상태 조회
-    const relationship = await this.getRelationship(userId, personaId);
+    // 관계 상태 처리
+    const relationship = relationshipResult.status === 'fulfilled'
+      ? relationshipResult.value
+      : await this.getRelationship(userId, personaId); // 재시도
 
-    // 4. 기억 시스템에서 중요 기억 조회
-    let memories: string | undefined;
-    let previousSummaries: string | undefined;
+    // 기억 데이터 처리
+    const memories = memoriesResult.status === 'fulfilled' ? memoriesResult.value : undefined;
+    const previousSummaries = summariesResult.status === 'fulfilled' ? summariesResult.value : undefined;
 
-    try {
-      memories = await this.memoryManager.getMemoriesForPrompt(userId, personaId);
-      previousSummaries = await this.memoryManager.getSummariesForPrompt(userId, personaId);
-    } catch (error) {
-      console.warn('[AIAgent] Memory system not available:', error);
+    if (memoriesResult.status === 'rejected') {
+      console.warn('[AIAgent] Memory fetch failed:', memoriesResult.reason);
     }
 
-    // 5. 대화 기록 조회 (세션이 있는 경우)
+    // 대화 기록 처리
     let conversationHistory: ConversationMessage[] = [];
+    if (messagesResult.status === 'fulfilled' && messagesResult.value.data) {
+      conversationHistory = messagesResult.value.data.map(this.mapMessage);
+    }
+
+    // 감정 상태 처리
     let emotionalState = { personaMood: 'neutral' as PersonaMood, tensionLevel: 0, vulnerabilityShown: false };
-
-    if (sessionId) {
-      // 대화 컨텍스트를 위해 최근 50개 메시지 로드
-      const { data: messages } = await this.supabase
-        .from('conversation_messages')
-        .select('*')
-        .eq('session_id', sessionId)
-        .order('sequence_number', { ascending: true })
-        .limit(50);
-
-      conversationHistory = (messages || []).map(this.mapMessage);
-
-      const { data: session } = await this.supabase
-        .from('conversation_sessions')
-        .select('emotional_state')
-        .eq('id', sessionId)
-        .single();
-
-      if (session?.emotional_state) {
-        emotionalState = session.emotional_state;
-      }
+    if (sessionResult.status === 'fulfilled' && sessionResult.value.data?.emotional_state) {
+      emotionalState = sessionResult.value.data.emotional_state;
     }
 
     return {
@@ -590,10 +803,40 @@ export class AIAgent {
       conversationHistory,
       currentSituation: mappedWorldview.mainConflict || '',
       emotionalState,
-      // 추가된 기억 컨텍스트
       memories,
       previousSummaries,
     };
+  }
+
+  /**
+   * 페르소나 폴백 로드 (병렬)
+   */
+  private async loadPersonaFallback(personaId: string): Promise<{
+    persona: Persona;
+    traits: PersonaTraits;
+    worldview: PersonaWorldview;
+  }> {
+    const [personaResult, traitsResult, worldviewResult] = await Promise.all([
+      this.supabase.from('personas').select('*').eq('id', personaId).single(),
+      this.supabase.from('persona_traits').select('*').eq('persona_id', personaId).single(),
+      this.supabase.from('persona_worldview').select('*').eq('persona_id', personaId).single(),
+    ]);
+
+    const defaultData = getDefaultPersonaData(personaId);
+
+    const persona = personaResult.data
+      ? this.mapPersona(personaResult.data)
+      : defaultData?.persona || this.mapPersona(null);
+
+    const traits = traitsResult.data
+      ? this.mapTraits(traitsResult.data)
+      : defaultData?.traits || this.mapTraits(null);
+
+    const worldview = worldviewResult.data
+      ? this.mapWorldview(worldviewResult.data)
+      : defaultData?.worldview || this.mapWorldview(null);
+
+    return { persona, traits, worldview };
   }
 
   // ============================================

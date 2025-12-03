@@ -288,8 +288,12 @@ export class ScenarioService {
     endingData?: {
       finalAffection?: number;
       flagsToSet?: Record<string, boolean>;
+      choicesMade?: Array<{ sceneId: string; choiceId: string }>;
     }
   ): Promise<void> {
+    // 시나리오 정보 조회
+    const scenario = await this.getScenario(scenarioId);
+
     await this.supabase
       .from('user_scenario_progress')
       .update({
@@ -303,11 +307,23 @@ export class ScenarioService {
 
     // 호감도 및 플래그 업데이트
     if (endingData?.finalAffection !== undefined) {
+      // 현재 시나리오 완료 수 조회
+      const { data: currentRel } = await this.supabase
+        .from('user_persona_relationships')
+        .select('total_scenarios_completed, story_flags')
+        .eq('user_id', userId)
+        .eq('persona_id', personaId)
+        .single();
+
+      const currentCount = currentRel?.total_scenarios_completed || 0;
+      const currentFlags = currentRel?.story_flags || {};
+
       await this.supabase
         .from('user_persona_relationships')
         .update({
           affection: endingData.finalAffection,
-          story_flags: endingData.flagsToSet || {},
+          story_flags: { ...currentFlags, ...(endingData.flagsToSet || {}) },
+          total_scenarios_completed: currentCount + 1,
           updated_at: new Date().toISOString(),
         })
         .eq('user_id', userId)
@@ -322,6 +338,59 @@ export class ScenarioService {
         updated_at: new Date().toISOString(),
       })
       .eq('id', userId);
+
+    // 시나리오 완료 메모리 저장
+    const memoryType = scenario?.scenarioType === 'first_meeting' ? 'first_meeting' : 'milestone';
+    await this.supabase
+      .from('persona_memories')
+      .upsert({
+        user_id: userId,
+        persona_id: personaId,
+        memory_type: memoryType,
+        summary: `시나리오 완료: ${scenario?.title || scenarioId}`,
+        details: {
+          scenarioId,
+          scenarioType: scenario?.scenarioType,
+          choicesMade: endingData?.choicesMade || [],
+          finalAffection: endingData?.finalAffection,
+        },
+        emotional_weight: scenario?.scenarioType === 'first_meeting' ? 10 : 7,
+        importance_score: scenario?.scenarioType === 'first_meeting' ? 10 : 7,
+        affection_at_time: endingData?.finalAffection || 0,
+        source_type: 'scenario',
+        source_id: scenarioId,
+        is_active: true,
+      }, {
+        onConflict: 'user_id,persona_id,memory_type,summary',
+      });
+
+    // 첫 시나리오 마일스톤 기록
+    if (scenario?.scenarioType === 'first_meeting') {
+      await this.supabase
+        .from('relationship_milestones')
+        .upsert({
+          user_id: userId,
+          persona_id: personaId,
+          milestone_type: 'first_scenario',
+          affection_at_time: endingData?.finalAffection || 0,
+          relationship_stage_at_time: 'stranger',
+          context: { scenarioId, scenarioTitle: scenario.title },
+        }, {
+          onConflict: 'user_id,persona_id,milestone_type',
+        });
+    }
+
+    // 여정 통계 업데이트
+    await this.supabase
+      .from('user_journey_stats')
+      .upsert({
+        user_id: userId,
+        persona_id: personaId,
+        total_scenarios_completed: 1,
+        total_choices_made: endingData?.choicesMade?.length || 0,
+      }, {
+        onConflict: 'user_id,persona_id',
+      });
   }
 
   // ============================================
