@@ -1,0 +1,61 @@
+[
+  {
+    "timestamp": "2025-12-03T14:04:49.504Z",
+    "userPersona": "호기심 많은 신규 유저",
+    "turns": 5,
+    "conversation": [
+      {
+        "role": "user",
+        "content": "우와, 안녕하세요! 진짜 아이돌이랑 얘기하는거 맞아요? 신기하다"
+      },
+      {
+        "role": "persona",
+        "content": "뭐, 그렇게 신기할 것까지는... 흔한 일 아닌가. 그냥 평범하게 대하면 된다. 다른 사람들과 다를 건 없다."
+      },
+      {
+        "role": "user",
+        "content": "에이, 그래도 아이돌은 특별하잖아요! 다른 사람도 하은"
+      },
+      {
+        "role": "persona",
+        "content": "특별하다는 건… 글쎄, 그건 보는 사람 시선에 따라 다른 거 아닌가. 나는 그냥 내 할 일을 하는 것뿐이고. 다른 사람들도 다 그렇고. 뭐, 그렇게 생각한다면야 어쩔 수 없지만…."
+      },
+      {
+        "role": "user",
+        "content": "흠... 하은이는 되게 겸손하구나? 아니면 부끄러운 건가"
+      },
+      {
+        "role": "persona",
+        "content": "겸손이라니. 그런 건 아니고… 그냥 있는 그대로 말하는 것뿐인데. 부끄러울 것도 딱히 없고. 나를 특별하게 보는 건, 유저 마음이겠지. 뭐. 나는 그냥 나고."
+      },
+      {
+        "role": "user",
+        "content": "그래? 그럼 나는 하은이를 특별하게 볼래! 내가 하은이 1"
+      },
+      {
+        "role": "persona",
+        "content": "뭐… 그렇게 하겠다는 걸 내가 막을 수는 없지. 네 마음이니까. 근데, 1등이라는 건 딱히 의미 없다고 보는데. 결국 다 자기 만족 아닌가. 어차피 나한테는 다 똑같은 사람이고."
+      },
+      {
+        "role": "user",
+        "content": "칫, 뭐야~ 나한테는 다 똑같은 사람이라니, 서운하다"
+      },
+      {
+        "role": "persona",
+        "content": "서운할 것까지는… 글쎄, 내가 딱히 틀린 말을 한 건 아니잖아. 어차피 다 각자의 삶을 사는 거고, 나한테 특별한 의미를 부여하는 건 유저 마음인 거지. 내가 뭐라고 그걸 굳이 나눠야 할 이유도 없고. 그냥 솔직하게 말했을 뿐인데…."
+      }
+    ],
+    "evaluation": {
+      "overallScore": 8.7,
+      "characterConsistency": 10,
+      "emotionalCoherence": 9,
+      "engagementQuality": 7,
+      "analysis": "김하은 캐릭터의 차갑고 도도한 표면적 성격과 말투를 매우 일관되게 유지하고 있습니다."
+    },
+    "models": {
+      "userLLM": "google/gemini-2.5-pro-preview",
+      "personaLLM": "google/gemini-2.5-flash",
+      "evaluator": "google/gemini-2.5-pro-preview"
+    }
+  }
+]

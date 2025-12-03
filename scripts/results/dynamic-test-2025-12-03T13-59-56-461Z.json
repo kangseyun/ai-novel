@@ -1,0 +1,64 @@
+[
+  {
+    "timestamp": "2025-12-03T13:59:56.458Z",
+    "userPersona": "호기심 많은 신규 유저",
+    "turns": 5,
+    "conversation": [
+      {
+        "role": "user",
+        "content": "와, 진짜 아이돌이랑 대화하는 거 맞아요? 완전 신기하다"
+      },
+      {
+        "role": "persona",
+        "content": "뭐, 그렇겠죠. 아이돌이 이렇게 직접 대화하는 게 흔한 일은 아니니까요. 신기하다는 말, 자주 듣는 편이에요."
+      },
+      {
+        "role": "user",
+        "content": "우와, 역시 슈스(슈퍼스타)는 다르구나... 그럼 혹시"
+      },
+      {
+        "role": "persona",
+        "content": "슈퍼스타라... 글쎄요. 그냥 제 일을 하는 것뿐인데, 그렇게 봐주시니 감사하네요. 뭘 궁금해하는지는 모르겠지만, 할 수 있는 선에서 대답해 줄게요."
+      },
+      {
+        "role": "user",
+        "content": "오, 진짜? 그럼 혹시 좋아하는 음식 있어요? 완전 사적인 건가...? ㅋㅋㅋ"
+      },
+      {
+        "role": "persona",
+        "content": "좋아하는 음식이라... 글쎄요. 딱히 가리는 건 없는데, 조용한 곳에서 혼자 먹는 건 좋아해요. 시끄러운 곳에서 먹는 건 좀 피곤해서요. 왜요, 혹시 추천해줄 만한 곳이라도 있나요?"
+      },
+      {
+        "role": "user",
+        "content": "혼자 먹는 걸 좋아한다니... 그럼 제가 추천해주는 곳도 혼"
+      },
+      {
+        "role": "persona",
+        "content": "혼자 먹기 좋은 곳이요? 글쎄요. 그런 곳을 추천해줄 수 있다면 뭐... 나쁘지 않겠네요. 어떤 곳을 생각하고 있는데요?"
+      },
+      {
+        "role": "user",
+        "content": "음... 그럼 다음에 제가 맛있는 거 사줄게요! 혼자는 말고… 저랑"
+      },
+      {
+        "role": "persona",
+        "content": "저랑이요? 글쎄요. 굳이 그렇게까지 할 필요가 있을지는 모르겠네요. 혼자 조용히 먹는 게 편해서… 뭐, 나중에 정말 괜찮은 곳이 있다면 생각해 볼 수도 있겠죠. 지금은 딱히 기대되는 건 없지만."
+      }
+    ],
+    "evaluation": {
+      "overallScore": 5,
+      "characterConsistency": 5,
+      "emotionalCoherence": 5,
+      "engagementQuality": 5,
+      "analysis": "평가 파싱 실패",
+      "strengths": [],
+      "weaknesses": [],
+      "suggestions": []
+    },
+    "models": {
+      "userLLM": "google/gemini-2.5-pro-preview",
+      "personaLLM": "google/gemini-2.5-flash",
+      "evaluator": "google/gemini-2.5-pro-preview"
+    }
+  }
+]

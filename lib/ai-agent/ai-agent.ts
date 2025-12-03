@@ -136,15 +136,28 @@ export class AIAgent {
       transitionMessage?: string;
     };
   }> {
+    const processId = `proc-${Date.now().toString(36)}`;
+    const timings: Record<string, number> = {};
+    let stepStart = Date.now();
+    const getTs = () => new Date().toISOString().replace('T', ' ').replace('Z', '');
+
+    console.log(`\n[${getTs()}][${processId}] 📍 processUserMessage started`);
+
     // 세션 조회
     const session = await this.getSession(sessionId);
     if (!session) throw new Error('Session not found');
+    timings['getSession'] = Date.now() - stepStart;
+    console.log(`[${getTs()}][${processId}] ⏱️ getSession: ${timings['getSession']}ms`);
 
     // 컨텍스트 구축
+    stepStart = Date.now();
     const context = await this.buildLLMContext(session.userId, session.personaId, sessionId);
+    timings['buildContext'] = Date.now() - stepStart;
+    console.log(`[${getTs()}][${processId}] ⏱️ buildLLMContext: ${timings['buildContext']}ms`);
 
     // 유저 메시지 저장
-    const userMsg = await this.saveMessage(sessionId, {
+    stepStart = Date.now();
+    await this.saveMessage(sessionId, {
       role: 'user',
       content: userMessage,
       choiceData: choiceData ? {
@@ -153,8 +166,11 @@ export class AIAgent {
         wasPremium: choiceData.wasPremium,
       } : undefined,
     });
+    timings['saveUserMsg'] = Date.now() - stepStart;
+    console.log(`[${getTs()}][${processId}] ⏱️ saveUserMessage: ${timings['saveUserMsg']}ms`);
 
-    // LLM 응답 생성 (동적 모델 선택 적용)
+    // LLM 응답 + 선택지 통합 생성 (단일 호출!)
+    stepStart = Date.now();
     const llmOptions: LLMCallOptions = {
       taskContext: {
         type: 'dialogue_response',
@@ -169,62 +185,53 @@ export class AIAgent {
         requiresCreativity: true,
       } as TaskContext,
     };
+    // 단일 LLM 호출 (DM 채팅 - 선택지 없음)
     const llmResponse = await this.llmClient.generateResponse(context, userMessage, llmOptions);
+    timings['generateResponse'] = Date.now() - stepStart;
+    console.log(`[${getTs()}][${processId}] ⏱️ generateResponse (Single LLM): ${timings['generateResponse']}ms`);
 
-    // 페르소나 응답 저장
-    const personaMsg = await this.saveMessage(sessionId, {
-      role: 'persona',
-      content: llmResponse.content,
-      emotion: llmResponse.emotion,
-      innerThought: llmResponse.innerThought,
-      affectionChange: llmResponse.affectionModifier,
-      flagsChanged: llmResponse.flagsToSet || {},
-    });
+    // 페르소나 응답 저장 + DB 작업들 병렬 실행
+    stepStart = Date.now();
+    const [personaMsg] = await Promise.all([
+      // 페르소나 응답 저장
+      this.saveMessage(sessionId, {
+        role: 'persona',
+        content: llmResponse.content,
+        emotion: llmResponse.emotion,
+        innerThought: llmResponse.innerThought,
+        affectionChange: llmResponse.affectionModifier,
+        flagsChanged: llmResponse.flagsToSet || {},
+      }),
+      // 관계 상태 업데이트
+      this.updateRelationship(session.userId, session.personaId, {
+        affectionChange: llmResponse.affectionModifier,
+        flagsToSet: llmResponse.flagsToSet,
+        incrementMessages: true,
+      }),
+      // 세션 상태 업데이트
+      this.updateSessionState(sessionId, {
+        emotionalState: {
+          personaMood: llmResponse.emotion,
+          tensionLevel: context.emotionalState.tensionLevel,
+          vulnerabilityShown: llmResponse.emotion === 'vulnerable',
+        },
+        activeFlags: {
+          ...session.activeFlags,
+          vulnerabilityShown: llmResponse.emotion === 'vulnerable',
+          ...llmResponse.flagsToSet,
+        },
+      }),
+      // 유저 활동 로그
+      this.logActivity(session.userId, session.personaId, 'message_sent', {
+        sessionId,
+        wasPremium: choiceData?.wasPremium,
+      }),
+    ]);
 
-    // 관계 상태 업데이트
-    await this.updateRelationship(session.userId, session.personaId, {
-      affectionChange: llmResponse.affectionModifier,
-      flagsToSet: llmResponse.flagsToSet,
-      incrementMessages: true,
-    });
+    timings['dbWrites'] = Date.now() - stepStart;
+    console.log(`[${getTs()}][${processId}] ⏱️ dbWrites (parallel): ${timings['dbWrites']}ms`);
 
-    // 선택지 생성 (standard tier 사용 - 비용 효율)
-    const choiceOptions: LLMCallOptions = {
-      taskContext: {
-        type: 'choice_generation',
-        relationshipStage: context.relationship.relationshipStage,
-        affection: context.relationship.affection,
-        requiresCreativity: true,
-      } as TaskContext,
-    };
-    const choices = await this.llmClient.generateChoices(
-      context,
-      llmResponse.content,
-      3,
-      choiceOptions
-    );
-
-    // 세션 상태 업데이트
-    await this.updateSessionState(sessionId, {
-      emotionalState: {
-        personaMood: llmResponse.emotion,
-        tensionLevel: context.emotionalState.tensionLevel,
-        vulnerabilityShown: llmResponse.emotion === 'vulnerable',
-      },
-      activeFlags: {
-        ...session.activeFlags,
-        vulnerabilityShown: llmResponse.emotion === 'vulnerable',
-        ...llmResponse.flagsToSet,
-      },
-    });
-
-    // 유저 활동 로그
-    await this.logActivity(session.userId, session.personaId, 'message_sent', {
-      sessionId,
-      wasPremium: choiceData?.wasPremium,
-    });
-
-    // 대화에서 기억 추출 (큐 시스템 사용)
+    // 대화에서 기억 추출 (큐 시스템 사용 - fire & forget)
     this.queueMemoryExtraction(
       session.userId,
       session.personaId,
@@ -236,9 +243,13 @@ export class AIAgent {
       sessionId
     );
 
+    const totalTime = Object.values(timings).reduce((a, b) => a + b, 0);
+    console.log(`[${getTs()}][${processId}] 🏁 processUserMessage completed in ${totalTime}ms`);
+    console.log(`[${getTs()}][${processId}] 📊 Breakdown: ${JSON.stringify(timings)}\n`);
+
     return {
       response: personaMsg,
-      choices,
+      choices: [], // DM 채팅에서는 선택지 없음 (시나리오 시스템만 선택지 사용)
       affectionChange: llmResponse.affectionModifier,
       scenarioTrigger: llmResponse.scenarioTrigger,
     };

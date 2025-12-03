@@ -48,10 +48,15 @@ if (!OPENROUTER_API_KEY) {
   process.exit(1);
 }
 
-// 모델 설정
-const USER_LLM_MODEL = 'google/gemini-2.5-flash';  // 유저 역할 LLM
-const PERSONA_LLM_MODEL = 'google/gemini-2.5-flash';  // AI 페르소나 LLM
-const EVALUATOR_MODEL = 'google/gemini-2.5-flash';  // 평가용 LLM
+// 모델 설정 (명령줄 인자로 페르소나 모델 변경 가능: npx tsx script.ts --model x-ai/grok-4.1-fast)
+const args = process.argv.slice(2);
+const modelArgIndex = args.indexOf('--model');
+const PERSONA_LLM_MODEL = modelArgIndex !== -1 && args[modelArgIndex + 1]
+  ? args[modelArgIndex + 1]
+  : 'deepseek/deepseek-v3.2';  // AI 페르소나 LLM (기본값)
+
+const USER_LLM_MODEL = 'deepseek/deepseek-v3.2';  // 
+const EVALUATOR_MODEL = 'google/gemini-3-pro-preview';  // 평가용 LLM
 
 // 대화 설정
 const DEFAULT_TURNS = 10;  // 기본 대화 턴 수
@@ -188,6 +193,24 @@ async function callOpenRouter(
   messages: Array<{ role: string; content: string }>,
   options?: { temperature?: number; maxTokens?: number }
 ): Promise<string> {
+  // reasoning 모델들은 높은 max_tokens 필요 (reasoning이 토큰을 많이 소비)
+  // - gemini-3: reasoning 옵션 필요
+  // - deepseek-v3.2-speciale: reasoning 모델이라 토큰을 많이 사용함 (500이면 빈 응답!)
+  const needsReasoning = model.includes('gemini-3');
+  const needsHighTokens = needsReasoning || model.includes('deepseek-v3.2-speciale');
+  const defaultMaxTokens = needsHighTokens ? 10000 : 500;
+
+  const requestBody: Record<string, unknown> = {
+    model,
+    messages,
+    temperature: options?.temperature ?? 0.8,
+    max_tokens: options?.maxTokens ?? defaultMaxTokens,
+  };
+
+  if (needsReasoning) {
+    requestBody.reasoning = { enabled: true };
+  }
+
   const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
     method: 'POST',
     headers: {
@@ -196,12 +219,7 @@ async function callOpenRouter(
       'HTTP-Referer': 'http://localhost:3000',
       'X-Title': 'AI-Agent Test',
     },
-    body: JSON.stringify({
-      model,
-      messages,
-      temperature: options?.temperature ?? 0.8,
-      max_tokens: options?.maxTokens ?? 500,
-    }),
+    body: JSON.stringify(requestBody),
   });
 
   if (!response.ok) {
@@ -525,15 +543,55 @@ JSON으로 응답하세요:
 
   const response = await callOpenRouter(EVALUATOR_MODEL, [
     { role: 'user', content: prompt }
-  ], { temperature: 0.3 });
+  ], { temperature: 0.3, maxTokens: 4000 });
 
   try {
-    const jsonMatch = response.match(/\{[\s\S]*\}/);
-    if (jsonMatch) {
-      return JSON.parse(jsonMatch[0]);
+    // 코드 블록 제거 (```json ... ```)
+    let cleanedResponse = response
+      .replace(/```json\s*/gi, '')
+      .replace(/```\s*/g, '')
+      .trim();
+
+    // JSON 시작 위치 찾기
+    const jsonStart = cleanedResponse.indexOf('{');
+    if (jsonStart !== -1) {
+      let jsonStr = cleanedResponse.substring(jsonStart);
+
+      // 먼저 JSON 파싱 시도
+      try {
+        return JSON.parse(jsonStr);
+      } catch {
+        // 파싱 실패 시 수동 수정 시도
+      }
+
+      // 불완전한 JSON 수정: 열린 따옴표 개수 세기
+      const quoteCount = (jsonStr.match(/"/g) || []).length;
+      if (quoteCount % 2 !== 0) {
+        // 홀수면 따옴표 하나 추가
+        jsonStr += '"';
+      }
+
+      // 불완전한 JSON 수정 시도: 배열 닫기
+      const openBrackets = (jsonStr.match(/\[/g) || []).length;
+      const closeBrackets = (jsonStr.match(/\]/g) || []).length;
+      if (openBrackets > closeBrackets) {
+        jsonStr += ']'.repeat(openBrackets - closeBrackets);
+      }
+
+      // 불완전한 JSON 수정 시도: 객체 닫기
+      const openBraces = (jsonStr.match(/\{/g) || []).length;
+      const closeBraces = (jsonStr.match(/\}/g) || []).length;
+      if (openBraces > closeBraces) {
+        jsonStr += '}'.repeat(openBraces - closeBraces);
+      }
+
+      return JSON.parse(jsonStr);
+    } else {
+      console.error('평가 JSON 매칭 실패. 응답:', response.substring(0, 300));
     }
   } catch (e) {
     console.error('평가 파싱 실패:', e);
+    console.error('응답 내용:', response.substring(0, 500));
   }
 
   return {
@@ -659,13 +717,13 @@ function saveResults(results: TestResult[]): string {
 
     md += `**분석**: ${result.evaluation.analysis}\n\n`;
 
-    if (result.evaluation.strengths.length > 0) {
+    if (result.evaluation.strengths?.length > 0) {
       md += `**강점**:\n`;
       result.evaluation.strengths.forEach(s => md += `- ${s}\n`);
       md += `\n`;
     }
 
-    if (result.evaluation.weaknesses.length > 0) {
+    if (result.evaluation.weaknesses?.length > 0) {
       md += `**약점**:\n`;
       result.evaluation.weaknesses.forEach(w => md += `- ${w}\n`);
       md += `\n`;

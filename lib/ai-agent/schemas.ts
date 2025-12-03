@@ -126,7 +126,7 @@ export const ScenarioTriggerSchema = z.object({
   transitionMessage: z.string().optional(),
 }).optional();
 
-// 대화 응답 스키마
+// 대화 응답 스키마 (선택지 포함 - 통합 버전)
 export const DialogueResponseSchema = z.object({
   content: z.string().min(1),
   emotion: PersonaMoodSchema.default('neutral'),
@@ -139,6 +139,16 @@ export const DialogueResponseSchema = z.object({
     tone: ChoiceToneSchema.optional(),
   })).optional(),
   scenarioTrigger: ScenarioTriggerSchema,
+  // 통합된 선택지 필드 (새 방식)
+  choices: z.array(z.object({
+    id: z.string(),
+    text: z.string().min(1),
+    tone: ChoiceToneSchema.default('neutral'),
+    isPremium: z.boolean().default(false),
+    premiumCost: z.number().optional(),
+    estimatedAffectionChange: z.number().default(0),
+    nextBeatHint: z.string().optional(),
+  })).optional(),
 });
 
 // 선택지 스키마
@@ -181,14 +191,24 @@ export type StoryBranchResponseParsed = z.infer<typeof StoryBranchResponseSchema
 // ============================================
 
 /**
- * JSON 문자열에서 마크다운 코드블록 제거
+ * JSON 문자열에서 마크다운 코드블록 제거 및 잘못된 형식 수정
  */
 function extractJSON(response: string): string {
-  const codeBlockMatch = response.match(/```(?:json)?\s*([\s\S]*?)```/);
+  let jsonStr = response;
+
+  // 마크다운 코드블록 제거
+  const codeBlockMatch = jsonStr.match(/```(?:json)?\s*([\s\S]*?)```/);
   if (codeBlockMatch) {
-    return codeBlockMatch[1].trim();
+    jsonStr = codeBlockMatch[1].trim();
+  } else {
+    jsonStr = jsonStr.trim();
   }
-  return response.trim();
+
+  // JSON에서 유효하지 않은 +숫자 형식을 숫자로 변환
+  // 예: "affectionModifier": +1 → "affectionModifier": 1
+  jsonStr = jsonStr.replace(/:\s*\+(\d+)/g, ': $1');
+
+  return jsonStr;
 }
 
 /**
@@ -259,15 +279,22 @@ function attemptPartialRecovery(response: string): Partial<LLMDialogueResponse> 
 }
 
 /**
- * 안전한 대화 응답 파싱 (개선된 에러 로깅)
+ * 통합 응답 타입 (응답 + 선택지)
  */
-export function parseDialogueResponse(response: string): LLMDialogueResponse {
+export interface LLMDialogueResponseWithChoices extends LLMDialogueResponse {
+  choices?: DialogueChoice[];
+}
+
+/**
+ * 안전한 대화 응답 파싱 (개선된 에러 로깅) - 선택지 포함
+ */
+export function parseDialogueResponse(response: string): LLMDialogueResponseWithChoices {
   try {
     const jsonStr = extractJSON(response);
     const parsed = JSON.parse(jsonStr);
     const validated = DialogueResponseSchema.parse(parsed);
 
-    // types.ts의 LLMDialogueResponse 형식으로 변환
+    // types.ts의 LLMDialogueResponse 형식으로 변환 + choices 포함
     return {
       content: validated.content,
       emotion: validated.emotion as PersonaMood,
@@ -288,6 +315,16 @@ export function parseDialogueResponse(response: string): LLMDialogueResponse {
         location: validated.scenarioTrigger.location,
         transitionMessage: validated.scenarioTrigger.transitionMessage,
       } : undefined,
+      // 통합된 선택지 필드 (새 방식)
+      choices: validated.choices?.map(c => ({
+        id: c.id,
+        text: c.text,
+        tone: c.tone as ChoiceTone,
+        isPremium: c.isPremium,
+        premiumCost: c.premiumCost,
+        estimatedAffectionChange: c.estimatedAffectionChange,
+        nextBeatHint: c.nextBeatHint,
+      })),
     };
   } catch (error) {
     logParseError('DialogueResponse', error, response);

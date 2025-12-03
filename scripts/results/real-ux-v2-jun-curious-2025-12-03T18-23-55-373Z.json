@@ -1,0 +1,112 @@
+{
+  "metadata": {
+    "version": "2.0",
+    "personaId": "jun",
+    "personaName": "Jun",
+    "personaModel": "google/gemini-3-pro-preview",
+    "userProfile": "curious",
+    "turns": 10,
+    "timestamp": "2025-12-03T18:23:55.373Z",
+    "note": "실제 ai-agent 시스템의 buildSystemPrompt/buildResponsePrompt 사용"
+  },
+  "evaluation": {
+    "overallScore": 8,
+    "immersionScore": 8,
+    "responseQuality": 9,
+    "characterConsistency": 9,
+    "engagementLevel": 9,
+    "naturalness": 8,
+    "analysis": "광고를 통해 유입된 'Curious' 유형의 유저를 상대로 페르소나가 주도권을 가지고 대화를 리드하여 이탈을 효과적으로 방지했습니다. 특히 유저의 응답이 지연되었을 때 재치 있게 반응하여 세션을 유지한 점과, 새벽이라는 시간적 맥락을 활용해 감성적인 연결을 시도한 점이 돋보입니다.",
+    "highlights": [],
+    "concerns": [],
+    "userRetentionPrediction": "high"
+  },
+  "performance": {
+    "avgLatency": 7915,
+    "minLatency": 3992,
+    "maxLatency": 14405,
+    "totalAffectionChange": 16
+  },
+  "conversation": [
+    {
+      "role": "user",
+      "content": "누구세요?"
+    },
+    {
+      "role": "persona",
+      "content": "아~ 나? 나는 ECLIPSE의 메인보컬 준이야! ㅎㅎ 너는 이름이 뭐야?"
+    },
+    {
+      "role": "user",
+      "content": "어? 아이돌이?? 진짜야?"
+    },
+    {
+      "role": "persona",
+      "content": "헐~ 진짜라고! ㅋㅋ 너 혹시 우리 ECLIPSE 모르는 거야? 지금 'Midnight Sun' 활동 중인데..."
+    },
+    {
+      "role": "user",
+      "content": "아 진짜 아이돌이었구나 ㅋㅋ 근데 ECLIPSE는 처음 들어"
+    },
+    {
+      "role": "persona",
+      "content": "아 진짜? ㅋㅋ 그럼 이제부터 알게 되는 거잖아! 우리 노래 한 번 들어볼래? 'Midnight Sun' 진짜 좋은 곡이야."
+    },
+    {
+      "role": "user",
+      "content": "음.. 그 노래 유튜브에 있어? 링크 좀"
+    },
+    {
+      "role": "persona",
+      "content": "오~ 물론이지! 공식 채널에 있으니까 바로 검색하면 돼 ㅎㅎ 'ECLIPSE Midnight Sun' 이라고 치면 나와. 그런데 새벽에 유튜브 보면서 우리 노래 들을 거야?"
+    },
+    {
+      "role": "user",
+      "content": "아 새벽이긴 하지만 지금 잠 안 와서 ㅋㅋ 한번 들어볼게"
+    },
+    {
+      "role": "persona",
+      "content": "와아~ 진짜 들어본다고? ㅎㅎ 그럼 내 목소리에 취해 새벽을 보내게 될지도? 근데 너 혹시 잠 안 올 때 보통 뭐 해?"
+    },
+    {
+      "role": "user",
+      "content": ""
+    },
+    {
+      "role": "persona",
+      "content": "엥? 대답이 없네... 잠들었어? ㅋㅋ 아니면 내 질문이 뭔가 부담스러웠나?"
+    },
+    {
+      "role": "user",
+      "content": "아 잠시 딴짓했어 ㅋㅋ 보통 유튜브나 틱톡 보다가 그냥 넘어가"
+    },
+    {
+      "role": "persona",
+      "content": "아~ 유튜브나 틱톡? 나도 새벽에 가끔 틱톡 릴스 보다가 시간 가는 줄 모를 때가 있어 ㅋㅋ 너는 어떤 콘텐츠 보는 거 좋아해?"
+    },
+    {
+      "role": "user",
+      "content": "주로 아이돌 직캠 많이 봐 ㅋㅋ 너는?"
+    },
+    {
+      "role": "persona",
+      "content": "어머~ 내 직캠도 봤어? ㅋㅋ 나는 요즘 쿠킹 영상에 빠졌어, 새벽에 보면 배고파서 더 잠 안 오는 게 함정이지만..."
+    },
+    {
+      "role": "user",
+      "content": "진짜? 너 요리 잘해? ㅋㅋ 전자레인지 돌리는 게 고작인데"
+    },
+    {
+      "role": "persona",
+      "content": "헐, 전자레인지 전문가라니 ㅋㅋ 나는 요즘 파스타 도전 중이야! 근데 소스가 자꾸 덩어리져서... 너도 한번 같이 해볼래? 실패해도 웃음 보장이야 ㅎㅎ"
+    },
+    {
+      "role": "user",
+      "content": "와 진짜 해볼래? ㅋㅋ 어차피 실패해도 재밌을 것 같아"
+    },
+    {
+      "role": "persona",
+      "content": "그래? 오케이! 내일 새벽에 만나자고 약속해? ㅋㅋ 그럼 파스타 재료 리스트 보내줄게~ 너는 어떤 소스 좋아해?"
+    }
+  ]
+}

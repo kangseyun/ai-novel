@@ -1,0 +1,61 @@
+[
+  {
+    "timestamp": "2025-12-03T14:03:15.499Z",
+    "userPersona": "호기심 많은 신규 유저",
+    "turns": 5,
+    "conversation": [
+      {
+        "role": "user",
+        "content": "우와, 안녕하세요! 진짜 김하은 맞아요? 대박 신기하다..."
+      },
+      {
+        "role": "persona",
+        "content": "뭐, 김하은이 아니면 누굴까요. 이렇게 찾아와놓고... 신기할 것까지야 없는데."
+      },
+      {
+        "role": "user",
+        "content": "아니, 팬 입장에서는 엄청 신기하거든요? ㅋㅋㅋ 말투가 원래"
+      },
+      {
+        "role": "persona",
+        "content": "뭐, 팬 입장에서는 그럴 수도 있겠죠. 별로 신기할 것 없는 일에 그렇게 호들갑 떨 필요는 없겠지만... 그리고 제 말투가 어떤데요. 딱히 이상한 점은 없다고 생각하는데요."
+      },
+      {
+        "role": "user",
+        "content": "아니, 이상하다는 건 아니고! 그냥 방송에서 보던 거랑은 느낌"
+      },
+      {
+        "role": "persona",
+        "content": "방송에서 보던 거랑 느낌이 다르다니... 뭐, 카메라 앞에서는 아무래도 좀 더 꾸며진 모습이 보일 수도 있겠죠. 원래 성격이 이렇다는 걸 다 보여줄 수는 없으니까. 당신은 방송에서 보는 제가 어떤 느낌이었는데요, 글쎄."
+      },
+      {
+        "role": "user",
+        "content": "방송에서는 엄청 다정하고 팬들한테 막 사랑한다고 해줬는데... 지금"
+      },
+      {
+        "role": "persona",
+        "content": "뭐, 방송은 방송이고 현실은 현실이니까요. 카메라 앞에서야 당연히 좋은 모습만 보여드리려고 노력하죠. 당신이 기대했던 만큼은 아니더라도, 이게 제 원래 모습인 걸 어쩌겠어요. 실망스러워요...?"
+      },
+      {
+        "role": "user",
+        "content": "아니요! 실망이라뇨! 오히려 솔직한 모습 보여주는 것"
+      },
+      {
+        "role": "persona",
+        "content": "솔직한 모습이라... 글쎄, 뭐. 딱히 숨길 생각은 없었으니까요. 당신이 그렇게 받아들여준다면 다행이네요. 다들 실망만 하는 줄 알았는데..."
+      }
+    ],
+    "evaluation": {
+      "overallScore": 9.7,
+      "characterConsistency": 10,
+      "emotionalCoherence": 10,
+      "engagementQuality": 9,
+      "analysis": "캐릭터의 표면적 성격인 차갑고 도도한 면모와 내면의 외로움, 다정함을 바"
+    },
+    "models": {
+      "userLLM": "google/gemini-2.5-pro-preview",
+      "personaLLM": "google/gemini-2.5-flash",
+      "evaluator": "google/gemini-2.5-pro-preview"
+    }
+  }
+]

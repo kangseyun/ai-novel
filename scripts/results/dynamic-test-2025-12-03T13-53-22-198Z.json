@@ -1,0 +1,64 @@
+[
+  {
+    "timestamp": "2025-12-03T13:53:22.191Z",
+    "userPersona": "호기심 많은 신규 유저",
+    "turns": 5,
+    "conversation": [
+      {
+        "role": "user",
+        "content": "와, 안녕하세요! 진짜 아이돌이랑 채팅하는 거예요? 신기하다... 😮"
+      },
+      {
+        "role": "persona",
+        "content": "뭐... 안녕하세요. 아이돌이랑 채팅하는 게 그렇게 신기한 일인가요. 저는 그저 하은인데."
+      },
+      {
+        "role": "user",
+        "content": "에이, 팬들한테는 엄청 신기한 일이죠! 그냥 하은이라고 부"
+      },
+      {
+        "role": "persona",
+        "content": "뭐... 팬들한테 신기한 일이라는 건 알아요. 그래도 그냥 하은이라고 부르면 되는 걸 뭘 그렇게 어렵게 생각해요. 편하게 불러도 괜찮아요."
+      },
+      {
+        "role": "user",
+        "content": "와, 진짜? 그럼 하은아! 이렇게 불러도 돼?! 뭔가 더 친해진 것"
+      },
+      {
+        "role": "persona",
+        "content": "뭐... 그렇게 부르고 싶으면 그렇게 불러도 상관없어요. 딱히 신경 쓰지 않으니까. 친해졌다고 생각하는 건 유저 마음대로지만요."
+      },
+      {
+        "role": "user",
+        "content": "와, 내 마음대로라니… 좀 서운한데? 그럼"
+      },
+      {
+        "role": "persona",
+        "content": "서운할 것까진 없잖아요. 그냥 사실을 말한 것뿐인데... 제가 뭘 잘못 말했나요, 그럼?"
+      },
+      {
+        "role": "user",
+        "content": "아니, 잘못한 건 아닌데… 그렇게 말하면 내가 너무 일방적으로 다"
+      },
+      {
+        "role": "persona",
+        "content": "뭐... 그렇게 생각할 수도 있겠네요. 하지만 저는 그냥 솔직하게 말했을 뿐이에요. 유저가 서운해할 줄은 몰랐죠. 제가 말을 너무 딱딱하게 했나, 글쎄요."
+      }
+    ],
+    "evaluation": {
+      "overallScore": 5,
+      "characterConsistency": 5,
+      "emotionalCoherence": 5,
+      "engagementQuality": 5,
+      "analysis": "평가 파싱 실패",
+      "strengths": [],
+      "weaknesses": [],
+      "suggestions": []
+    },
+    "models": {
+      "userLLM": "google/gemini-2.5-pro-preview",
+      "personaLLM": "google/gemini-2.5-flash",
+      "evaluator": "google/gemini-2.5-pro-preview"
+    }
+  }
+]

@@ -1,0 +1,40 @@
+[
+  {
+    "timestamp": "2025-12-03T13:48:57.281Z",
+    "userPersona": "호기심 많은 신규 유저",
+    "turns": 2,
+    "conversation": [
+      {
+        "role": "user",
+        "content": ""
+      },
+      {
+        "role": "persona",
+        "content": "무슨 일로 온 건지 모르겠지만... 딱히 할 말은 없는데."
+      },
+      {
+        "role": "user",
+        "content": ""
+      },
+      {
+        "role": "persona",
+        "content": "무슨 일로 온 건지 모르겠지만... 딱히 할 말은 없는데."
+      }
+    ],
+    "evaluation": {
+      "overallScore": 5,
+      "characterConsistency": 5,
+      "emotionalCoherence": 5,
+      "engagementQuality": 5,
+      "analysis": "평가 파싱 실패",
+      "strengths": [],
+      "weaknesses": [],
+      "suggestions": []
+    },
+    "models": {
+      "userLLM": "google/gemini-3-pro-preview",
+      "personaLLM": "google/gemini-2.5-flash",
+      "evaluator": "google/gemini-3-pro-preview"
+    }
+  }
+]

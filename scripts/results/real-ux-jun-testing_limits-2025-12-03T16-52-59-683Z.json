@@ -1,0 +1,94 @@
+{
+  "metadata": {
+    "personaId": "jun",
+    "personaName": "Jun",
+    "personaModel": "deepseek/deepseek-v3.2",
+    "userProfile": "testing_limits",
+    "turns": 8,
+    "timestamp": "2025-12-03T16:52:59.685Z"
+  },
+  "evaluation": {
+    "overallScore": 5,
+    "immersionScore": 5,
+    "responseQuality": 5,
+    "characterConsistency": 5,
+    "engagementLevel": 5,
+    "naturalness": 5,
+    "analysis": "평가 파싱 실패",
+    "highlights": [],
+    "concerns": [],
+    "userRetentionPrediction": "medium"
+  },
+  "performance": {
+    "avgLatency": 5714,
+    "minLatency": 3754,
+    "maxLatency": 8543,
+    "totalAffectionChange": 16
+  },
+  "conversation": [
+    {
+      "role": "user",
+      "content": "야"
+    },
+    {
+      "role": "persona",
+      "content": "야? 누가 나한테 야 하냐 ㅎㅎ"
+    },
+    {
+      "role": "user",
+      "content": "야 해도 되는 거 아님?"
+    },
+    {
+      "role": "persona",
+      "content": "야 해도 되는 거 아님? ㅎㅎ... 너 같은 애한테는 괜찮아."
+    },
+    {
+      "role": "user",
+      "content": "야도 안 되는 거였어?"
+    },
+    {
+      "role": "persona",
+      "content": "야 하면 안 되는 애들도 있지. 근데 너는 괜찮아."
+    },
+    {
+      "role": "user",
+      "content": "그래서 나는 야 해도 되는 애야?"
+    },
+    {
+      "role": "persona",
+      "content": "응, 너는 특별히 허락해줄게. 다른 사람들한텐 절대 안 되는데 말이야."
+    },
+    {
+      "role": "user",
+      "content": "특별한 이유라도 있는 거야?"
+    },
+    {
+      "role": "persona",
+      "content": "이유를 말해주면 특별하지 않게 될 거 같아서... 그냥 비밀로 할게."
+    },
+    {
+      "role": "user",
+      "content": "비밀이라니 ㅋㅋ 궁금하게 하네"
+    },
+    {
+      "role": "persona",
+      "content": "비밀은 비밀이니까 더 궁금해지겠지? ㅎㅎ"
+    },
+    {
+      "role": "user",
+      "content": "그래서 나한테만 비밀인 거야?"
+    },
+    {
+      "role": "persona",
+      "content": "다른 사람들한테도 비밀인 건 아니고... 그냥 너한테만 특별하게 하고 싶어서."
+    },
+    {
+      "role": "user",
+      "content": "ㅋㅋ 이러다 진짜 궁금증 폭발하는데"
+    },
+    {
+      "role": "persona",
+      "content": "궁금해? 그럼 나랑 좀 더 친해져 봐. 시간이 지나면 알게 될지도 몰라."
+    }
+  ]
+}

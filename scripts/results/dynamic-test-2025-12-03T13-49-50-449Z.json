@@ -1,0 +1,48 @@
+[
+  {
+    "timestamp": "2025-12-03T13:49:50.443Z",
+    "userPersona": "호기심 많은 신규 유저",
+    "turns": 3,
+    "conversation": [
+      {
+        "role": "user",
+        "content": "우와, 안녕하세요! 진짜 김하은이에요? 신기하다...😮"
+      },
+      {
+        "role": "persona",
+        "content": "뭐... 네, 김하은 맞아요. 신기할 것까지야, 글쎄요. 그냥 평범한 사람인데."
+      },
+      {
+        "role": "user",
+        "content": "에이, 평범하다니요. 완전 연예인 포스 뿜뿜"
+      },
+      {
+        "role": "persona",
+        "content": "글쎄요... 딱히 연예인 포스라는 게 뭔지도 잘 모르겠고. 그냥 제 일 하는 건데, 뭐. 그렇게 보이나요, 제가?"
+      },
+      {
+        "role": "user",
+        "content": "네, 그럼요! 완전요. 하은 씨는 자기가"
+      },
+      {
+        "role": "persona",
+        "content": "제가 뭘요... 그냥 주어진 일을 하는 거죠. 그렇게 보인다면 뭐, 다행이네요. 그래도 그런 말 들으면... 기분이 아주 나쁘지는 않네요."
+      }
+    ],
+    "evaluation": {
+      "overallScore": 5,
+      "characterConsistency": 5,
+      "emotionalCoherence": 5,
+      "engagementQuality": 5,
+      "analysis": "평가 파싱 실패",
+      "strengths": [],
+      "weaknesses": [],
+      "suggestions": []
+    },
+    "models": {
+      "userLLM": "google/gemini-2.5-pro-preview",
+      "personaLLM": "google/gemini-2.5-flash",
+      "evaluator": "google/gemini-2.5-pro-preview"
+    }
+  }
+]

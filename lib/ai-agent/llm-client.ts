@@ -5,7 +5,6 @@
 
 import {
   LLMContext,
-  LLMDialogueResponse,
   DialogueChoice,
   PersonaMood,
 } from './types';
@@ -31,9 +30,16 @@ import {
   parseChoicesResponse,
   parseEventMessageResponse,
   parseStoryBranchResponse,
+  LLMDialogueResponseWithChoices,
 } from './schemas';
 
 const OPENROUTER_API_URL = 'https://openrouter.ai/api/v1/chat/completions';
+
+// 타임스탬프 헬퍼 함수 (밀리초 단위까지 표시)
+function getTimestamp(): string {
+  const now = new Date();
+  return now.toISOString().replace('T', ' ').replace('Z', '');
+}
 
 interface OpenRouterMessage {
   role: 'system' | 'user' | 'assistant';
@@ -136,10 +142,11 @@ export class LLMClient {
   }
 
   /**
-   * 대화 응답 생성 (동적 모델 선택)
+   * 대화 응답 + 선택지 통합 생성 (단일 LLM 호출)
    * @param context - LLM 컨텍스트 (기억과 요약 포함 가능)
    * @param userMessage - 유저 메시지
    * @param options - LLM 호출 옵션
+   * @returns 응답 + 선택지가 함께 포함된 통합 결과
    */
   async generateResponse(
     context: LLMContext & {
@@ -149,7 +156,7 @@ export class LLMClient {
     },
     userMessage: string,
     options?: LLMCallOptions
-  ): Promise<LLMDialogueResponse> {
+  ): Promise<LLMDialogueResponseWithChoices> {
     const systemPrompt = buildSystemPrompt(context);
     // 기억, 요약, 감정 컨텍스트를 프롬프트에 포함
     const userPrompt = buildResponsePrompt(
@@ -370,21 +377,49 @@ Respond in JSON:
     options?: LLMCallOptions
   ): Promise<{ content: string; model: string; usage?: OpenRouterResponse['usage']; budgetWarning?: string }> {
     const startTime = Date.now();
+    const callId = `llm-${Date.now().toString(36)}`;
+
+    console.log(`\n[${getTimestamp()}][${callId}] 🔮 LLM Call Started`);
+    console.log(`[${getTimestamp()}][${callId}] Task: ${options?.taskContext?.type || 'default'}`);
 
     // 모델 선택
     let selectedModel: string;
     let modelConfig: ModelConfig | undefined;
+    let selectionReason: string;
 
     if (options?.forceModel) {
       selectedModel = options.forceModel;
       modelConfig = AVAILABLE_MODELS[selectedModel];
+      selectionReason = 'forced';
     } else if (this.enableDynamicSelection && options?.taskContext) {
       modelConfig = ModelSelector.selectModel(options.taskContext);
       selectedModel = modelConfig.id;
+      selectionReason = 'dynamic';
     } else {
       selectedModel = this.defaultModel;
       modelConfig = AVAILABLE_MODELS[selectedModel];
+      selectionReason = 'default';
     }
+
+    console.log(`[${getTimestamp()}][${callId}] 🎯 Model Selection:`);
+    console.log(`  - model: ${selectedModel}`);
+    console.log(`  - reason: ${selectionReason}`);
+    console.log(`  - tier: ${modelConfig?.tier || 'unknown'}`);
+    console.log(`  - cost: $${modelConfig?.costPer1kTokens || '?'}/1k tokens`);
+
+    // 프롬프트 전문 로깅
+    const systemMsg = messages.find(m => m.role === 'system');
+    const userMsg = messages.find(m => m.role === 'user');
+    console.log(`[${getTimestamp()}][${callId}] 📝 ===== FULL PROMPTS =====`);
+    console.log(`[${getTimestamp()}][${callId}] 📝 [SYSTEM PROMPT] (${systemMsg?.content.length || 0} chars):`);
+    console.log('─'.repeat(60));
+    console.log(systemMsg?.content || '(empty)');
+    console.log('─'.repeat(60));
+    console.log(`[${getTimestamp()}][${callId}] 📝 [USER PROMPT] (${userMsg?.content.length || 0} chars):`);
+    console.log('─'.repeat(60));
+    console.log(userMsg?.content || '(empty)');
+    console.log('─'.repeat(60));
+    console.log(`[${getTimestamp()}][${callId}] 📝 ===== END PROMPTS =====`)
 
     // 예산 체크 (로깅용 - 차단하지 않음)
     let budgetWarning: string | undefined;
@@ -393,8 +428,13 @@ Respond in JSON:
       const estimatedTokens = options?.maxTokens ?? (modelConfig?.maxTokens || 1000);
       const budgetCheck = await guard.preCallCheck(options.userId, selectedModel, estimatedTokens);
       budgetWarning = budgetCheck.warning;
+      if (budgetWarning) {
+        console.log(`[${getTimestamp()}][${callId}] ⚠️ Budget Warning: ${budgetWarning}`);
+      }
       // 참고: 실제 차단은 하지 않음 - 가격 정책으로 관리
     }
+
+    console.log(`[${getTimestamp()}][${callId}] 🌐 Calling OpenRouter API...`);
 
     const response = await fetch(OPENROUTER_API_URL, {
       method: 'POST',
@@ -426,11 +466,12 @@ Respond in JSON:
         errorMessage = errorText || `HTTP ${response.status}`;
       }
 
-      console.error('[LLMClient] API Error:', {
+      console.error(`[${getTimestamp()}][${callId}] ❌ API Error:`, {
         model: selectedModel,
         status: response.status,
         error: errorMessage,
         taskType: options?.taskContext?.type,
+        duration: `${Date.now() - startTime}ms`,
       });
 
       throw new LLMAPIError(errorMessage, response.status, selectedModel);
@@ -438,6 +479,21 @@ Respond in JSON:
 
     const data: OpenRouterResponse = await response.json();
     const responseTimeMs = Date.now() - startTime;
+
+    // 응답 로깅
+    const rawContent = data.choices[0]?.message?.content || '';
+    console.log(`[${getTimestamp()}][${callId}] ✅ Response received (${responseTimeMs}ms)`);
+    console.log(`[${getTimestamp()}][${callId}] 📊 Usage:`);
+    console.log(`  - prompt_tokens: ${data.usage?.prompt_tokens || '?'}`);
+    console.log(`  - completion_tokens: ${data.usage?.completion_tokens || '?'}`);
+    console.log(`  - total_tokens: ${data.usage?.total_tokens || '?'}`);
+    console.log(`  - estimated_cost: $${this.calculateCost(data.usage, modelConfig).toFixed(6)}`);
+    console.log(`[${getTimestamp()}][${callId}] 📄 ===== FULL RESPONSE =====`);
+    console.log('─'.repeat(60));
+    console.log(rawContent);
+    console.log('─'.repeat(60));
+    console.log(`[${getTimestamp()}][${callId}] 📄 ===== END RESPONSE =====`);
+    console.log(`[${getTimestamp()}][${callId}] 🏁 LLM Call completed`);
 
     // 로깅
     if (options?.taskContext) {
@@ -463,6 +519,8 @@ Respond in JSON:
         options?.taskContext?.type || 'unknown'
       );
     }
+
+    console.log(`[${callId}] 🏁 LLM Call completed\n`);
 
     return {
       content: data.choices[0]?.message?.content || '',

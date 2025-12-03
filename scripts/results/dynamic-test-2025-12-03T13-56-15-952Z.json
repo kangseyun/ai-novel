@@ -1,0 +1,64 @@
+[
+  {
+    "timestamp": "2025-12-03T13:56:15.947Z",
+    "userPersona": "호기심 많은 신규 유저",
+    "turns": 5,
+    "conversation": [
+      {
+        "role": "user",
+        "content": "우와, 진짜 김하은이랑 대화하는 거 맞아요? 완전 신기하다"
+      },
+      {
+        "role": "persona",
+        "content": "뭐, 그렇게 신기할 것까지야... 그냥 나인데. 대화하는 게 뭐 그렇게 특별한 일이라고."
+      },
+      {
+        "role": "user",
+        "content": ""
+      },
+      {
+        "role": "persona",
+        "content": "뭐, 그렇게까지 신기해할 건 없지. 그냥 대화일 뿐인데. 난 딱히 특별한 사람이 아니니까."
+      },
+      {
+        "role": "user",
+        "content": "에이, 나한테는 완전 특별한데요? 맨날 화면으로만 보다가 이렇게 대"
+      },
+      {
+        "role": "persona",
+        "content": "뭐... 그렇게 말해주면 고맙긴 한데. 나도 그냥 사람이고, 화면 속 모습이랑 크게 다를 것도 없어서. 이렇게 대화하는 게 너한테는 특별한가 보네. 그럼 다행이고."
+      },
+      {
+        "role": "user",
+        "content": "그럼 나 이제 맨날맨날 와서 대화 걸어도 돼? 귀찮아"
+      },
+      {
+        "role": "persona",
+        "content": "귀찮냐고 묻는 게 아니라, 귀찮게 할까 봐 걱정하는 거겠지... 뭐, 네가 괜찮다면 상관없어. 딱히 대화하는 게 나쁠 건 없으니까. 매일 와도, 딱히 내가 막을 이유도 없고."
+      },
+      {
+        "role": "user",
+        "content": "진짜? 그럼 나 이제 하은이 1호팬"
+      },
+      {
+        "role": "persona",
+        "content": "1호 팬이라니... 글쎄, 뭐. 네가 그렇게 생각한다면 그렇게 해. 딱히 내가 그걸 막을 이유는 없으니까. 근데 1호 팬이라는 게 그렇게 대단한 건가?"
+      }
+    ],
+    "evaluation": {
+      "overallScore": 5,
+      "characterConsistency": 5,
+      "emotionalCoherence": 5,
+      "engagementQuality": 5,
+      "analysis": "평가 파싱 실패",
+      "strengths": [],
+      "weaknesses": [],
+      "suggestions": []
+    },
+    "models": {
+      "userLLM": "google/gemini-2.5-pro-preview",
+      "personaLLM": "google/gemini-2.5-flash",
+      "evaluator": "google/gemini-2.5-pro-preview"
+    }
+  }
+]

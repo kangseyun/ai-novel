@@ -1,6 +1,6 @@
 /**
  * Dynamic Model Selector
- * 작업 복잡도와 상황에 따라 최적의 LLM 모델을 동적으로 선택
+ * 2가지 모델만 사용: DeepSeek V3.2 (기본), Gemini 3 Pro (고품질)
  */
 
 // ============================================
@@ -18,144 +18,32 @@ export interface ModelConfig {
   latencyMs: number; // 평균 응답 시간
 }
 
-export type ModelTier = 'premium' | 'standard' | 'economy';
+export type ModelTier = 'premium' | 'standard';
 
-// 티어별 모델 목록 (최신 모델)
-export const MODEL_TIERS = {
-  premium: [
-    {
-      id: 'anthropic/claude-sonnet-4.5',
-      vendor: 'anthropic',
-      approxCostPer1K: 0.012,
-    },
-    {
-      id: 'openai/gpt-5.1',
-      vendor: 'openai',
-      approxCostPer1K: 0.008,
-    },
-    {
-      id: 'google/gemini-3-pro-preview',
-      vendor: 'google',
-      approxCostPer1K: 0.010,
-    },
-  ],
-  standard: [
-    {
-      id: 'anthropic/claude-haiku-4.5',
-      vendor: 'anthropic',
-      approxCostPer1K: 0.003,
-    },
-    {
-      id: 'google/gemini-2.5-flash',
-      vendor: 'google',
-      approxCostPer1K: 0.0015,
-    },
-    {
-      id: 'deepseek/deepseek-chat-v3.1',
-      vendor: 'deepseek',
-      approxCostPer1K: 0.0005,
-    },
-  ],
-  economy: [
-    {
-      id: 'deepseek/deepseek-r1-distill-qwen3-8b',
-      vendor: 'deepseek',
-      approxCostPer1K: 0.00006,
-    },
-    {
-      id: 'deepseek/deepseek-v3.2-exp',
-      vendor: 'deepseek',
-      approxCostPer1K: 0.00025,
-    },
-  ],
-} as const;
-
-// OpenRouter 모델 카탈로그
+// 사용 가능한 모델 (2개만)
 export const AVAILABLE_MODELS: Record<string, ModelConfig> = {
-  // Premium Tier - 복잡한 추론, 감정적 뉘앙스, 중요한 스토리 분기점
-  'anthropic/claude-sonnet-4.5': {
-    id: 'anthropic/claude-sonnet-4.5',
-    name: 'Claude Sonnet 4.5',
-    vendor: 'anthropic',
-    tier: 'premium',
-    costPer1kTokens: 0.012,
-    maxTokens: 8192,
-    strengths: ['complex_reasoning', 'emotional_nuance', 'character_consistency', 'creative_writing'],
-    latencyMs: 1800,
-  },
-  'openai/gpt-5.1': {
-    id: 'openai/gpt-5.1',
-    name: 'GPT-5.1',
-    vendor: 'openai',
-    tier: 'premium',
-    costPer1kTokens: 0.008,
-    maxTokens: 8192,
-    strengths: ['complex_reasoning', 'instruction_following', 'nuanced_response', 'long_context'],
-    latencyMs: 1200,
-  },
+  // Premium - 고품질 (High complexity)
   'google/gemini-3-pro-preview': {
     id: 'google/gemini-3-pro-preview',
     name: 'Gemini 3 Pro Preview',
     vendor: 'google',
     tier: 'premium',
-    costPer1kTokens: 0.010,
+    costPer1kTokens: 0.005625, // $1.25/1M input, $10/1M output 평균
     maxTokens: 16384,
-    strengths: ['multimodal', 'complex_reasoning', 'creative_writing'],
+    strengths: ['complex_reasoning', 'creative_writing', 'character_consistency'],
     latencyMs: 1500,
   },
 
-  // Standard Tier - 일반 대화, 선택지 생성
-  'anthropic/claude-haiku-4.5': {
-    id: 'anthropic/claude-haiku-4.5',
-    name: 'Claude Haiku 4.5',
-    vendor: 'anthropic',
-    tier: 'standard',
-    costPer1kTokens: 0.003,
-    maxTokens: 4096,
-    strengths: ['fast_response', 'good_quality', 'cost_effective', 'character_consistency'],
-    latencyMs: 400,
-  },
-  'google/gemini-2.5-flash': {
-    id: 'google/gemini-2.5-flash',
-    name: 'Gemini 2.5 Flash',
-    vendor: 'google',
-    tier: 'standard',
-    costPer1kTokens: 0.0015,
-    maxTokens: 8192,
-    strengths: ['very_fast', 'good_quality', 'long_context'],
-    latencyMs: 300,
-  },
-  'deepseek/deepseek-chat-v3.1': {
-    id: 'deepseek/deepseek-chat-v3.1',
-    name: 'DeepSeek Chat V3.1',
+  // Standard - 기본 (빠르고 저렴, 품질도 좋음)
+  'deepseek/deepseek-v3.2': {
+    id: 'deepseek/deepseek-v3.2',
+    name: 'DeepSeek V3.2',
     vendor: 'deepseek',
     tier: 'standard',
-    costPer1kTokens: 0.0005,
+    costPer1kTokens: 0.00021, // $0.14/1M input, $0.28/1M output 평균
     maxTokens: 8192,
-    strengths: ['cost_effective', 'good_reasoning', 'fast'],
-    latencyMs: 350,
-  },
-
-  // Economy Tier - 단순 작업, 높은 트래픽
-  'deepseek/deepseek-r1-distill-qwen3-8b': {
-    id: 'deepseek/deepseek-r1-distill-qwen3-8b',
-    name: 'DeepSeek R1 Distill Qwen3 8B',
-    vendor: 'deepseek',
-    tier: 'economy',
-    costPer1kTokens: 0.00006,
-    maxTokens: 4096,
-    strengths: ['ultra_cheap', 'fast', 'basic_tasks'],
-    latencyMs: 150,
-  },
-  'deepseek/deepseek-v3.2-exp': {
-    id: 'deepseek/deepseek-v3.2-exp',
-    name: 'DeepSeek V3.2 Experimental',
-    vendor: 'deepseek',
-    tier: 'economy',
-    costPer1kTokens: 0.00025,
-    maxTokens: 8192,
-    strengths: ['very_cheap', 'good_for_price', 'high_throughput'],
-    latencyMs: 200,
+    strengths: ['very_fast', 'very_cost_effective', 'good_quality', 'character_consistency'],
+    latencyMs: 450,
   },
 };
 
@@ -172,7 +60,7 @@ export type TaskType =
   | 'story_branching'        // 스토리 분기점 결정
   | 'feed_post';             // SNS 포스트 생성
 
-export type TaskComplexity = 'critical' | 'high' | 'medium' | 'low';
+export type TaskComplexity = 'high' | 'medium' | 'low';
 
 export interface TaskContext {
   type: TaskType;
@@ -196,23 +84,26 @@ export interface TaskContext {
 }
 
 // ============================================
-// 모델 선택 엔진
+// 모델 선택 엔진 (2개 모델만)
 // ============================================
 
 export class ModelSelector {
-  private static defaultModel = 'google/gemini-2.5-flash';
+  private static defaultModel = 'deepseek/deepseek-v3.2';
+  private static premiumModel = 'google/gemini-3-pro-preview';
 
   /**
    * 작업 컨텍스트를 분석하여 최적의 모델 선택
    */
   static selectModel(context: TaskContext): ModelConfig {
     const complexity = this.assessComplexity(context);
-    const constraints = this.analyzeConstraints(context);
 
-    // 복잡도와 제약조건을 종합하여 모델 선택
-    const selectedModelId = this.matchModelToRequirements(complexity, constraints, context);
+    // High complexity면 Gemini 3 Pro
+    if (complexity === 'high') {
+      return AVAILABLE_MODELS[this.premiumModel];
+    }
 
-    return AVAILABLE_MODELS[selectedModelId] || AVAILABLE_MODELS[this.defaultModel];
+    // 그 외 모든 경우: DeepSeek V3.2 (빠르고 저렴하고 품질도 좋음)
+    return AVAILABLE_MODELS[this.defaultModel];
   }
 
   /**
@@ -267,85 +158,9 @@ export class ModelSelector {
     if (context.conversationLength && context.conversationLength > 10) score += 2;
 
     // 점수를 복잡도로 변환
-    if (score >= 12) return 'critical';
-    if (score >= 8) return 'high';
-    if (score >= 4) return 'medium';
+    if (score >= 10) return 'high';
+    if (score >= 5) return 'medium';
     return 'low';
-  }
-
-  /**
-   * 제약 조건 분석
-   */
-  private static analyzeConstraints(context: TaskContext): {
-    preferSpeed: boolean;
-    preferCost: boolean;
-    preferQuality: boolean;
-  } {
-    return {
-      preferSpeed: context.isHighTraffic === true,
-      preferCost: context.budgetConstraint === 'strict',
-      preferQuality: context.isPremiumContent === true ||
-                     context.emotionalIntensity === 'high' ||
-                     context.isStoryBranching === true,
-    };
-  }
-
-  /**
-   * 요구사항에 맞는 모델 매칭
-   */
-  private static matchModelToRequirements(
-    complexity: TaskComplexity,
-    constraints: { preferSpeed: boolean; preferCost: boolean; preferQuality: boolean },
-    context: TaskContext
-  ): string {
-    // Critical: 항상 프리미엄 모델
-    if (complexity === 'critical') {
-      // 감정적으로 섬세한 장면은 Claude가 우수
-      if (context.emotionalIntensity === 'high' || context.isVulnerableMoment) {
-        return 'anthropic/claude-sonnet-4.5';
-      }
-      // 복잡한 스토리 분기는 GPT-5.1
-      if (context.isStoryBranching) {
-        return 'openai/gpt-5.1';
-      }
-      return 'anthropic/claude-sonnet-4.5';
-    }
-
-    // High complexity
-    if (complexity === 'high') {
-      // 비용 제약이 심하면 standard tier (DeepSeek이 가장 저렴)
-      if (constraints.preferCost) {
-        return 'deepseek/deepseek-chat-v3.1';
-      }
-      // 품질 우선이면 premium
-      if (constraints.preferQuality) {
-        return 'anthropic/claude-sonnet-4.5';
-      }
-      // 기본적으로 Claude Haiku (품질/비용 밸런스)
-      return 'anthropic/claude-haiku-4.5';
-    }
-
-    // Medium complexity
-    if (complexity === 'medium') {
-      // 속도 우선
-      if (constraints.preferSpeed) {
-        return 'google/gemini-2.5-flash';
-      }
-      // 비용 우선
-      if (constraints.preferCost) {
-        return 'deepseek/deepseek-chat-v3.1';
-      }
-      return 'google/gemini-2.5-flash';
-    }
-
-    // Low complexity - economy 모델
-    if (constraints.preferCost) {
-      return 'deepseek/deepseek-r1-distill-qwen3-8b'; // 가장 저렴
-    }
-    if (constraints.preferSpeed) {
-      return 'deepseek/deepseek-r1-distill-qwen3-8b'; // 가장 빠름
-    }
-    return 'deepseek/deepseek-v3.2-exp';
   }
 
   /**
@@ -431,7 +246,6 @@ export class ModelSelectionLogger {
   } {
     const byModel: Record<string, number> = {};
     const byComplexity: Record<TaskComplexity, number> = {
-      critical: 0,
       high: 0,
       medium: 0,
       low: 0,

@@ -1,0 +1,112 @@
+{
+  "metadata": {
+    "version": "2.0",
+    "personaId": "jun",
+    "personaName": "Jun",
+    "personaModel": "google/gemini-2.5-flash",
+    "userProfile": "lonely",
+    "turns": 10,
+    "timestamp": "2025-12-03T17:25:18.546Z",
+    "note": "실제 ai-agent 시스템의 buildSystemPrompt/buildResponsePrompt 사용"
+  },
+  "evaluation": {
+    "overallScore": 5,
+    "immersionScore": 5,
+    "responseQuality": 5,
+    "characterConsistency": 5,
+    "engagementLevel": 5,
+    "naturalness": 5,
+    "analysis": "평가 파싱 실패",
+    "highlights": [],
+    "concerns": [],
+    "userRetentionPrediction": "medium"
+  },
+  "performance": {
+    "avgLatency": 2002,
+    "minLatency": 1640,
+    "maxLatency": 2474,
+    "totalAffectionChange": 18
+  },
+  "conversation": [
+    {
+      "role": "user",
+      "content": "심심해서 왔어"
+    },
+    {
+      "role": "persona",
+      "content": "심심해서? 이 시간에 안 자고 뭐해? 난 이제 막 스케줄 끝나고 들어왔는데."
+    },
+    {
+      "role": "user",
+      "content": "나도 잠이 안 와서 ㅠㅠ 스케줄이 뭐야?"
+    },
+    {
+      "role": "persona",
+      "content": "아, 그냥 일하는 거지 뭐. 네가 잠이 안 오는 건 왜? 무슨 고민이라도 있어?"
+    },
+    {
+      "role": "user",
+      "content": "따분하네.. 너는 일로 바쁜 거구나 ㅠㅠ 나는 그냥 외로워서 잠이 안 오는 거 같아"
+    },
+    {
+      "role": "persona",
+      "content": "외로워서 잠이 안 온다고? 하긴, 가끔 그럴 때 있지. 나도 방금 씻고 나왔는데, 라면이나 끓여 먹을까 생각 중이었거든."
+    },
+    {
+      "role": "user",
+      "content": "라면 끓여? 나도 막 배고팠는데 ㅠㅠ 같이 먹고 싶다"
+    },
+    {
+      "role": "persona",
+      "content": "같이 먹자고? ㅎㅎ 뭐, 나야 좋지. 근데 라면 먹고 자면 얼굴 붓는데 괜찮겠어?"
+    },
+    {
+      "role": "user",
+      "content": "나도 붓는 거 상관없어 ㅋㅋ 라면 뭐 먹어? 나는 신라면 좋아해"
+    },
+    {
+      "role": "persona",
+      "content": "오, 역시 신라면이지. 나도 신라면 아니면 진라면? 지금 막 물 올리려던 참이었어. 진짜 같이 먹는 것처럼 느껴지네."
+    },
+    {
+      "role": "user",
+      "content": "신라면에 파 넣어? 나는 파 좀 뿌려먹는 게 좋더라"
+    },
+    {
+      "role": "persona",
+      "content": "파? 오... 생각 못 해봤는데. 맛있을 것 같기도 하고? 너는 라면에 뭐 더 넣어 먹어?"
+    },
+    {
+      "role": "user",
+      "content": "콘스프 말고 뭔가 달걀이나 넣어야지. 나는 거의 매번 달걀 푸는데"
+    },
+    {
+      "role": "persona",
+      "content": "달걀! 아, 그거 좋지. 풀어서 넣는 거랑 그냥 넣는 거랑 또 맛이 다르잖아. 너는 어떻게 넣어?"
+    },
+    {
+      "role": "user",
+      "content": "풀어서 넣는 게 훨씬 깔끔한 것 같아. 너는 어때?"
+    },
+    {
+      "role": "persona",
+      "content": "나는 그냥 넣는 편인데. 노른자 터뜨려 먹는 게 또 별미거든. 근데 풀어서 넣는 것도 괜찮겠다."
+    },
+    {
+      "role": "user",
+      "content": "오늘 회사에서 진짜 힘들었어 ㅠㅠ"
+    },
+    {
+      "role": "persona",
+      "content": "엥? 왜? 무슨 일 있었는데? 힘든 일은 말해야 좀 풀리지."
+    },
+    {
+      "role": "user",
+      "content": "일한 거 얘기하면 길어져... 그냥 달걀 얘기 계속할래? ㅎㅎ"
+    },
+    {
+      "role": "persona",
+      "content": "아 진짜. 그렇게 말하면 내가 더 궁금하잖아. 뭐, 얘기하기 싫으면 어쩔 수 없지만... 달걀 얘기 말고 다른 얘기 해줄까?"
+    }
+  ]
+}
