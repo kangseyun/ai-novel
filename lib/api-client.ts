@@ -485,6 +485,25 @@ class ApiClient {
     }>('/subscriptions/manage');
   }
 
+  // ============ Referral API ============
+  async getReferralStats() {
+    return this.request<{
+      referral_code: string;
+      referral_count: number;
+      referred_by: string | null;
+    }>('/referral/stats');
+  }
+
+  async claimReferralReward(code: string) {
+    return this.request<{
+      success: boolean;
+      reward: number;
+    }>('/referral/claim', {
+      method: 'POST',
+      body: JSON.stringify({ code }),
+    });
+  }
+
   async cancelSubscription() {
     return this.request<{ success: boolean; message: string }>('/subscriptions/manage', {
       method: 'DELETE',

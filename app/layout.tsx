@@ -19,13 +19,19 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Luminovel.ai",
   description: "AI 인터랙티브 채팅 노블 플랫폼",
+  manifest: "/manifest.webmanifest",
   icons: {
     icon: [
       { url: '/icon.svg', type: 'image/svg+xml' },
     ],
     apple: [
-      { url: '/apple-icon.svg', type: 'image/svg+xml' },
+      { url: '/apple-touch-icon.svg', type: 'image/svg+xml' },
     ],
+  },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "Luminovel",
   },
 };
 
@@ -34,6 +40,7 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
+  themeColor: "#0F172A",
 };
 
 export default function RootLayout({

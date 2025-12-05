@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import ScenarioPlayer, { ScenarioResult } from './ScenarioPlayer';
 import { useFirstMeetingScenario } from '@/hooks/useScenario';
-import type { ScenarioChoice } from '@/lib/ai-agent/scenario-service';
+import type { ScenarioChoice } from '@/lib/ai-agent/modules/scenario-service';
 
 // ============================================
 // 타입 정의

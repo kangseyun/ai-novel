@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Crown, Heart, History, X } from 'lucide-react';
-import type { ScenarioContent, ScenarioScene, ScenarioChoice } from '@/lib/ai-agent/scenario-service';
+import type { ScenarioContent, ScenarioScene, ScenarioChoice } from '@/lib/ai-agent/modules/scenario-service';
 import { useTranslations } from '@/lib/i18n';
 
 // ============================================

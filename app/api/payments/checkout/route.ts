@@ -2,13 +2,13 @@ import { NextRequest, NextResponse } from 'next/server';
 import { stripe } from '@/lib/stripe';
 import { createServerClient } from '@/lib/supabase-server';
 
-// 크레딧 패키지 정의 (Kling AI 스타일)
+// 크레딧 패키지 정의 (1크레딧 ≈ $0.035 ≈ 50원)
 const CREDIT_PACKAGES = {
-  starter: { credits: 100, price: 1900, bonus: 0, name: '100 크레딧' },
-  basic: { credits: 500, price: 8900, bonus: 50, name: '550 크레딧' },
-  standard: { credits: 1000, price: 16900, bonus: 150, name: '1,150 크레딧' },
-  pro: { credits: 3000, price: 45900, bonus: 600, name: '3,600 크레딧' },
-  premium: { credits: 6000, price: 85900, bonus: 1500, name: '7,500 크레딧' },
+  welcome: { credits: 100, price: 99, bonus: 50, name: 'Welcome Pack (150 Credits)' }, // $0.99 (1회 한정 파격가)
+  basic: { credits: 280, price: 999, bonus: 30, name: '310 Credits' },   // $9.99
+  standard: { credits: 600, price: 1999, bonus: 80, name: '680 Credits' }, // $19.99
+  pro: { credits: 1600, price: 4999, bonus: 300, name: '1,900 Credits' }, // $49.99
+  premium: { credits: 3500, price: 9999, bonus: 1000, name: '4,500 Credits' }, // $99.99
 };
 
 export async function POST(request: NextRequest) {
@@ -61,12 +61,12 @@ export async function POST(request: NextRequest) {
       line_items: [
         {
           price_data: {
-            currency: 'krw',
+            currency: 'usd',
             product_data: {
               name: pkg.name,
               description: pkg.bonus > 0
-                ? `${pkg.credits} + 보너스 ${pkg.bonus} 크레딧`
-                : `${pkg.credits} 크레딧`,
+                ? `${pkg.credits} + Bonus ${pkg.bonus} Credits`
+                : `${pkg.credits} Credits`,
             },
             unit_amount: pkg.price,
           },

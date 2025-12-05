@@ -2,33 +2,33 @@ import { NextRequest, NextResponse } from 'next/server';
 import { stripe } from '@/lib/stripe';
 import { createServerClient } from '@/lib/supabase-server';
 
-// 구독 플랜 정의 (Kling AI 스타일)
+// 구독 플랜 정의 (USD 기준)
 const SUBSCRIPTION_PLANS = {
   monthly: {
-    name: 'Pro 멤버십 (월간)',
-    price: 9900,         // ₩9,900/월
+    name: 'Pro Membership (Monthly)',
+    price: 999,          // $9.99/month
     interval: 'month' as const,
-    credits: 660,        // 매월 지급 크레딧
+    credits: 300,        // 매월 지급 크레딧 (약 $10 가치)
     features: [
-      '매월 660 크레딧 지급',
-      '프리미엄 에피소드 무료',
-      '광고 제거',
-      '독점 스토리 액세스',
-      '우선 고객 지원',
+      '300 Monthly Credits',
+      'Free Premium Episodes',
+      'Ad-free Experience',
+      'Exclusive Story Access',
+      'Priority Support',
     ],
   },
   yearly: {
-    name: 'Pro 멤버십 (연간)',
-    price: 99000,        // ₩99,000/년 (17% 할인)
+    name: 'Pro Membership (Yearly)',
+    price: 9999,         // $99.99/year (~17% OFF)
     interval: 'year' as const,
-    credits: 8000,       // 연간 총 크레딧
+    credits: 4000,       // 연간 총 크레딧
     features: [
-      '연간 8,000 크레딧 지급',
-      '프리미엄 에피소드 무료',
-      '광고 제거',
-      '독점 스토리 액세스',
-      '우선 고객 지원',
-      '신규 캐릭터 선공개',
+      '4,000 Yearly Credits',
+      'Free Premium Episodes',
+      'Ad-free Experience',
+      'Exclusive Story Access',
+      'Priority Support',
+      'New Character Early Access',
     ],
   },
 };
@@ -141,7 +141,7 @@ async function getOrCreatePrice(planId: string, plan: { name: string; price: num
   const price = await stripe.prices.create({
     product: productId,
     unit_amount: plan.price,
-    currency: 'krw',
+    currency: 'usd',
     recurring: {
       interval: plan.interval,
     },

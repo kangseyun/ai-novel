@@ -11,8 +11,13 @@ import {
   Shield,
   Globe,
   Check,
+  Gift,
+  Bell,
+  Flame,
 } from 'lucide-react';
 import { useTranslations, useLocale, useSetLocale, Locale } from '@/lib/i18n';
+import ReferralModal from '@/components/settings/ReferralModal';
+import StreakModal from '@/components/settings/StreakModal';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -22,9 +27,30 @@ interface SettingsModalProps {
 export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [showLanguageSelect, setShowLanguageSelect] = useState(false);
+  const [showReferralModal, setShowReferralModal] = useState(false);
+  const [showStreakModal, setShowStreakModal] = useState(false);
+  const [pushEnabled, setPushEnabled] = useState(false); // 실제로는 로컬 스토리지나 서버 설정값 연동 필요
   const t = useTranslations();
   const locale = useLocale();
   const setLocale = useSetLocale();
+
+  const togglePushNotification = () => {
+    // 알림 권한 요청 로직 구현 예정
+    if (!pushEnabled) {
+      if ('Notification' in window) {
+        Notification.requestPermission().then((permission) => {
+          if (permission === 'granted') {
+            setPushEnabled(true);
+            // TODO: 서버에 토큰 저장 로직
+          } else {
+            alert('알림 권한이 필요합니다.');
+          }
+        });
+      }
+    } else {
+      setPushEnabled(false);
+    }
+  };
 
   const handleLogout = () => {
     localStorage.clear();
@@ -74,6 +100,43 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
               </div>
             </div>
 
+            {/* 알림 섹션 */}
+            <div>
+              <p className="text-xs text-white/40 mb-2 px-1">알림</p>
+              <div className="bg-white/5 rounded-xl overflow-hidden">
+                <div className="w-full flex items-center justify-between px-4 py-3.5 hover:bg-white/5 transition">
+                  <div className="flex items-center gap-3">
+                    <Bell className="w-5 h-5 text-white/60" />
+                    <span className="text-sm text-white">일상 알림 받기</span>
+                  </div>
+                  <button
+                    onClick={togglePushNotification}
+                    className={`relative w-10 h-6 rounded-full transition-colors ${
+                      pushEnabled ? 'bg-pink-500' : 'bg-white/20'
+                    }`}
+                  >
+                    <div
+                      className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform ${
+                        pushEnabled ? 'translate-x-4' : 'translate-x-0'
+                      }`}
+                    />
+                  </button>
+                </div>
+                {pushEnabled && (
+                  <div className="px-4 py-3 border-t border-white/5 bg-black/20">
+                    <div className="flex items-center justify-between text-xs text-white/60 mb-2">
+                      <span>아침 인사</span>
+                      <span className="text-white">08:00 AM</span>
+                    </div>
+                    <div className="flex items-center justify-between text-xs text-white/60">
+                      <span>잘자요 인사</span>
+                      <span className="text-white">11:00 PM</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
             {/* 언어 섹션 */}
             <div>
               <p className="text-xs text-white/40 mb-2 px-1">{t.settings.language}</p>
@@ -115,6 +178,22 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
             <div>
               <p className="text-xs text-white/40 mb-2 px-1">{t.settings.account}</p>
               <div className="bg-white/5 rounded-xl overflow-hidden">
+                <SettingItem
+                  icon={<Gift className="w-5 h-5 text-pink-400" />}
+                  label="친구 초대하고 무료 크레딧 받기"
+                  labelColor="text-pink-200"
+                  subLabel={<span className="text-xs text-pink-400/70">+50 Credit</span>}
+                  onClick={() => setShowReferralModal(true)}
+                />
+                <div className="h-px bg-white/5" />
+                <SettingItem
+                  icon={<Flame className="w-5 h-5 text-orange-500" />}
+                  label="연속 출석 현황"
+                  labelColor="text-orange-200"
+                  subLabel={<span className="text-xs text-orange-400/70">🔥 진행중</span>}
+                  onClick={() => setShowStreakModal(true)}
+                />
+                <div className="h-px bg-white/5" />
                 <SettingItem
                   icon={<LogOut className="w-5 h-5 text-red-400" />}
                   label={t.settings.logout}
@@ -217,6 +296,16 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
             </motion.div>
           )}
         </AnimatePresence>
+
+        <ReferralModal
+          isOpen={showReferralModal}
+          onClose={() => setShowReferralModal(false)}
+        />
+
+        <StreakModal
+          isOpen={showStreakModal}
+          onClose={() => setShowStreakModal(false)}
+        />
       </motion.div>
     </AnimatePresence>
   );

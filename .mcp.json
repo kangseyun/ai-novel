@@ -1,14 +1,8 @@
 {
   "mcpServers": {
-    "shadcn": {
-      "command": "npx",
-      "args": [
-        "shadcn@latest",
-        "mcp"
-      ]
-    },
-    "stripe": {
-      "url": "https://mcp.stripe.com"
+    "supabase": {
+      "type": "http",
+      "url": "https://mcp.supabase.com/mcp?project_ref=zwoyfqsavcghftbmijdc"
     }
   }
 }

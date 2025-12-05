@@ -11,32 +11,42 @@ import analytics from '@/lib/analytics';
 
 type TabType = 'subscription' | 'credits';
 
-// 구독 플랜 정의 (Kling AI 스타일)
+// 구독 플랜 정의 (USD 기준)
 const SUBSCRIPTION_PLANS = {
   monthly: {
     name: 'Pro',
-    price: 9900,
+    price: 999, // $9.99
     interval: 'month',
-    credits: 660,
+    credits: 300,
     popular: true,
   },
   yearly: {
     name: 'Pro',
-    price: 99000,
+    price: 9999, // $99.99
     interval: 'year',
-    credits: 8000,
+    credits: 4000,
     popular: false,
     discount: 17,
   },
 };
 
+// 타입 추가
+interface CreditPackage {
+  id: string;
+  credits: number;
+  price: number;
+  bonus: number;
+  popular?: boolean;
+  welcome?: boolean;
+}
+
 // 크레딧 패키지 정의
-const CREDIT_PACKAGES = [
-  { id: 'starter', credits: 100, price: 1900, bonus: 0 },
-  { id: 'basic', credits: 500, price: 8900, bonus: 50 },
-  { id: 'standard', credits: 1000, price: 16900, bonus: 150, popular: true },
-  { id: 'pro', credits: 3000, price: 45900, bonus: 600 },
-  { id: 'premium', credits: 6000, price: 85900, bonus: 1500 },
+const CREDIT_PACKAGES: CreditPackage[] = [
+  { id: 'welcome', credits: 100, price: 99, bonus: 50, welcome: true },        // $0.99 (80% OFF 효율)
+  { id: 'basic', credits: 280, price: 999, bonus: 30 },        // $9.99
+  { id: 'standard', credits: 600, price: 1999, bonus: 80, popular: true },  // $19.99
+  { id: 'pro', credits: 1600, price: 4999, bonus: 300 },       // $49.99
+  { id: 'premium', credits: 3500, price: 9999, bonus: 1000 },  // $99.99
 ];
 
 function ShopContent() {
@@ -59,8 +69,51 @@ function ShopContent() {
   const canceled = searchParams.get('canceled');
   const subscriptionStatus = searchParams.get('subscription');
 
+  const [remainingTime, setRemainingTime] = useState<string>('');
+  const [isExpired, setIsExpired] = useState(false);
+
   // 구매/구독 완료 이벤트는 Stripe Webhook에서 서버사이드로 처리됨
   // (Meta CAPI, Mixpanel 서버사이드 전송으로 더 정확한 어트리뷰션)
+
+  // 24시간 제한 타이머 로직
+  useEffect(() => {
+    // 임시: 클라이언트 사이드에서 가입 시간을 시뮬레이션 (실제로는 user.createdAt 사용)
+    // 여기서는 로컬 스토리지에 최초 접속 시간을 저장하여 테스트
+    const FIRST_VISIT_KEY = 'shop_first_visit';
+    let firstVisit = localStorage.getItem(FIRST_VISIT_KEY);
+    
+    if (!firstVisit) {
+      firstVisit = new Date().toISOString();
+      localStorage.setItem(FIRST_VISIT_KEY, firstVisit);
+    }
+
+    const calculateTimeLeft = () => {
+      const startTime = new Date(firstVisit!).getTime();
+      const expireTime = startTime + 24 * 60 * 60 * 1000; // 24시간
+      const now = new Date().getTime();
+      const diff = expireTime - now;
+
+      if (diff <= 0) {
+        setIsExpired(true);
+        return '00:00:00';
+      }
+
+      const hours = Math.floor(diff / (1000 * 60 * 60));
+      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+      const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+
+      return `${hours.toString().padStart(2, '0')}:${minutes
+        .toString()
+        .padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    };
+
+    setRemainingTime(calculateTimeLeft());
+    const timer = setInterval(() => {
+      setRemainingTime(calculateTimeLeft());
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, []);
 
   useEffect(() => {
     const loadSubscription = async () => {
@@ -85,7 +138,7 @@ function ShopContent() {
         analytics.trackInitiateCheckout({
           items: [{ id: packageId, name: `${pkg.credits} Credits`, price: pkg.price }],
           totalValue: pkg.price,
-          currency: 'KRW',
+          currency: 'USD',
         });
       }
 
@@ -109,7 +162,7 @@ function ShopContent() {
         analytics.trackInitiateCheckout({
           items: [{ id: planId, name: `Pro ${plan.interval}`, price: plan.price }],
           totalValue: plan.price,
-          currency: 'KRW',
+          currency: 'USD',
         });
       }
 
@@ -138,7 +191,13 @@ function ShopContent() {
     }
   };
 
-  const formatPrice = (price: number) => new Intl.NumberFormat(locale === 'ko' ? 'ko-KR' : 'en-US').format(price);
+  const formatPrice = (price: number) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 2
+    }).format(price / 100);
+  };
 
   const selectedPlan = SUBSCRIPTION_PLANS[billingCycle];
 
@@ -308,13 +367,13 @@ function ShopContent() {
                     </div>
                     <div className="text-right">
                       <div className="flex items-baseline gap-1">
-                        <span className="text-3xl font-bold">₩{formatPrice(selectedPlan.price)}</span>
+                        <span className="text-3xl font-bold">{formatPrice(selectedPlan.price)}</span>
                       </div>
                       <p className="text-xs text-white/40">
                         {billingCycle === 'monthly' ? tr.shop.perMonth : tr.shop.perYear}
                       </p>
                       {billingCycle === 'yearly' && (
-                        <p className="text-xs text-green-400 mt-1">{t(tr.shop.monthlyPrice, { n: '8,250' })}</p>
+                        <p className="text-xs text-green-400 mt-1">{t(tr.shop.monthlyPrice, { n: '$8.33' })}</p>
                       )}
                     </div>
                   </div>
@@ -416,7 +475,11 @@ function ShopContent() {
 
               {/* Credit Packages Grid */}
               <div className="space-y-3">
-                {CREDIT_PACKAGES.map((pkg, index) => (
+                {CREDIT_PACKAGES.map((pkg, index) => {
+                  // 만료된 웰컴 패키지는 숨김
+                  if (pkg.welcome && isExpired) return null;
+
+                  return (
                   <motion.button
                     key={pkg.id}
                     initial={{ opacity: 0, y: 10 }}
@@ -425,12 +488,24 @@ function ShopContent() {
                     onClick={() => handlePurchaseCredits(pkg.id)}
                     disabled={!!loading}
                     className={`w-full p-4 rounded-2xl text-left transition relative overflow-hidden ${
-                      pkg.popular
+                      pkg.welcome
+                        ? 'bg-gradient-to-r from-pink-500/20 to-rose-500/20 border border-pink-500/40 ring-1 ring-pink-500/20'
+                        : pkg.popular
                         ? 'bg-gradient-to-r from-yellow-500/10 to-orange-500/10 border border-yellow-500/20'
                         : 'bg-white/[0.03] border border-white/10 hover:border-white/20'
                     } disabled:opacity-50`}
                   >
-                    {pkg.popular && (
+                    {pkg.welcome && (
+                      <div className="absolute top-3 right-3 flex items-center gap-2">
+                        <span className="text-[10px] font-medium text-pink-300 bg-pink-500/10 px-1.5 py-0.5 rounded border border-pink-500/20">
+                          {remainingTime} 남음
+                        </span>
+                        <span className="text-[10px] font-bold px-2 py-0.5 bg-gradient-to-r from-pink-500 to-rose-500 text-white rounded-full shadow-lg shadow-pink-500/20 animate-pulse">
+                          80% OFF • 1회 한정
+                        </span>
+                      </div>
+                    )}
+                    {pkg.popular && !pkg.welcome && (
                       <span className="absolute top-3 right-3 text-[10px] font-medium px-2 py-0.5 bg-yellow-500 text-black rounded-full">
                         {tr.shop.popular}
                       </span>
@@ -439,9 +514,9 @@ function ShopContent() {
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
                         <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
-                          pkg.popular ? 'bg-yellow-500/20' : 'bg-white/5'
+                          pkg.welcome ? 'bg-pink-500/20' : pkg.popular ? 'bg-yellow-500/20' : 'bg-white/5'
                         }`}>
-                          <span className={`text-lg ${pkg.popular ? 'text-yellow-400' : 'text-white/40'}`}>◆</span>
+                          <span className={`text-lg ${pkg.welcome ? 'text-pink-400' : pkg.popular ? 'text-yellow-400' : 'text-white/40'}`}>◆</span>
                         </div>
                         <div>
                           <div className="flex items-center gap-2">
@@ -463,15 +538,16 @@ function ShopContent() {
                       </div>
                       <div className="text-right">
                         <span className="font-bold">
-                          {loading === pkg.id ? tr.shop.processing : `₩${formatPrice(pkg.price)}`}
+                          {loading === pkg.id ? tr.shop.processing : formatPrice(pkg.price)}
                         </span>
                         <p className="text-[10px] text-white/30">
-                          {t(tr.shop.pricePerCredit, { n: (pkg.price / (pkg.credits + pkg.bonus)).toFixed(0) })}
+                          {t(tr.shop.pricePerCredit, { n: ((pkg.price / 100) / (pkg.credits + pkg.bonus)).toFixed(3) })}
                         </p>
                       </div>
                     </div>
                   </motion.button>
-                ))}
+                  );
+                })}
               </div>
 
               {/* Pro Member Bonus */}

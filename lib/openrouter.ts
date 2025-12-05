@@ -36,7 +36,7 @@ export interface GeneratedResponse {
 class OpenRouterService {
   private apiKey: string;
   private baseUrl = 'https://openrouter.ai/api/v1';
-  private model = 'google/gemini-2.0-flash-001'; // 빠른 응답
+  private model = 'google/gemini-3-pro-preview'; // 빠른 응답
 
   constructor() {
     this.apiKey = process.env.NEXT_PUBLIC_OPENROUTER_API_KEY || '';

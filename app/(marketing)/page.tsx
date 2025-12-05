@@ -14,6 +14,7 @@ import {
   Heart,
   User,
   Plus,
+  Flame,
 } from 'lucide-react';
 import Link from 'next/link';
 import HackedProfile from '@/components/sns/HackedProfile';
@@ -84,8 +85,10 @@ export default function MainPage() {
   // Create post modal
   const [showCreatePost, setShowCreatePost] = useState(false);
 
-  // User tokens
+  // User tokens & streak
   const [userTokens, setUserTokens] = useState<number | null>(null);
+  const [streakCount, setStreakCount] = useState<number>(0);
+  const [showStreakBonus, setShowStreakBonus] = useState<{ amount: number } | null>(null);
 
   // Zustand store
   const {
@@ -112,12 +115,27 @@ export default function MainPage() {
       // 사용자 토큰 정보 가져오기
       const { data: userData } = await supabase
         .from('users')
-        .select('tokens')
+        .select('tokens, streak_count')
         .eq('id', session.user.id)
         .single();
 
       if (userData) {
         setUserTokens(userData.tokens);
+        setStreakCount(userData.streak_count || 0);
+      }
+
+      // 출석 체크 실행 (하루에 한 번)
+      const { data: streakResult } = await supabase.rpc('check_daily_streak', {
+        p_user_id: session.user.id
+      });
+
+      if (streakResult && streakResult.updated) {
+        setStreakCount(streakResult.streak);
+        if (streakResult.bonus > 0) {
+          setShowStreakBonus({ amount: streakResult.bonus });
+          // 보너스 받았으니 토큰도 업데이트
+          setUserTokens((prev) => (prev || 0) + streakResult.bonus);
+        }
       }
 
       setIsLoading(false);
@@ -286,6 +304,14 @@ export default function MainPage() {
                 {userTokens !== null ? userTokens.toLocaleString() : '---'}
               </span>
             </Link>
+            {streakCount > 0 && (
+              <div className="flex items-center gap-1 px-2 py-1 bg-orange-500/10 border border-orange-500/30 rounded animate-pulse">
+                <Flame className="w-3 h-3 text-orange-500 fill-orange-500" />
+                <span className="text-[10px] font-bold text-orange-400">
+                  {streakCount}
+                </span>
+              </div>
+            )}
             <Link
               href="/shop"
               className="flex items-center gap-1 px-2 py-1 bg-amber-500/10 border border-amber-500/30 rounded hover:bg-amber-500/20 transition"
@@ -316,6 +342,41 @@ export default function MainPage() {
           />
         </div>
       </div>
+
+      {/* Streak Bonus Modal */}
+      <AnimatePresence>
+        {showStreakBonus && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.8 }}
+            className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/80 backdrop-blur-sm"
+            onClick={() => setShowStreakBonus(null)}
+          >
+            <div 
+              className="bg-[#1A1F2E] border border-orange-500/30 rounded-2xl p-8 text-center max-w-xs w-full shadow-[0_0_50px_rgba(249,115,22,0.2)]"
+              onClick={e => e.stopPropagation()}
+            >
+              <div className="w-20 h-20 bg-orange-500/20 rounded-full flex items-center justify-center mx-auto mb-6 animate-bounce">
+                <Flame className="w-10 h-10 text-orange-500 fill-orange-500" />
+              </div>
+              <h2 className="text-2xl font-bold text-white mb-2">
+                {streakCount}일 연속 출석! 🔥
+              </h2>
+              <p className="text-white/60 mb-6">
+                꾸준함에 대한 보상으로<br/>
+                <span className="text-yellow-400 font-bold">+{showStreakBonus.amount} 크레딧</span>을 드려요!
+              </p>
+              <button
+                onClick={() => setShowStreakBonus(null)}
+                className="w-full py-3 bg-gradient-to-r from-orange-500 to-red-500 text-white font-bold rounded-xl hover:from-orange-600 hover:to-red-600 transition shadow-lg shadow-orange-500/20"
+              >
+                받기
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Main Content */}
       <main className="pb-20" data-tutorial="home-feed">

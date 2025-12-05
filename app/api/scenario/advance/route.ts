@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthUser, unauthorized, badRequest, serverError } from '@/lib/auth';
 import { createServerClient } from '@/lib/supabase-server';
-import { ScenarioService } from '@/lib/ai-agent/scenario-service';
-import { MemoryManager } from '@/lib/ai-agent/memory-system';
+import { ScenarioService } from '@/lib/ai-agent/modules/scenario-service';
+import { memoryService } from '@/lib/ai-agent/memory/memory-service';
 
 /**
  * POST /api/scenario/advance
@@ -21,7 +21,6 @@ export async function POST(request: NextRequest) {
 
     const supabase = await createServerClient();
     const scenarioService = new ScenarioService(supabase);
-    const memoryManager = new MemoryManager(supabase);
 
     // 시나리오 조회
     const scenario = await scenarioService.getScenario(scenarioId);
@@ -98,16 +97,12 @@ export async function POST(request: NextRequest) {
       // 첫 만남 시나리오 완료 처리
       if (scenario.scenarioType === 'first_meeting') {
         // 첫 만남 기억 저장
-        await memoryManager.saveMemory(user.id, personaId, {
-          type: 'first_meeting',
-          summary: `${scenario.title} - 첫 만남 시나리오 완료`,
-          details: {
-            scenarioId,
-            choices: progress.choicesMade,
-          },
-          emotionalWeight: 10,
-          affectionAtTime: affectionChange,
-        });
+        await memoryService.saveMemory(
+          personaId,
+          user.id,
+          `${scenario.title} - 첫 만남 시나리오 완료`,
+          'assistant'
+        );
 
         // 시나리오 완료 처리
         await scenarioService.completeScenario(user.id, personaId, scenarioId, {

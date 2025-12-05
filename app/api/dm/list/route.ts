@@ -71,9 +71,13 @@ export async function GET(request: NextRequest) {
           .limit(1)
           .single();
 
-        // 읽지 않은 메시지 수 - 현재 read 컬럼이 없으므로 0으로 설정
-        // TODO: read 컬럼 추가 후 구현 필요
-        const unreadCount = 0;
+        // 읽지 않은 메시지 수 조회
+        const { count: unreadCount } = await supabase
+          .from('conversation_messages')
+          .select('*', { count: 'exact', head: true })
+          .eq('session_id', session.id)
+          .eq('role', 'persona')
+          .eq('is_read', false);
 
         return {
           personaId,

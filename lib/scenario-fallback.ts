@@ -3,7 +3,7 @@
  * API 실패 시 사용하는 하드코딩된 시나리오
  */
 
-import type { ScenarioContent, ScenarioScene, ScenarioChoice } from '@/lib/ai-agent/scenario-service';
+import type { ScenarioContent, ScenarioScene, ScenarioChoice } from '@/lib/ai-agent/modules/scenario-service';
 
 // ============================================
 // Jun 첫 만남 시나리오 (새벽 3시의 편의점)

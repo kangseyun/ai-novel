@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthUser, unauthorized, badRequest, serverError } from '@/lib/auth';
 import { createServerClient } from '@/lib/supabase-server';
-import { ScenarioService } from '@/lib/ai-agent/scenario-service';
+import { ScenarioService } from '@/lib/ai-agent/modules/scenario-service';
 
 /**
  * GET /api/scenario

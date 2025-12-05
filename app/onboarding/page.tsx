@@ -59,7 +59,7 @@ function OnboardingContent() {
         setOnboardingCompleted();
 
         // 온보딩 완료 이벤트 (variant 포함)
-        analytics.trackOnboardingComplete('jun', variant);
+        analytics.trackOnboardingComplete('jun', variant || undefined);
       } catch (error) {
         console.error('Failed to complete onboarding:', error);
       }

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAuthUser, unauthorized, badRequest, serverError } from '@/lib/auth';
 
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
-const MODEL = 'google/gemini-2.0-flash-001';
+const MODEL = 'google/gemini-3-pro-preview';
 
 // POST /api/llm/generate-choices - 동적 선택지 생성
 export async function POST(request: NextRequest) {

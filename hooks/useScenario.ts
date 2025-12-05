@@ -6,7 +6,7 @@ import type {
   ScenarioScene,
   ScenarioChoice,
   UserScenarioProgress,
-} from '@/lib/ai-agent/scenario-service';
+} from '@/lib/ai-agent/modules/scenario-service';
 
 // ============================================
 // 타입 정의

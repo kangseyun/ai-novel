@@ -7,7 +7,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Check, Loader2 } from 'lucide-react';
 import { useUserPersonaStore } from '@/lib/stores/user-persona-store';
 import { useTranslations } from '@/lib/i18n';
-import { apiClient } from '@/lib/api-client';
 
 // ============================================
 // 타입 정의
@@ -52,10 +51,12 @@ export default function SuggestedFriends({
     const loadPersonas = async () => {
       try {
         setIsLoading(true);
-        const response = await apiClient.get<{ personas: Persona[] }>('/api/personas');
-        if (response.personas) {
+        const response = await fetch('/api/personas');
+        if (!response.ok) throw new Error('Failed to fetch personas');
+        const data: { personas: Persona[] } = await response.json();
+        if (data.personas) {
           // jun을 제외한 페르소나 (jun은 기본 해금)
-          const filtered = response.personas.filter(p => p.id !== 'jun');
+          const filtered = data.personas.filter(p => p.id !== 'jun');
           setPersonas(filtered);
         }
       } catch (error) {
@@ -72,10 +73,10 @@ export default function SuggestedFriends({
     router.push(`/profile/${personaId}`);
   };
 
-  // 팔로우하지 않은 페르소나만 필터링
-  const unfollowedPersonas = personas.filter(
-    p => !unlockedPersonas.includes(p.id)
-  );
+  // 팔로우하지 않은 페르소나만 필터링 (최대 5명)
+  const unfollowedPersonas = personas
+    .filter(p => !unlockedPersonas.includes(p.id))
+    .slice(0, 5);
 
   const handleFollowClick = (persona: Persona) => {
     setSelectedPersona(persona);

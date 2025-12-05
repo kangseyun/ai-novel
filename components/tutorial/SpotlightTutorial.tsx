@@ -27,10 +27,22 @@ export default function SpotlightTutorial() {
   const [isVisible, setIsVisible] = useState(false);
   const observerRef = useRef<MutationObserver | null>(null);
   const resizeObserverRef = useRef<ResizeObserver | null>(null);
+  // 하이라이트된 요소의 원래 스타일을 저장할 ref
+  const highlightedElementRef = useRef<{ el: HTMLElement; pos: string; z: string } | null>(null);
 
   const currentStep = getCurrentStep();
   const tutorial = activeTutorialId ? tutorials[activeTutorialId] : null;
   const totalSteps = tutorial?.steps.length || 0;
+
+  // 스타일 복구 함수
+  const clearHighlight = useCallback(() => {
+    if (highlightedElementRef.current) {
+      const { el, pos, z } = highlightedElementRef.current;
+      el.style.position = pos;
+      el.style.zIndex = z;
+      highlightedElementRef.current = null;
+    }
+  }, []);
 
   // 타겟 요소 위치 계산
   const updateTargetPosition = useCallback((step: TutorialStep | null) => {
@@ -57,21 +69,57 @@ export default function SpotlightTutorial() {
     });
   }, []);
 
-  // 스텝 변경 시 위치 업데이트
+  // 스텝 변경 시 위치 업데이트 및 하이라이트 처리
   useEffect(() => {
     if (!isActive()) {
       setIsVisible(false);
+      clearHighlight();
       return;
     }
 
     // 약간의 딜레이 후 표시 (DOM이 렌더링될 시간)
     const showTimer = setTimeout(() => {
       updateTargetPosition(currentStep);
+
+      // 스크롤 이동 및 z-index 하이라이트 처리
+      if (currentStep) {
+        const target = document.querySelector(currentStep.targetSelector) as HTMLElement;
+        if (target) {
+          // 1. 스크롤 자동 이동
+          target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+          // 2. z-index 조정 (클릭 가능하게 오버레이 위로 올리기)
+          // 이전 하이라이트 정리
+          clearHighlight();
+
+          // 현재 상태 백업
+          const originalPosition = target.style.position;
+          const originalZIndex = target.style.zIndex;
+          const computedStyle = window.getComputedStyle(target);
+
+          highlightedElementRef.current = {
+            el: target,
+            pos: originalPosition,
+            z: originalZIndex,
+          };
+
+          // position이 static이면 z-index가 적용되지 않으므로 relative로 변경
+          if (computedStyle.position === 'static') {
+            target.style.position = 'relative';
+          }
+          // 오버레이(z-[9999])보다 높게 설정
+          target.style.zIndex = '10000';
+        }
+      }
+
       setIsVisible(true);
     }, 100);
 
-    return () => clearTimeout(showTimer);
-  }, [currentStep, isActive, updateTargetPosition]);
+    return () => {
+      clearTimeout(showTimer);
+      clearHighlight();
+    };
+  }, [currentStep, isActive, updateTargetPosition, clearHighlight]);
 
   // 윈도우 리사이즈/스크롤 시 위치 업데이트
   useEffect(() => {
