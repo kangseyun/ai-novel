@@ -52,7 +52,8 @@ export async function POST(req: NextRequest) {
     // 6. Create Ad (Optional - if campaign/adset provided)
     let adId = null;
     if (campaignId && adSetId) {
-      adId = await metaClient.createAd(campaignId, adSetId, creativeId, creativeName);
+      // createAd takes (adGroupId, creativeId, name) - adSetId is the adGroup
+      adId = await metaClient.createAd(adSetId, creativeId, creativeName);
     }
 
     // 7. Save Execution Record to DB

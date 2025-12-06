@@ -1,4 +1,4 @@
-import { AdClient, AdPlatform, AdCampaignConfig, AdCreativeConfig } from '../core/types';
+import { AdClient, AdPlatform, AdCampaignConfig, AdCreativeConfig, AdInsights } from '../core/types';
 
 interface GoogleAdsConfig {
   clientId: string;
@@ -61,5 +61,22 @@ export class GoogleAdsClient implements AdClient {
     const adData = JSON.parse(creativeId);
     console.log('[Google Ads] Creating AdGroupAd in', adGroupId, 'with data', adData);
     return 'resourceNames/customers/123/adGroupAds/202';
+  }
+
+  async getAdInsights(adId: string): Promise<AdInsights> {
+    // Google Ads uses GoogleAdsService.SearchStream for reporting
+    // Mocking data for prototype
+    console.log('[Google Ads] Getting insights for:', adId);
+    return {
+      adId,
+      platform: 'google',
+      impressions: Math.floor(Math.random() * 5000),
+      clicks: Math.floor(Math.random() * 200),
+      spend: Math.floor(Math.random() * 50000),
+      ctr: Math.random() * 2,
+      cpc: Math.floor(Math.random() * 300),
+      dateStart: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      dateStop: new Date().toISOString().split('T')[0],
+    };
   }
 }
