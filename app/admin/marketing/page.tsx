@@ -19,7 +19,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { createClient } from '@/lib/supabase-browser';
+import { supabase } from '@/lib/supabase';
 import {
   Dialog,
   DialogContent,
@@ -136,7 +136,6 @@ export default function MarketingPage() {
   async function loadPersonas() {
     try {
       // persona_core 테이블에서 직접 조회 (어드민용)
-      const supabase = createClient();
       const { data, error } = await supabase
         .from('persona_core')
         .select('id, name, full_name, role, profile_image_url, status')

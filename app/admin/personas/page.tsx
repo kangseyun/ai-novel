@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { createClient } from '@/lib/supabase-browser';
+import { supabase } from '@/lib/supabase';
 import { useImageGenerationQueue } from '@/hooks/useImageGenerationQueue';
 import {
   Plus, Edit, Trash2, Eye, Loader2, Play, Settings,
@@ -97,8 +97,6 @@ export default function PersonasListPage() {
   const [newTemplateName, setNewTemplateName] = useState('');
   const [newTemplatePrompt, setNewTemplatePrompt] = useState('');
   const [newTemplateCategory, setNewTemplateCategory] = useState('general');
-
-  const supabase = createClient();
 
   useEffect(() => {
     loadPersonas();

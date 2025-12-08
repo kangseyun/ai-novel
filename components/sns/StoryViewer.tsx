@@ -10,13 +10,22 @@ import {
   ChevronRight,
   Heart,
   Send,
-  MoreHorizontal,
-  Eye,
   EyeOff,
-  Lock,
   MessageCircle,
 } from 'lucide-react';
-import { Story } from '@/lib/hacked-sns-data';
+
+interface Story {
+  id: string;
+  profileId: string;
+  type: 'image' | 'video' | 'text';
+  content: string;
+  caption?: string;
+  timestamp: string;
+  isViewed: boolean;
+  isSecret: boolean;
+  requiredHackLevel: number;
+  linkedDMScenario?: string;
+}
 
 interface StoryViewerProps {
   stories: Story[];

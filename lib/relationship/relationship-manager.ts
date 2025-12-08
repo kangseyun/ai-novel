@@ -421,10 +421,10 @@ export class RelationshipManager {
 
     const personaIds = relationships.map(r => r.persona_id);
 
-    // 2. 페르소나 코어 데이터
+    // 2. 페르소나 데이터 (personas 뷰에서 avatar_url 포함)
     const { data: cores } = await this.supabase
-      .from('persona_core')
-      .select('id, name, full_name, role, appearance')
+      .from('personas')
+      .select('id, name, full_name, role, avatar_url, appearance')
       .in('id', personaIds);
 
     const coreMap = (cores || []).reduce((acc, c) => {
@@ -476,7 +476,7 @@ export class RelationshipManager {
         name: core?.name || rel.persona_id,
         fullName: core?.full_name || '',
         role: core?.role || '',
-        image: core?.appearance?.profile_image || `https://i.pravatar.cc/400?u=${rel.persona_id}`,
+        image: core?.avatar_url || core?.appearance?.profile_image || `/images/personas/${rel.persona_id}/profile.png`,
         affection: rel.affection || 0,
         trust: rel.trust_level || 0,
         intimacy: rel.intimacy_level || 0,
@@ -516,9 +516,9 @@ export class RelationshipManager {
       return { exists: false };
     }
 
-    // 2. 페르소나 코어
+    // 2. 페르소나 데이터 (personas 뷰에서 avatar_url 포함)
     const { data: core } = await this.supabase
-      .from('persona_core')
+      .from('personas')
       .select('*')
       .eq('id', personaId)
       .single();
@@ -546,7 +546,7 @@ export class RelationshipManager {
         name: core?.name || personaId,
         fullName: core?.full_name || '',
         role: core?.role || '',
-        image: core?.appearance?.profile_image || `https://i.pravatar.cc/400?u=${personaId}`,
+        image: core?.avatar_url || core?.appearance?.profile_image || `/images/personas/${personaId}/profile.png`,
       },
       relationship: {
         stage: relationship.stage,

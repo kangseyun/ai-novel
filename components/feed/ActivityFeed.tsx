@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -8,8 +8,6 @@ import {
   MessageCircle,
   UserPlus,
   Bell,
-  ChevronRight,
-  Sparkles,
   Clock,
   Zap,
   Star,
@@ -17,7 +15,6 @@ import {
   AlertCircle,
 } from 'lucide-react';
 import { useFeedStore } from '@/lib/stores/feed-store';
-import { JUN_PROFILE } from '@/lib/hacked-sns-data';
 import { FeedEvent } from '@/lib/user-feed-system';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import { ActivityListSkeleton } from '@/components/ui/Skeleton';
@@ -37,16 +34,15 @@ const EVENT_ICONS = {
   follow: UserPlus,
 };
 
-const PERSONA_IMAGES: Record<string, string> = {
-  jun: JUN_PROFILE.profileImage,
-};
-
-const PERSONA_NAMES: Record<string, string> = {
-  jun: JUN_PROFILE.displayName,
-};
+interface PersonaInfo {
+  id: string;
+  display_name: string;
+  avatar_url: string;
+}
 
 export default function ActivityFeed({ onOpenDM }: ActivityFeedProps) {
   const [filter, setFilter] = useState<FilterType>('all');
+  const [personaCache, setPersonaCache] = useState<Record<string, PersonaInfo>>({});
   const events = useFeedStore(state => state.events);
   const markEventAsRead = useFeedStore(state => state.markEventAsRead);
   const markAllEventsAsRead = useFeedStore(state => state.markAllEventsAsRead);
@@ -57,6 +53,7 @@ export default function ActivityFeed({ onOpenDM }: ActivityFeedProps) {
   const isAuthenticated = useAuthStore(state => state.isAuthenticated);
   const tr = useTranslations();
   const locale = useLocale();
+  const personaFetchedRef = useRef<Set<string>>(new Set());
 
   // 로그인 상태면 서버에서 이벤트 로드
   useEffect(() => {
@@ -66,6 +63,40 @@ export default function ActivityFeed({ onOpenDM }: ActivityFeedProps) {
       });
     }
   }, [isAuthenticated, loadEventsFromServer]);
+
+  // 이벤트에 있는 페르소나 정보 로드
+  useEffect(() => {
+    const personaIds = [...new Set(events.map(e => e.personaId))];
+    personaIds.forEach(async (personaId) => {
+      if (personaFetchedRef.current.has(personaId) || personaCache[personaId]) return;
+      personaFetchedRef.current.add(personaId);
+
+      try {
+        const res = await fetch(`/api/personas/${personaId}`);
+        if (res.ok) {
+          const data = await res.json();
+          setPersonaCache(prev => ({
+            ...prev,
+            [personaId]: {
+              id: data.persona.id,
+              display_name: data.persona.display_name,
+              avatar_url: data.persona.avatar_url,
+            }
+          }));
+        }
+      } catch (err) {
+        console.error('[ActivityFeed] Failed to load persona:', personaId, err);
+      }
+    });
+  }, [events, personaCache]);
+
+  const getPersonaImage = (personaId: string): string => {
+    return personaCache[personaId]?.avatar_url || '/default-avatar.png';
+  };
+
+  const getPersonaName = (personaId: string, fallback: string): string => {
+    return personaCache[personaId]?.display_name || fallback;
+  };
 
   // 필터링된 이벤트
   const filteredEvents = events.filter(event => {
@@ -146,7 +177,7 @@ export default function ActivityFeed({ onOpenDM }: ActivityFeedProps) {
             isNew ? 'ring-2 ring-blue-500/50' : 'border border-white/20'
           }`}>
             <Image
-              src={PERSONA_IMAGES[event.personaId] || '/default-avatar.png'}
+              src={getPersonaImage(event.personaId)}
               alt={event.title}
               width={48}
               height={48}
@@ -174,7 +205,7 @@ export default function ActivityFeed({ onOpenDM }: ActivityFeedProps) {
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-0.5">
             <span className="font-semibold text-white">
-              {PERSONA_NAMES[event.personaId] || event.title}
+              {getPersonaName(event.personaId, event.title)}
             </span>
             <span className="text-xs text-white/40">
               {formatTime(event.timestamp)}

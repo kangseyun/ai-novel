@@ -277,7 +277,7 @@ export default function PersonaProfilePage() {
           {/* 액션 버튼 */}
           <div className="flex gap-2 mt-6">
             <button 
-              onClick={() => router.push(`/dm?persona=${personaId}`)}
+              onClick={() => router.push(`/dm/${personaId}`)}
               className={`flex-1 py-2.5 rounded-lg text-sm font-semibold transition-all ${
                 activeTab === 'private'
                   ? 'bg-red-900/20 border border-red-500/50 text-red-400 hover:bg-red-900/40'

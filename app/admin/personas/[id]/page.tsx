@@ -2,7 +2,7 @@
 
 import { useEffect, useState, use } from 'react';
 import { useRouter } from 'next/navigation';
-import { createClient } from '@/lib/supabase-browser';
+import { supabase } from '@/lib/supabase';
 import { useImageGenerationQueue, useImageHistory } from '@/hooks/useImageGenerationQueue';
 import { Save, ArrowLeft, Loader2, Plus, Trash2, ChevronDown, Sparkles, RefreshCw, Image as ImageIcon, MessageSquare, Clock, History, Check } from 'lucide-react';
 import Link from 'next/link';
@@ -201,7 +201,6 @@ export default function PersonaEditPage({ params }: { params: Promise<{ id: stri
   const [showPromptEditor, setShowPromptEditor] = useState(false);
 
   const router = useRouter();
-  const supabase = createClient();
 
   useEffect(() => {
     if (!isNew) {

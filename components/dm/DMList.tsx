@@ -5,7 +5,6 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { MessageCircle } from 'lucide-react';
-import { JUN_PROFILE } from '@/lib/hacked-sns-data';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import { apiClient } from '@/lib/api-client';
 import SuggestedFriends from './SuggestedFriends';
@@ -14,7 +13,7 @@ import { useTranslations, useLocale, t } from '@/lib/i18n';
 import { toast } from 'sonner';
 
 interface DMListProps {
-  onOpenChat: (personaId: string) => void;
+  onOpenChat?: (personaId: string) => void; // Optional - 기본은 URL 라우팅 사용
 }
 
 interface DMConversation {
@@ -29,10 +28,25 @@ interface DMConversation {
   isOnline: boolean;
 }
 
-export default function DMList({ onOpenChat }: DMListProps) {
+interface PersonaProfile {
+  id: string;
+  name: string;
+  display_name: string;
+  bio: string;
+  avatar_url: string;
+  is_verified: boolean;
+}
+
+export default function DMList({ onOpenChat }: DMListProps = {}) {
   const router = useRouter();
+
+  // 채팅 열기 핸들러 - URL 라우팅 사용
+  const handleOpenChat = (personaId: string) => {
+    router.push(`/dm/${personaId}`);
+  };
   const [conversations, setConversations] = useState<DMConversation[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [junProfile, setJunProfile] = useState<PersonaProfile | null>(null);
   const isAuthenticated = useAuthStore(state => state.isAuthenticated);
   const hasFetched = useRef(false);
   const tr = useTranslations();
@@ -43,6 +57,7 @@ export default function DMList({ onOpenChat }: DMListProps) {
     if (isAuthenticated && !hasFetched.current) {
       hasFetched.current = true;
       loadDMList();
+      loadJunProfile();
     } else if (!isAuthenticated) {
       setIsLoading(false);
     }
@@ -59,6 +74,18 @@ export default function DMList({ onOpenChat }: DMListProps) {
       setConversations([]);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const loadJunProfile = async () => {
+    try {
+      const res = await fetch('/api/personas/jun');
+      if (res.ok) {
+        const data = await res.json();
+        setJunProfile(data.persona);
+      }
+    } catch (error) {
+      console.error('[DMList] Failed to load Jun profile:', error);
     }
   };
 
@@ -123,7 +150,7 @@ export default function DMList({ onOpenChat }: DMListProps) {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: idx * 0.05 }}
-              onClick={() => onOpenChat(convo.personaId)}
+              onClick={() => handleOpenChat(convo.personaId)}
               className="w-full flex items-center gap-3 p-4 hover:bg-white/5 transition text-left"
             >
               {/* Profile Image - 클릭 시 프로필 이동 */}
@@ -183,7 +210,7 @@ export default function DMList({ onOpenChat }: DMListProps) {
       </div>
 
       {/* 대화가 없을 때 Jun 시작 카드 */}
-      {conversations.length === 0 && (
+      {conversations.length === 0 && junProfile && (
         <div className="px-4 pt-6">
           <h2 className="text-sm font-medium text-white/50 mb-3">{tr.dm.startChat}</h2>
           <div className="flex items-center gap-3 p-3 bg-white/5 rounded-xl">
@@ -192,8 +219,8 @@ export default function DMList({ onOpenChat }: DMListProps) {
               onClick={() => router.push('/profile/jun')}
             >
               <Image
-                src={JUN_PROFILE.profileImage}
-                alt={JUN_PROFILE.displayName}
+                src={junProfile.avatar_url}
+                alt={junProfile.display_name}
                 width={48}
                 height={48}
                 className="object-cover"
@@ -205,16 +232,18 @@ export default function DMList({ onOpenChat }: DMListProps) {
                   className="font-medium cursor-pointer hover:underline"
                   onClick={() => router.push('/profile/jun')}
                 >
-                  {JUN_PROFILE.displayName}
+                  {junProfile.display_name}
                 </span>
-                <div className="w-4 h-4 bg-blue-500 rounded-full flex items-center justify-center">
-                  <span className="text-[8px] text-white">✓</span>
-                </div>
+                {junProfile.is_verified && (
+                  <div className="w-4 h-4 bg-blue-500 rounded-full flex items-center justify-center">
+                    <span className="text-[8px] text-white">✓</span>
+                  </div>
+                )}
               </div>
-              <p className="text-sm text-white/50 line-clamp-1">{JUN_PROFILE.bio}</p>
+              <p className="text-sm text-white/50 line-clamp-1">{junProfile.bio}</p>
             </div>
             <button
-              onClick={() => onOpenChat('jun')}
+              onClick={() => handleOpenChat('jun')}
               className="px-3 py-1.5 bg-white/10 rounded-lg text-sm hover:bg-white/15 transition"
             >
               {tr.dm.chat}
@@ -230,7 +259,7 @@ export default function DMList({ onOpenChat }: DMListProps) {
           // 목록 새로고침
           loadDMList();
         }}
-        onStartChat={onOpenChat}
+        onStartChat={handleOpenChat}
       />
     </div>
   );

@@ -91,9 +91,81 @@ export async function POST(request: NextRequest) {
 async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
   const userId = session.metadata?.user_id;
   const tokenAmount = session.metadata?.token_amount;
+  const isWelcomeOffer = session.metadata?.is_welcome_offer === 'true';
+  const bonusCredits = session.metadata?.bonus_credits;
 
   if (!userId) {
     console.error('No user_id in session metadata');
+    return;
+  }
+
+  // 웰컴 오퍼 구매인 경우
+  if (isWelcomeOffer && bonusCredits) {
+    const credits = parseInt(bonusCredits);
+
+    // 보너스 크레딧 즉시 지급
+    const { error: creditError } = await getSupabaseAdmin().rpc('add_tokens', {
+      p_user_id: userId,
+      p_amount: credits,
+    });
+
+    if (creditError) {
+      console.error('Failed to add welcome offer bonus credits:', creditError);
+    } else {
+      console.log(`Added ${credits} welcome offer bonus credits to user ${userId}`);
+    }
+
+    // 웰컴 오퍼 구매 상태 업데이트
+    const { error: userError } = await getSupabaseAdmin()
+      .from('users')
+      .update({
+        welcome_offer_claimed: true,
+        welcome_offer_claimed_at: new Date().toISOString(),
+      })
+      .eq('id', userId);
+
+    if (userError) {
+      console.error('Failed to update welcome offer status:', userError);
+    }
+
+    // 웰컴 오퍼 구매 기록 저장
+    const { data: userData } = await getSupabaseAdmin()
+      .from('users')
+      .select('created_at')
+      .eq('id', userId)
+      .single();
+
+    const offerExpiresAt = userData?.created_at
+      ? new Date(new Date(userData.created_at).getTime() + 24 * 60 * 60 * 1000).toISOString()
+      : new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+
+    await getSupabaseAdmin().from('welcome_offer_purchases').insert({
+      user_id: userId,
+      plan_type: session.metadata?.plan_id || 'monthly',
+      original_price: session.metadata?.plan_id === 'yearly' ? 9999 : 999,
+      paid_price: session.amount_total || 0,
+      discount_percent: 70,
+      bonus_credits: credits,
+      stripe_subscription_id: session.subscription as string || null,
+      offer_expires_at: offerExpiresAt,
+    });
+
+    // 서버사이드 애널리틱스
+    const price = session.amount_total ? session.amount_total / 100 : 0;
+    await trackPurchaseServer({
+      userId,
+      email: session.customer_email || undefined,
+      value: price,
+      currency: (session.currency || 'usd').toUpperCase(),
+      transactionId: session.id,
+      items: [{
+        id: `welcome_offer_${session.metadata?.plan_id}`,
+        name: `Welcome Offer ${session.metadata?.plan_id === 'yearly' ? 'Yearly' : 'Monthly'}`,
+        price,
+      }],
+    });
+
+    console.log(`Welcome offer completed for user ${userId}`);
     return;
   }
 

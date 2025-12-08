@@ -18,8 +18,18 @@ import {
   Play,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { SNSProfile } from '@/lib/hacked-sns-data';
 import { useFeedStore } from '@/lib/stores/feed-store';
+
+interface SNSProfile {
+  id: string;
+  username: string;
+  displayName: string;
+  bio: string;
+  profileImage: string;
+  isVerified: boolean;
+  followers: string;
+  following: number;
+}
 import { useAuthStore } from '@/lib/stores/auth-store';
 import { apiClient } from '@/lib/api-client';
 import { Coins } from 'lucide-react';
@@ -31,6 +41,7 @@ interface DMChatProps {
   profile: SNSProfile;
   onClose: () => void;
   onGainXP: (amount: number) => void;
+  isPage?: boolean; // true면 페이지 모드 (애니메이션 없음)
 }
 
 interface ChatMessage {
@@ -56,6 +67,7 @@ export default function DMChat({
   profile,
   onClose,
   onGainXP,
+  isPage = false,
 }: DMChatProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isTyping, setIsTyping] = useState(false);
@@ -409,12 +421,15 @@ export default function DMChat({
 
   // Loading state
   if (isLoading) {
+    const loadingClass = isPage
+      ? "min-h-screen bg-black flex items-center justify-center"
+      : "fixed inset-0 z-50 bg-black flex items-center justify-center";
     return (
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 z-50 bg-black flex items-center justify-center"
+        className={loadingClass}
       >
         <div className="text-center">
           <Loader2 className="w-8 h-8 text-white animate-spin mx-auto mb-4" />
@@ -426,12 +441,15 @@ export default function DMChat({
 
   // Error state
   if (error && messages.length === 0) {
+    const errorClass = isPage
+      ? "min-h-screen bg-black flex items-center justify-center"
+      : "fixed inset-0 z-50 bg-black flex items-center justify-center";
     return (
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 z-50 bg-black flex items-center justify-center"
+        className={errorClass}
       >
         <div className="text-center px-6">
           <p className="text-red-400 mb-4">{error}</p>
@@ -449,20 +467,25 @@ export default function DMChat({
     );
   }
 
+  // 페이지 모드면 애니메이션 없이, 모달 모드면 슬라이드 애니메이션
+  const containerClass = isPage
+    ? "h-screen bg-black flex justify-center"
+    : "fixed inset-0 z-50 bg-black flex justify-center";
+
   return (
     <motion.div
-      initial={{ x: '100%' }}
-      animate={{ x: 0 }}
-      exit={{ x: '100%' }}
-      transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-      className="fixed inset-0 z-50 bg-black flex justify-center"
+      initial={isPage ? false : { x: '100%' }}
+      animate={isPage ? {} : { x: 0 }}
+      exit={isPage ? {} : { x: '100%' }}
+      transition={isPage ? {} : { type: 'spring', damping: 30, stiffness: 300 }}
+      className={containerClass}
     >
-      <div className="w-full max-w-[430px] min-h-screen relative bg-black flex flex-col">
-        {/* Header */}
-        <div className="flex items-center justify-between px-4 py-3 border-b border-white/10 bg-black">
+      <div className="w-full max-w-[430px] h-full relative bg-black flex flex-col">
+        {/* Header - 상단 고정 */}
+        <div className="sticky top-0 z-10 flex items-center justify-between px-4 py-3 border-b border-white/10 bg-black text-white">
           <div className="flex items-center gap-3">
-            <button onClick={onClose} className="p-1">
-              <ChevronLeft className="w-6 h-6" />
+            <button onClick={onClose} className="p-1 text-white">
+              <ChevronLeft className="w-6 h-6 text-white" />
             </button>
             <div
               className="flex items-center gap-3 cursor-pointer"
@@ -482,7 +505,7 @@ export default function DMChat({
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <span className="font-medium text-sm hover:underline">{profile.displayName}</span>
+                  <span className="font-medium text-sm text-white hover:underline">{profile.displayName}</span>
                   {profile.isVerified && (
                     <div className="w-4 h-4 bg-blue-500 rounded-full flex items-center justify-center">
                       <span className="text-[8px] text-white">✓</span>
@@ -600,8 +623,8 @@ export default function DMChat({
           <div ref={messagesEndRef} />
         </div>
 
-        {/* Input - DM은 항상 텍스트 입력 방식 */}
-        <div className="px-4 py-3 border-t border-white/10 bg-black">
+        {/* Input - 하단 고정 */}
+        <div className="sticky bottom-0 z-10 px-4 py-3 border-t border-white/10 bg-black">
           <div className="flex items-center gap-3">
             <button className="text-white/50 hover:text-white">
               <ImageIcon className="w-6 h-6" />
@@ -614,7 +637,7 @@ export default function DMChat({
                 onKeyPress={(e) => e.key === 'Enter' && !isTyping && handleSendMessage()}
                 placeholder={tr.dm.sendPlaceholder}
                 disabled={isTyping}
-                className="w-full px-4 py-2 bg-white/10 border border-white/10 rounded-full text-sm focus:outline-none focus:border-white/30 disabled:opacity-50"
+                className="w-full px-4 py-2 bg-white/10 border border-white/10 rounded-full text-sm text-white placeholder:text-white/40 focus:outline-none focus:border-white/30 disabled:opacity-50"
               />
             </div>
             {inputText ? (

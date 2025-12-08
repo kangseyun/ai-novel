@@ -77,6 +77,87 @@ export interface UserScenarioProgress {
   completedAt: Date | null;
 }
 
+// 보상 관련 타입
+export interface ScenarioReward {
+  id: string;
+  scenarioId: string;
+  rewardTypeId: string;
+  conditionType: 'completion' | 'first_completion' | 'choice_based' | 'perfect_run' | 'speed_run';
+  requiredChoiceIds: string[];
+  amount: number;
+  metadata: Record<string, unknown>;
+  displayOrder: number;
+  isActive: boolean;
+}
+
+export interface GrantedReward {
+  rewardId: string;
+  type: string;
+  name: string;
+  amount: number;
+  category: string;
+}
+
+// 메트릭스 관련 타입
+export interface ScenarioStats {
+  overview: {
+    totalSessions: number;
+    uniqueUsers: number;
+    completedSessions: number;
+    abandonedSessions: number;
+    completionRate: number;
+    avgProgressPercent: number;
+    avgCompletionTimeSeconds: number;
+    totalChoicesMade: number;
+    premiumChoicesMade: number;
+    totalAffectionGained: number;
+  };
+  dailyStats: Array<{
+    date: string;
+    sessions: number;
+    completed: number;
+    abandoned: number;
+    completionRate: number;
+  }>;
+  choiceDistribution: Array<{
+    sceneId: string;
+    choiceId: string;
+    choiceText: string;
+    selectionCount: number;
+    isPremium: boolean;
+    selectionPercentage: number;
+  }>;
+  dropOffPoints: Array<{
+    sceneId: string;
+    sceneIndex: number;
+    dropOffCount: number;
+    dropOffRate: number;
+  }>;
+}
+
+export interface ScenarioSession {
+  id: string;
+  userId: string;
+  scenarioId: string;
+  personaId: string | null;
+  status: 'started' | 'in_progress' | 'completed' | 'abandoned';
+  startedAt: Date;
+  lastActivityAt: Date;
+  completedAt: Date | null;
+  currentSceneId: string | null;
+  currentSceneIndex: number;
+  totalScenes: number | null;
+  choicesMade: Array<{
+    sceneId: string;
+    choiceId: string;
+    choiceText?: string;
+    isPremium?: boolean;
+    affectionChange?: number;
+    timestamp: string;
+  }>;
+  durationSeconds: number | null;
+}
+
 // ============================================
 // Scenario Service
 // ============================================
@@ -391,6 +472,530 @@ export class ScenarioService {
       }, {
         onConflict: 'user_id,persona_id',
       });
+
+    // 보상 지급은 별도로 호출 (grantScenarioRewards)
+  }
+
+  // ============================================
+  // 보상 시스템
+  // ============================================
+
+  /**
+   * 시나리오 완료 보상 지급
+   */
+  async grantScenarioRewards(
+    userId: string,
+    scenarioId: string,
+    choicesMade: string[],
+    completionTimeSeconds?: number
+  ): Promise<GrantedReward[]> {
+    try {
+      const { data, error } = await this.supabase.rpc('grant_scenario_reward', {
+        p_user_id: userId,
+        p_scenario_id: scenarioId,
+        p_choices_made: JSON.stringify(choicesMade),
+        p_completion_time_seconds: completionTimeSeconds,
+      });
+
+      if (error) {
+        console.error('Error granting rewards:', error);
+        return [];
+      }
+
+      // JSONB 배열을 파싱
+      const rewards = Array.isArray(data) ? data : [];
+      return rewards.map((r: Record<string, unknown>) => ({
+        rewardId: r.reward_id as string,
+        type: r.type as string,
+        name: r.name as string,
+        amount: r.amount as number,
+        category: r.category as string,
+      }));
+    } catch (err) {
+      console.error('Error in grantScenarioRewards:', err);
+      return [];
+    }
+  }
+
+  /**
+   * 시나리오의 보상 목록 조회
+   */
+  async getScenarioRewards(scenarioId: string): Promise<ScenarioReward[]> {
+    const { data, error } = await this.supabase
+      .from('scenario_rewards')
+      .select(`
+        *,
+        reward_types (
+          id,
+          name,
+          category,
+          icon
+        )
+      `)
+      .eq('scenario_id', scenarioId)
+      .eq('is_active', true)
+      .order('display_order');
+
+    if (error || !data) {
+      return [];
+    }
+
+    return data.map(r => ({
+      id: r.id,
+      scenarioId: r.scenario_id,
+      rewardTypeId: r.reward_type_id,
+      conditionType: r.condition_type,
+      requiredChoiceIds: r.required_choice_ids || [],
+      amount: r.amount,
+      metadata: r.metadata || {},
+      displayOrder: r.display_order,
+      isActive: r.is_active,
+    }));
+  }
+
+  /**
+   * 유저 잔액 조회
+   */
+  async getUserBalance(userId: string, currencyType: string): Promise<number> {
+    const { data } = await this.supabase
+      .from('user_balances')
+      .select('balance')
+      .eq('user_id', userId)
+      .eq('currency_type', currencyType)
+      .single();
+
+    return data?.balance || 0;
+  }
+
+  /**
+   * 유저의 모든 잔액 조회
+   */
+  async getUserBalances(userId: string): Promise<Record<string, number>> {
+    const { data } = await this.supabase
+      .from('user_balances')
+      .select('currency_type, balance')
+      .eq('user_id', userId);
+
+    const balances: Record<string, number> = {};
+    (data || []).forEach((b: { currency_type: string; balance: number }) => {
+      balances[b.currency_type] = b.balance;
+    });
+    return balances;
+  }
+
+  /**
+   * 유저의 시나리오 보상 수령 기록 조회
+   */
+  async getUserRewardClaims(userId: string, scenarioId?: string): Promise<{
+    scenarioId: string;
+    rewardTypeId: string;
+    amount: number;
+    claimedAt: Date;
+  }[]> {
+    let query = this.supabase
+      .from('user_reward_claims')
+      .select('scenario_id, reward_type_id, amount, claimed_at')
+      .eq('user_id', userId);
+
+    if (scenarioId) {
+      query = query.eq('scenario_id', scenarioId);
+    }
+
+    const { data } = await query.order('claimed_at', { ascending: false });
+
+    return (data || []).map((c: Record<string, unknown>) => ({
+      scenarioId: c.scenario_id as string,
+      rewardTypeId: c.reward_type_id as string,
+      amount: c.amount as number,
+      claimedAt: new Date(c.claimed_at as string),
+    }));
+  }
+
+  // ============================================
+  // 메트릭스 시스템
+  // ============================================
+
+  /**
+   * 시나리오 세션 시작
+   */
+  async startSession(
+    userId: string,
+    scenarioId: string,
+    personaId?: string,
+    totalScenes?: number,
+    userAgent?: string,
+    platform?: string
+  ): Promise<string> {
+    try {
+      const { data, error } = await this.supabase.rpc('start_scenario_session', {
+        p_user_id: userId,
+        p_scenario_id: scenarioId,
+        p_persona_id: personaId || null,
+        p_total_scenes: totalScenes || null,
+        p_user_agent: userAgent || null,
+        p_platform: platform || null,
+      });
+
+      if (error) {
+        console.error('Error starting session:', error);
+        throw error;
+      }
+
+      return data as string;
+    } catch (err) {
+      console.error('Error in startSession:', err);
+      throw err;
+    }
+  }
+
+  /**
+   * 씬 진입 기록
+   */
+  async recordSceneView(
+    sessionId: string,
+    sceneId: string,
+    sceneIndex: number,
+    timeSpentMs: number = 0
+  ): Promise<void> {
+    try {
+      const { error } = await this.supabase.rpc('record_scene_view', {
+        p_session_id: sessionId,
+        p_scene_id: sceneId,
+        p_scene_index: sceneIndex,
+        p_time_spent_ms: timeSpentMs,
+      });
+
+      if (error) {
+        console.error('Error recording scene view:', error);
+      }
+    } catch (err) {
+      console.error('Error in recordSceneView:', err);
+    }
+  }
+
+  /**
+   * 선택지 기록
+   */
+  async recordChoiceMade(
+    sessionId: string,
+    sceneId: string,
+    choiceId: string,
+    choiceText?: string,
+    isPremium: boolean = false,
+    affectionChange: number = 0
+  ): Promise<void> {
+    try {
+      const { error } = await this.supabase.rpc('record_choice_made', {
+        p_session_id: sessionId,
+        p_scene_id: sceneId,
+        p_choice_id: choiceId,
+        p_choice_text: choiceText || null,
+        p_is_premium: isPremium,
+        p_affection_change: affectionChange,
+      });
+
+      if (error) {
+        console.error('Error recording choice:', error);
+      }
+    } catch (err) {
+      console.error('Error in recordChoiceMade:', err);
+    }
+  }
+
+  /**
+   * 세션 완료 처리
+   */
+  async completeSession(sessionId: string): Promise<void> {
+    try {
+      const { error } = await this.supabase.rpc('complete_scenario_session', {
+        p_session_id: sessionId,
+      });
+
+      if (error) {
+        console.error('Error completing session:', error);
+      }
+    } catch (err) {
+      console.error('Error in completeSession:', err);
+    }
+  }
+
+  /**
+   * 세션 이탈 처리
+   */
+  async abandonSession(sessionId: string): Promise<void> {
+    try {
+      const { error } = await this.supabase.rpc('abandon_scenario_session', {
+        p_session_id: sessionId,
+      });
+
+      if (error) {
+        console.error('Error abandoning session:', error);
+      }
+    } catch (err) {
+      console.error('Error in abandonSession:', err);
+    }
+  }
+
+  /**
+   * 시나리오 통계 조회
+   */
+  async getScenarioStats(scenarioId: string, days: number = 30): Promise<ScenarioStats | null> {
+    try {
+      const { data, error } = await this.supabase.rpc('get_scenario_stats', {
+        p_scenario_id: scenarioId,
+        p_days: days,
+      });
+
+      if (error) {
+        console.error('Error getting scenario stats:', error);
+        return null;
+      }
+
+      const stats = data as Record<string, unknown>;
+
+      // snake_case를 camelCase로 변환
+      const overview = stats.overview as Record<string, unknown>;
+      const dailyStats = (stats.daily_stats || []) as Array<Record<string, unknown>>;
+      const choiceDistribution = (stats.choice_distribution || []) as Array<Record<string, unknown>>;
+      const dropOffPoints = (stats.drop_off_points || []) as Array<Record<string, unknown>>;
+
+      return {
+        overview: {
+          totalSessions: (overview?.total_sessions as number) || 0,
+          uniqueUsers: (overview?.unique_users as number) || 0,
+          completedSessions: (overview?.completed_sessions as number) || 0,
+          abandonedSessions: (overview?.abandoned_sessions as number) || 0,
+          completionRate: (overview?.completion_rate as number) || 0,
+          avgProgressPercent: (overview?.avg_progress_percent as number) || 0,
+          avgCompletionTimeSeconds: (overview?.avg_completion_time_seconds as number) || 0,
+          totalChoicesMade: (overview?.total_choices_made as number) || 0,
+          premiumChoicesMade: (overview?.premium_choices_made as number) || 0,
+          totalAffectionGained: (overview?.total_affection_gained as number) || 0,
+        },
+        dailyStats: dailyStats.map((d) => ({
+          date: d.date as string,
+          sessions: d.sessions as number,
+          completed: d.completed as number,
+          abandoned: d.abandoned as number,
+          completionRate: d.completion_rate as number,
+        })),
+        choiceDistribution: choiceDistribution.map((c) => ({
+          sceneId: c.scene_id as string,
+          choiceId: c.choice_id as string,
+          choiceText: c.choice_text as string,
+          selectionCount: c.selection_count as number,
+          isPremium: c.is_premium as boolean,
+          selectionPercentage: c.selection_percentage as number,
+        })),
+        dropOffPoints: dropOffPoints.map((d) => ({
+          sceneId: d.scene_id as string,
+          sceneIndex: d.scene_index as number,
+          dropOffCount: d.drop_off_count as number,
+          dropOffRate: d.drop_off_rate as number,
+        })),
+      };
+    } catch (err) {
+      console.error('Error in getScenarioStats:', err);
+      return null;
+    }
+  }
+
+  /**
+   * 시나리오 세션 조회
+   */
+  async getSession(sessionId: string): Promise<ScenarioSession | null> {
+    const { data, error } = await this.supabase
+      .from('scenario_sessions')
+      .select('*')
+      .eq('id', sessionId)
+      .single();
+
+    if (error || !data) {
+      return null;
+    }
+
+    return this.mapSession(data);
+  }
+
+  /**
+   * 유저의 시나리오 세션 목록 조회
+   */
+  async getUserSessions(
+    userId: string,
+    scenarioId?: string,
+    status?: ScenarioSession['status'],
+    limit: number = 20
+  ): Promise<ScenarioSession[]> {
+    let query = this.supabase
+      .from('scenario_sessions')
+      .select('*')
+      .eq('user_id', userId)
+      .order('started_at', { ascending: false })
+      .limit(limit);
+
+    if (scenarioId) {
+      query = query.eq('scenario_id', scenarioId);
+    }
+
+    if (status) {
+      query = query.eq('status', status);
+    }
+
+    const { data, error } = await query;
+
+    if (error || !data) {
+      return [];
+    }
+
+    return data.map(this.mapSession);
+  }
+
+  /**
+   * 유저의 시나리오 진행 상태 조회 (메트릭스용)
+   */
+  async getUserScenarioMetrics(userId: string, scenarioId: string): Promise<{
+    isCompleted: boolean;
+    completionCount: number;
+    bestProgressPercent: number;
+    firstStartedAt: Date | null;
+    firstCompletedAt: Date | null;
+    lastPlayedAt: Date | null;
+    totalPlayTimeSeconds: number;
+    lastChoicesMade: Array<{ sceneId: string; choiceId: string }>;
+    rewardsClaimed: Array<{ rewardId: string; amount: number }>;
+  } | null> {
+    const { data, error } = await this.supabase
+      .from('user_scenario_progress')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('scenario_id', scenarioId)
+      .single();
+
+    if (error || !data) {
+      return null;
+    }
+
+    return {
+      isCompleted: data.is_completed as boolean,
+      completionCount: data.completion_count as number,
+      bestProgressPercent: data.best_progress_percent as number,
+      firstStartedAt: data.first_started_at ? new Date(data.first_started_at as string) : null,
+      firstCompletedAt: data.first_completed_at ? new Date(data.first_completed_at as string) : null,
+      lastPlayedAt: data.last_played_at ? new Date(data.last_played_at as string) : null,
+      totalPlayTimeSeconds: data.total_play_time_seconds as number,
+      lastChoicesMade: (data.last_choices_made as Array<{ sceneId: string; choiceId: string }>) || [],
+      rewardsClaimed: (data.rewards_claimed as Array<{ rewardId: string; amount: number }>) || [],
+    };
+  }
+
+  /**
+   * 일별 통계 조회
+   */
+  async getDailyStats(scenarioId: string, startDate: Date, endDate: Date): Promise<Array<{
+    date: string;
+    totalSessions: number;
+    uniqueUsers: number;
+    completedSessions: number;
+    abandonedSessions: number;
+    avgProgressPercent: number;
+    avgCompletionTimeSeconds: number;
+    totalChoicesMade: number;
+    premiumChoicesMade: number;
+    totalAffectionGained: number;
+  }>> {
+    const { data, error } = await this.supabase
+      .from('scenario_daily_stats')
+      .select('*')
+      .eq('scenario_id', scenarioId)
+      .gte('stat_date', startDate.toISOString().split('T')[0])
+      .lte('stat_date', endDate.toISOString().split('T')[0])
+      .order('stat_date', { ascending: false });
+
+    if (error || !data) {
+      return [];
+    }
+
+    return data.map((d: Record<string, unknown>) => ({
+      date: d.stat_date as string,
+      totalSessions: d.total_sessions as number,
+      uniqueUsers: d.unique_users as number,
+      completedSessions: d.completed_sessions as number,
+      abandonedSessions: d.abandoned_sessions as number,
+      avgProgressPercent: d.avg_progress_percent as number,
+      avgCompletionTimeSeconds: d.avg_completion_time_seconds as number,
+      totalChoicesMade: d.total_choices_made as number,
+      premiumChoicesMade: d.premium_choices_made as number,
+      totalAffectionGained: d.total_affection_gained as number,
+    }));
+  }
+
+  /**
+   * 선택지 통계 조회
+   */
+  async getChoiceStats(scenarioId: string): Promise<Array<{
+    sceneId: string;
+    choiceId: string;
+    choiceText: string | null;
+    selectionCount: number;
+    uniqueUserCount: number;
+    isPremium: boolean;
+    premiumConversionCount: number;
+    affectionChange: number;
+  }>> {
+    const { data, error } = await this.supabase
+      .from('scenario_choice_stats')
+      .select('*')
+      .eq('scenario_id', scenarioId)
+      .order('scene_id')
+      .order('selection_count', { ascending: false });
+
+    if (error || !data) {
+      return [];
+    }
+
+    return data.map((c: Record<string, unknown>) => ({
+      sceneId: c.scene_id as string,
+      choiceId: c.choice_id as string,
+      choiceText: c.choice_text as string | null,
+      selectionCount: c.selection_count as number,
+      uniqueUserCount: c.unique_user_count as number,
+      isPremium: c.is_premium as boolean,
+      premiumConversionCount: c.premium_conversion_count as number,
+      affectionChange: c.affection_change as number,
+    }));
+  }
+
+  /**
+   * 씬별 통계 조회
+   */
+  async getSceneStats(scenarioId: string): Promise<Array<{
+    sceneId: string;
+    sceneIndex: number;
+    viewCount: number;
+    uniqueUserCount: number;
+    avgTimeSpentMs: number;
+    dropOffCount: number;
+    dropOffRate: number;
+  }>> {
+    const { data, error } = await this.supabase
+      .from('scenario_scene_stats')
+      .select('*')
+      .eq('scenario_id', scenarioId)
+      .order('scene_index');
+
+    if (error || !data) {
+      return [];
+    }
+
+    return data.map((s: Record<string, unknown>) => ({
+      sceneId: s.scene_id as string,
+      sceneIndex: s.scene_index as number,
+      viewCount: s.view_count as number,
+      uniqueUserCount: s.unique_user_count as number,
+      avgTimeSpentMs: s.avg_time_spent_ms as number,
+      dropOffCount: s.drop_off_count as number,
+      dropOffRate: s.view_count ? ((s.drop_off_count as number) / (s.view_count as number)) * 100 : 0,
+    }));
   }
 
   // ============================================
@@ -476,6 +1081,24 @@ export class ScenarioService {
       choicesMade: data.choices_made as UserScenarioProgress['choicesMade'],
       startedAt: data.started_at ? new Date(data.started_at as string) : null,
       completedAt: data.completed_at ? new Date(data.completed_at as string) : null,
+    };
+  }
+
+  private mapSession(data: Record<string, unknown>): ScenarioSession {
+    return {
+      id: data.id as string,
+      userId: data.user_id as string,
+      scenarioId: data.scenario_id as string,
+      personaId: data.persona_id as string | null,
+      status: data.status as ScenarioSession['status'],
+      startedAt: new Date(data.started_at as string),
+      lastActivityAt: new Date(data.last_activity_at as string),
+      completedAt: data.completed_at ? new Date(data.completed_at as string) : null,
+      currentSceneId: data.current_scene_id as string | null,
+      currentSceneIndex: data.current_scene_index as number,
+      totalScenes: data.total_scenes as number | null,
+      choicesMade: (data.choices_made as ScenarioSession['choicesMade']) || [],
+      durationSeconds: data.duration_seconds as number | null,
     };
   }
 }

@@ -1,6 +1,52 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { HACK_LEVELS, DMEnding } from '@/lib/hacked-sns-data';
+
+interface DMEnding {
+  id: string;
+  type: 'good' | 'normal' | 'bad' | 'secret';
+  title: string;
+  description: string;
+  requiredAffection?: number;
+  unlocks?: string[];
+}
+
+const HACK_LEVELS = [
+  {
+    level: 1,
+    name: 'Script Kiddie',
+    description: '기본 접근 권한',
+    xpRequired: 0,
+    features: ['공개 스토리 보기', '공식 포스트 보기', '기본 DM'],
+  },
+  {
+    level: 2,
+    name: 'Hacker',
+    description: '비밀 스토리 접근',
+    xpRequired: 100,
+    features: ['비밀 스토리 보기', '삭제된 포스트 일부', '숨겨진 파일 1개'],
+  },
+  {
+    level: 3,
+    name: 'Elite Hacker',
+    description: '삭제된 콘텐츠 복구',
+    xpRequired: 300,
+    features: ['삭제된 포스트 전체', 'DM 기록 복구', '숨겨진 파일 3개'],
+  },
+  {
+    level: 4,
+    name: 'Shadow',
+    description: '깊은 시스템 접근',
+    xpRequired: 600,
+    features: ['비공개 메모', '초안 게시물', '음성 메시지'],
+  },
+  {
+    level: 5,
+    name: 'Ghost',
+    description: '완전한 접근',
+    xpRequired: 1000,
+    features: ['모든 콘텐츠', '실시간 알림', '특별 엔딩'],
+  },
+];
 
 // ============================================
 // TYPES

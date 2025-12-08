@@ -44,11 +44,16 @@ export default function AuthCallbackPage() {
           // 사용자 정보 확인 및 저장
           const { data: existingUser } = await supabase
             .from('users')
-            .select('id, onboarding_completed')
+            .select('id, onboarding_completed, initial_follows_completed')
             .eq('id', user.id)
             .single();
 
+          let isNewUser = false;
+          let needsFollowSetup = false;
+
           if (!existingUser) {
+            isNewUser = true;
+            needsFollowSetup = true;
             // 신규 가입자 - 온보딩은 회원가입 전에 이미 완료됨
             await supabase.from('users').insert({
               id: user.id,
@@ -57,13 +62,17 @@ export default function AuthCallbackPage() {
               profile_image: user.user_metadata?.avatar_url || null,
               tokens: 100,
               onboarding_completed: true,
+              initial_follows_completed: false,
             });
 
             // 유저 식별 후 회원가입 이벤트 (순서 중요: identify → track)
             analytics.identify(user.id, { email: user.email });
             analytics.trackSignUp('oauth');
           } else {
-            // 기존 가입자 - 프로필 업데이트
+            // 기존 가입자 - 초기 팔로우 완료 여부 확인
+            needsFollowSetup = !existingUser.initial_follows_completed;
+
+            // 프로필 업데이트
             await supabase
               .from('users')
               .update({
@@ -80,8 +89,12 @@ export default function AuthCallbackPage() {
           // Auth 스토어 업데이트 (isAuthenticated = true)
           await loadUser();
 
-          // 항상 홈으로 이동
-          router.replace('/');
+          // 신규 가입자 또는 초기 팔로우 미완료시 팔로우 페이지로
+          if (needsFollowSetup) {
+            router.replace('/follow-personas');
+          } else {
+            router.replace('/');
+          }
         } else {
           // code flow 시도 (PKCE)
           const urlParams = new URLSearchParams(window.location.search);
@@ -99,11 +112,14 @@ export default function AuthCallbackPage() {
             // 사용자 정보 확인
             const { data: existingUser } = await supabase
               .from('users')
-              .select('id, onboarding_completed')
+              .select('id, onboarding_completed, initial_follows_completed')
               .eq('id', data.user.id)
               .single();
 
+            let needsFollowSetup = false;
+
             if (!existingUser) {
+              needsFollowSetup = true;
               // 신규 가입자 - 온보딩은 회원가입 전에 이미 완료됨
               await supabase.from('users').insert({
                 id: data.user.id,
@@ -112,13 +128,17 @@ export default function AuthCallbackPage() {
                 profile_image: data.user.user_metadata?.avatar_url || null,
                 tokens: 100,
                 onboarding_completed: true,
+                initial_follows_completed: false,
               });
 
               // 유저 식별 후 회원가입 이벤트 (순서 중요: identify → track)
               analytics.identify(data.user.id, { email: data.user.email });
               analytics.trackSignUp('oauth');
             } else {
-              // 기존 가입자 - 프로필 업데이트
+              // 기존 가입자 - 초기 팔로우 완료 여부 확인
+              needsFollowSetup = !existingUser.initial_follows_completed;
+
+              // 프로필 업데이트
               await supabase
                 .from('users')
                 .update({
@@ -135,8 +155,12 @@ export default function AuthCallbackPage() {
             // Auth 스토어 업데이트 (isAuthenticated = true)
             await loadUser();
 
-            // 항상 홈으로 이동
-            router.replace('/');
+            // 신규 가입자 또는 초기 팔로우 미완료시 팔로우 페이지로
+            if (needsFollowSetup) {
+              router.replace('/follow-personas');
+            } else {
+              router.replace('/');
+            }
           } else {
             throw new Error('No authentication data found');
           }

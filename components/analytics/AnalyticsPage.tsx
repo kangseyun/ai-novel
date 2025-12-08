@@ -6,7 +6,8 @@ import { Lock, ChevronLeft, RefreshCw } from 'lucide-react';
 import { apiClient } from '@/lib/api-client';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import { MemoryListSkeleton, MemoryDetailSkeleton } from '@/components/ui/Skeleton';
-import { useTranslations, t } from '@/lib/i18n';
+import { useTranslations, t, useLocale } from '@/lib/i18n';
+import { formatCompactNumber } from '@/lib/utils';
 
 // 페르소나 진행도 타입 (API 응답 기반)
 interface PersonaProgress {
@@ -102,6 +103,7 @@ export default function AnalyticsPage() {
 
   const { isAuthenticated } = useAuthStore();
   const tr = useTranslations();
+  const locale = useLocale();
 
   // 기억 목록 로드
   const loadMemoryList = async () => {
@@ -205,6 +207,11 @@ export default function AnalyticsPage() {
 
   // 페르소나 선택 화면
   if (!selectedPersonaId) {
+    // 호감도순으로 정렬 (높은 순)
+    const sortedPersonas = [...personas].sort((a, b) => b.affection - a.affection);
+    // 상위 5명만 가로 스크롤에 표시
+    const topPersonas = sortedPersonas.slice(0, 5);
+
     return (
       <div className="min-h-screen bg-black text-white pb-24">
         {/* Header */}
@@ -217,9 +224,8 @@ export default function AnalyticsPage() {
           </div>
         </div>
 
-        {/* 페르소나 선택 그리드 */}
-        <div className="px-4 pt-4">
-          {personas.length === 0 ? (
+        {personas.length === 0 ? (
+          <div className="px-4 pt-4">
             <div className="text-center py-12">
               <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-white/5 flex items-center justify-center">
                 <Lock className="w-6 h-6 text-white/20" />
@@ -227,84 +233,131 @@ export default function AnalyticsPage() {
               <p className="text-white/40 text-sm">{tr.memory.noMemory}</p>
               <p className="text-white/20 text-xs mt-1">{tr.memory.noMemoryHint}</p>
             </div>
-          ) : (
-            <div className="space-y-3">
-              {personas.map((persona, idx) => {
-                const isUnlocked = persona.storyProgress > 0 || persona.totalMessages > 0;
-                const progressPercent = persona.affection;
+          </div>
+        ) : (
+          <>
+            {/* 상단: 가로 스크롤 프로필 (인스타그램 스토리 스타일) */}
+            <div className="pt-4 pb-2">
+              <div className="flex gap-4 px-4 overflow-x-auto scrollbar-hide pb-2">
+                {topPersonas.map((persona, idx) => (
+                  <motion.button
+                    key={persona.id}
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ delay: idx * 0.05 }}
+                    onClick={() => handleSelectPersona(persona.id)}
+                    className="flex flex-col items-center gap-1.5 flex-shrink-0"
+                  >
+                    {/* 프로필 링 (호감도에 따른 그라데이션) */}
+                    <div
+                      className="p-0.5 rounded-full"
+                      style={{
+                        background: persona.affection >= 70
+                          ? 'linear-gradient(135deg, #f43f5e, #ec4899, #8b5cf6)'
+                          : persona.affection >= 40
+                          ? 'linear-gradient(135deg, #f97316, #eab308)'
+                          : 'linear-gradient(135deg, #6b7280, #9ca3af)'
+                      }}
+                    >
+                      <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-black">
+                        <img
+                          src={persona.image}
+                          alt={persona.name}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                    </div>
+                    <span className="text-xs text-white/70 max-w-[64px] truncate">
+                      {persona.name}
+                    </span>
+                    <span className="text-[10px] text-white/40">
+                      {persona.affection}%
+                    </span>
+                  </motion.button>
+                ))}
+              </div>
+            </div>
 
-                return (
+            {/* 전체 통계 */}
+            <div className="px-4 py-3">
+              <div className="p-3 bg-white/[0.02] border border-white/5 rounded-xl">
+                <div className="flex justify-around text-sm">
+                  <div className="text-center">
+                    <p className="text-base font-medium">{formatCompactNumber(stats.totalCharacters, locale)}</p>
+                    <p className="text-[10px] text-white/30">{tr.memory.characters}</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-base font-medium">{formatCompactNumber(stats.totalSecrets, locale)}</p>
+                    <p className="text-[10px] text-white/30">{tr.memory.secrets}</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-base font-medium">{formatCompactNumber(stats.totalStories, locale)}</p>
+                    <p className="text-[10px] text-white/30">{tr.memory.stories}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* 하단: 전체 목록 (2열 그리드) */}
+            <div className="px-4 pt-2">
+              <p className="text-xs text-white/40 mb-3">
+                {locale === 'ko' ? '전체 캐릭터' : 'All Characters'} ({personas.length})
+              </p>
+              <div className="grid grid-cols-2 gap-3">
+                {sortedPersonas.map((persona, idx) => (
                   <motion.button
                     key={persona.id}
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: idx * 0.05 }}
+                    transition={{ delay: idx * 0.03 }}
                     onClick={() => handleSelectPersona(persona.id)}
-                    className="w-full p-4 rounded-xl border text-left transition bg-white/[0.03] border-white/10 active:bg-white/[0.06]"
+                    className="p-3 rounded-xl border text-left transition bg-white/[0.03] border-white/10 active:bg-white/[0.06]"
                   >
-                    <div className="flex items-center gap-3">
+                    <div className="flex flex-col items-center text-center">
                       {/* 프로필 이미지 */}
-                      <div className="relative">
-                        <div className="w-14 h-14 rounded-full overflow-hidden">
+                      <div className="relative mb-2">
+                        <div className="w-12 h-12 rounded-full overflow-hidden">
                           <img
                             src={persona.image}
                             alt={persona.name}
                             className="w-full h-full object-cover"
                           />
                         </div>
+                        {/* 호감도 뱃지 */}
+                        <div className="absolute -bottom-1 -right-1 px-1.5 py-0.5 bg-black/80 border border-white/20 rounded-full">
+                          <span className="text-[10px] text-white/70">{persona.affection}%</span>
+                        </div>
                       </div>
 
                       {/* 정보 */}
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <h3 className="font-medium">{persona.name}</h3>
-                          <span className="text-xs text-white/40">
-                            {persona.relationship}
-                          </span>
-                        </div>
+                      <h3 className="text-sm font-medium truncate w-full">{persona.name}</h3>
+                      <span className="text-[10px] text-white/40 truncate w-full">
+                        {persona.relationship}
+                      </span>
 
-                        <p className="text-xs text-white/30 mt-0.5">{persona.currentArc}</p>
-                        {/* 호감도 바 */}
-                        <div className="mt-2 flex items-center gap-2">
-                          <div className="flex-1 h-1 bg-white/10 rounded-full overflow-hidden">
-                            <div
-                              className="h-full bg-white/40 rounded-full"
-                              style={{ width: `${progressPercent}%` }}
-                            />
-                          </div>
-                          <span className="text-xs text-white/40">{persona.affection}%</span>
+                      {/* 호감도 바 */}
+                      <div className="mt-2 w-full">
+                        <div className="h-1 bg-white/10 rounded-full overflow-hidden">
+                          <div
+                            className="h-full rounded-full transition-all"
+                            style={{
+                              width: `${persona.affection}%`,
+                              background: persona.affection >= 70
+                                ? 'linear-gradient(90deg, #f43f5e, #ec4899)'
+                                : persona.affection >= 40
+                                ? 'linear-gradient(90deg, #f97316, #eab308)'
+                                : '#6b7280'
+                            }}
+                          />
                         </div>
                       </div>
-
-                      {/* 화살표 */}
-                      <ChevronLeft className="w-4 h-4 text-white/20 rotate-180" />
                     </div>
                   </motion.button>
-                );
-              })}
-            </div>
-          )}
-
-          {/* 전체 통계 */}
-          {personas.length > 0 && (
-            <div className="mt-6 p-4 bg-white/[0.02] border border-white/5 rounded-xl">
-              <div className="flex justify-around text-sm">
-                <div className="text-center">
-                  <p className="text-lg font-medium">{stats.totalCharacters}</p>
-                  <p className="text-xs text-white/30">{tr.memory.characters}</p>
-                </div>
-                <div className="text-center">
-                  <p className="text-lg font-medium">{stats.totalSecrets}</p>
-                  <p className="text-xs text-white/30">{tr.memory.secrets}</p>
-                </div>
-                <div className="text-center">
-                  <p className="text-lg font-medium">{stats.totalStories}</p>
-                  <p className="text-xs text-white/30">{tr.memory.stories}</p>
-                </div>
+                ))}
               </div>
             </div>
-          )}
-        </div>
+          </>
+        )}
       </div>
     );
   }
@@ -408,7 +461,7 @@ export default function AnalyticsPage() {
                   <div className="ml-auto text-right">
                     <p className="text-sm text-white/70">{relationship?.stageLabel}</p>
                     {relationship?.totalMessages && relationship.totalMessages > 0 && (
-                      <p className="text-xs text-white/30">{relationship.totalMessages} 메시지</p>
+                      <p className="text-xs text-white/30">{formatCompactNumber(relationship.totalMessages, locale)} 메시지</p>
                     )}
                   </div>
                 </div>

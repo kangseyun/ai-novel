@@ -36,18 +36,23 @@ export async function GET(request: NextRequest) {
       console.error('[Feed] User posts error:', userPostsError);
     }
 
-    // 2. 사용자의 페르소나 관계 상태 조회
+    // 2. 사용자의 페르소나 관계 상태 조회 (팔로우한 페르소나만)
     const { data: relationships } = await supabase
       .from('user_persona_relationships')
-      .select('persona_id, current_stage, affection_level')
+      .select('persona_id, current_stage, affection_level, is_unlocked')
       .eq('user_id', user.id);
 
     // 관계 맵 생성 (없으면 stranger로 기본값)
-    const relationshipMap: Record<string, { stage: string; affection: number }> = {};
+    const relationshipMap: Record<string, { stage: string; affection: number; isFollowing: boolean }> = {};
+
+    // jun은 항상 팔로우 상태
+    relationshipMap['jun'] = { stage: 'stranger', affection: 0, isFollowing: true };
+
     relationships?.forEach(r => {
       relationshipMap[r.persona_id] = {
         stage: r.current_stage || 'stranger',
         affection: r.affection_level || 0,
+        isFollowing: r.is_unlocked || false,
       };
     });
 
@@ -83,8 +88,13 @@ export async function GET(request: NextRequest) {
     }
 
     // 4. 사용자가 볼 수 있는 페르소나 포스트 필터링
+    // 팔로우(is_unlocked)한 페르소나의 포스트만 표시
     const visiblePersonaPosts = (personaPosts || []).filter(post => {
-      const relationship = relationshipMap[post.persona_id] || { stage: 'stranger', affection: 0 };
+      const relationship = relationshipMap[post.persona_id] || { stage: 'stranger', affection: 0, isFollowing: false };
+
+      // 팔로우하지 않은 페르소나는 표시하지 않음
+      if (!relationship.isFollowing) return false;
+
       const userStageLevel = STAGE_PRIORITY[relationship.stage] || 0;
       const requiredStageLevel = STAGE_PRIORITY[post.required_relationship_stage] || 0;
 

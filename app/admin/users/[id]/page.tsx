@@ -1,13 +1,13 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { createClient } from '@/lib/supabase-browser';
+import { supabase } from '@/lib/supabase';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Loader2, ArrowLeft, MessageSquare, Heart, Map, Clock, CreditCard, ShoppingBag, Brain, User as UserIcon, Database, Search } from 'lucide-react';
+import { Loader2, ArrowLeft, MessageSquare, Heart, Map, Clock, CreditCard, ShoppingBag, Brain, User as UserIcon, Database, Search, ExternalLink } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
@@ -97,7 +97,6 @@ type Memory = {
 export default function UserDetailPage() {
   const params = useParams();
   const userId = params.id as string;
-  const supabase = createClient();
 
   const [user, setUser] = useState<UserDetail | null>(null);
   const [stats, setStats] = useState<UserStats | null>(null);
@@ -281,7 +280,7 @@ export default function UserDetailPage() {
             {user.email} <span className="text-xs bg-muted px-1 rounded">{user.id}</span>
           </p>
         </div>
-        <div className="ml-auto flex gap-2">
+        <div className="ml-auto flex gap-2 items-center">
           {user.is_premium ? (
             <Badge className="bg-indigo-600 hover:bg-indigo-700">Premium</Badge>
           ) : (
@@ -290,6 +289,16 @@ export default function UserDetailPage() {
           <Badge variant="outline" className="border-primary text-primary font-bold">
             {user.tokens.toLocaleString()} Tokens
           </Badge>
+          <a
+            href={`https://supabase.com/dashboard/project/zwoyfqsavcghftbmijdc/editor?filter=id%3Aeq%3A${user.id}&schema=public&table=users`}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <Button variant="outline" size="sm" className="gap-1">
+              <ExternalLink className="w-3 h-3" />
+              Supabase
+            </Button>
+          </a>
         </div>
       </div>
 

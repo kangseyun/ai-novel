@@ -473,6 +473,22 @@ class ApiClient {
     });
   }
 
+  async subscribeToWelcomeOffer(planId: 'monthly' | 'yearly') {
+    return this.request<{ url: string }>('/subscriptions/welcome-offer', {
+      method: 'POST',
+      body: JSON.stringify({ plan_id: planId }),
+    });
+  }
+
+  async checkWelcomeOfferEligibility() {
+    return this.request<{
+      eligible: boolean;
+      expiresAt: string | null;
+      remainingSeconds: number;
+      alreadyPurchased: boolean;
+    }>('/subscriptions/welcome-offer');
+  }
+
   async getSubscriptionStatus() {
     return this.request<{
       subscription: {
@@ -744,6 +760,91 @@ class ApiClient {
         createdAt: string;
       }>;
     }>(`/ai/activity?${params.toString()}`);
+  }
+
+  // ============ Follow API ============
+  /**
+   * 추천 페르소나 목록 조회
+   */
+  async getSuggestedPersonas() {
+    return this.request<{
+      personas: Array<{
+        id: string;
+        name: string;
+        display_name: string;
+        username: string;
+        bio: string;
+        avatar_url: string;
+        is_verified: boolean;
+        is_premium: boolean;
+        category: string;
+      }>;
+      userTokens: number;
+      refreshCost: number;
+      freeRefreshIntervalMinutes: number;
+      canFreeRefresh: boolean;
+      secondsUntilFreeRefresh: number;
+      nextFreeRefreshAt: string;
+    }>('/personas/suggested');
+  }
+
+  /**
+   * 추천 페르소나 새로고침
+   * @param useFreeRefresh true면 무료 새로고침 (쿨다운 체크), false면 토큰 차감
+   */
+  async refreshSuggestedPersonas(useFreeRefresh: boolean = false) {
+    return this.request<{
+      success: boolean;
+      personas: Array<{
+        id: string;
+        name: string;
+        display_name: string;
+        username: string;
+        bio: string;
+        avatar_url: string;
+        is_verified: boolean;
+        is_premium: boolean;
+        category: string;
+      }>;
+      tokensSpent: number;
+      remainingTokens: number;
+      usedFreeRefresh: boolean;
+      canFreeRefresh: boolean;
+      secondsUntilFreeRefresh: number;
+      nextFreeRefreshAt: string;
+    }>('/personas/suggested', {
+      method: 'POST',
+      body: JSON.stringify({ useFreeRefresh }),
+    });
+  }
+
+  /**
+   * 페르소나 팔로우 (토큰 차감)
+   */
+  async followPersona(personaId: string) {
+    return this.request<{
+      success: boolean;
+      personaId: string;
+      tokensSpent: number;
+      remainingTokens: number;
+    }>('/personas/unlock', {
+      method: 'POST',
+      body: JSON.stringify({ personaId }),
+    });
+  }
+
+  /**
+   * 팔로우한 페르소나 목록 조회
+   */
+  async getFollowedPersonas() {
+    return this.request<{
+      unlockedPersonas: string[];
+      details: Array<{
+        persona_id: string;
+        is_unlocked: boolean;
+        unlocked_at: string;
+      }>;
+    }>('/personas/unlock');
   }
 
   // ============ DM API ============

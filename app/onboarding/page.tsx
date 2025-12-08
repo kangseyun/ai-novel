@@ -4,15 +4,14 @@ import { Suspense, useEffect, useState, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import OnboardingA from '@/components/onboarding/variants/OnboardingA';
 import OnboardingB from '@/components/onboarding/variants/OnboardingB';
-import OnboardingC from '@/components/onboarding/variants/OnboardingC';
 import { apiClient } from '@/lib/api-client';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import analytics from '@/lib/analytics';
 
-type Variant = 'a' | 'b' | 'c';
+type Variant = 'a' | 'b';
 
 function getRandomVariant(): Variant {
-  const variants: Variant[] = ['a', 'b', 'c'];
+  const variants: Variant[] = ['a', 'b'];
   return variants[Math.floor(Math.random() * variants.length)];
 }
 
@@ -60,11 +59,17 @@ function OnboardingContent() {
 
         // 온보딩 완료 이벤트 (variant 포함)
         analytics.trackOnboardingComplete('jun', variant || undefined);
+
+        // 이미 로그인된 경우 메인으로 이동 (웰컴 오퍼 모달 트리거 파라미터 추가)
+        router.push('/?from_onboarding=true');
+        return;
       } catch (error) {
         console.error('Failed to complete onboarding:', error);
       }
     }
-    router.push('/');
+
+    // 로그인하지 않은 경우 로그인 페이지로 이동
+    router.push('/login');
   };
 
   const handleSkip = () => {
@@ -80,8 +85,6 @@ function OnboardingContent() {
       return <OnboardingA onComplete={handleComplete} onSkip={handleSkip} />;
     case 'b':
       return <OnboardingB onComplete={handleComplete} onSkip={handleSkip} />;
-    case 'c':
-      return <OnboardingC onComplete={handleComplete} onSkip={handleSkip} />;
   }
 }
 

@@ -29,9 +29,9 @@ export async function POST(request: NextRequest) {
       return serverError(userError);
     }
 
-    // 2. 게임 상태 초기화 (첫 페르소나와의 관계 시작)
-    const { error: gameStateError } = await supabase
-      .from('game_state')
+    // 2. 페르소나 관계 초기화 (첫 페르소나와의 관계 시작)
+    const { error: relationshipError } = await supabase
+      .from('user_persona_relationships')
       .upsert({
         user_id: user.id,
         persona_id,
@@ -39,12 +39,13 @@ export async function POST(request: NextRequest) {
         relationship_stage: 'acquaintance',
         unlocked_episodes: ['ep1'],
         story_flags: {},
+        is_unlocked: true,
       }, {
         onConflict: 'user_id,persona_id',
       });
 
-    if (gameStateError) {
-      return serverError(gameStateError);
+    if (relationshipError) {
+      return serverError(relationshipError);
     }
 
     // 3. 대화 기록 저장 (선택지 기록)

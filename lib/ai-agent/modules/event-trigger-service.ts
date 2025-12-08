@@ -555,6 +555,282 @@ export class EventTriggerService {
 }
 
 // ============================================
+// 시나리오 트리거 관련 타입
+// ============================================
+
+export interface ScenarioTriggerConfig {
+  scenarioType: 'static' | 'guided' | 'dynamic';
+  scenarioId?: string;
+  dynamicTemplateId?: string;
+  interruptDm?: boolean;
+}
+
+export interface ScenarioTriggerResult {
+  triggered: boolean;
+  scenarioType?: 'static' | 'guided' | 'dynamic';
+  scenarioId?: string;
+  sessionId?: string;
+  error?: string;
+}
+
+// ============================================
+// 시나리오 트리거 확장 메서드
+// ============================================
+
+// EventTriggerService 클래스 내부에 추가되어야 할 메서드들
+// 기존 클래스를 직접 수정하지 않고 별도 함수로 제공
+
+/**
+ * 시나리오 시작 트리거 평가
+ */
+export async function evaluateScenarioTriggers(
+  supabase: SupabaseClient,
+  userId: string,
+  personaId: string,
+  context: {
+    affection: number;
+    relationshipStage: string;
+    hoursSinceLastActivity: number;
+    sessionMessageCount?: number;
+    lastMessageContent?: string;
+  }
+): Promise<{
+  shouldTrigger: boolean;
+  trigger?: {
+    id: string;
+    name: string;
+    scenarioConfig: ScenarioTriggerConfig;
+    probability: number;
+  };
+}> {
+  // 시나리오 트리거 규칙 조회 (action_type = 'start_scenario')
+  const { data: rules, error } = await supabase
+    .from('event_trigger_rules')
+    .select('*')
+    .eq('is_active', true)
+    .or(`persona_id.eq.${personaId},persona_id.is.null`)
+    .not('scenario_config', 'is', null)
+    .order('priority', { ascending: false });
+
+  if (error || !rules || rules.length === 0) {
+    return { shouldTrigger: false };
+  }
+
+  const currentHour = new Date().getHours();
+
+  for (const rule of rules) {
+    const conditions = rule.conditions as Record<string, unknown>;
+    const scenarioConfig = rule.scenario_config as ScenarioTriggerConfig;
+
+    // 조건 평가
+    if (!evaluateConditionsInternal(conditions, context, currentHour)) {
+      continue;
+    }
+
+    // 쿨다운 체크
+    const cooldownHours = rule.cooldown_hours || 0;
+    if (cooldownHours > 0) {
+      const cooldownTime = new Date();
+      cooldownTime.setHours(cooldownTime.getHours() - cooldownHours);
+
+      const { data: history } = await supabase
+        .from('user_trigger_history')
+        .select('triggered_at')
+        .eq('user_id', userId)
+        .eq('trigger_rule_id', rule.id)
+        .eq('success', true)
+        .gte('triggered_at', cooldownTime.toISOString())
+        .limit(1);
+
+      if (history && history.length > 0) {
+        continue;
+      }
+    }
+
+    // 확률 계산
+    const baseProbability = rule.base_probability || 0.3;
+    const modifiers = rule.probability_modifiers as Record<string, number> || {};
+    const probability = calculateProbabilityInternal(baseProbability, modifiers, context, currentHour);
+
+    // 확률 체크
+    const randomValue = Math.random();
+    if (randomValue < probability) {
+      return {
+        shouldTrigger: true,
+        trigger: {
+          id: rule.id,
+          name: rule.name,
+          scenarioConfig,
+          probability,
+        },
+      };
+    }
+  }
+
+  return { shouldTrigger: false };
+}
+
+/**
+ * 시나리오 트리거 실행 및 기록
+ */
+export async function executeScenarioTrigger(
+  supabase: SupabaseClient,
+  userId: string,
+  personaId: string,
+  triggerId: string,
+  scenarioConfig: ScenarioTriggerConfig,
+  context: Record<string, unknown>
+): Promise<ScenarioTriggerResult> {
+  try {
+    let sessionId: string | undefined;
+    let scenarioId: string | undefined;
+
+    if (scenarioConfig.scenarioType === 'dynamic' && scenarioConfig.dynamicTemplateId) {
+      // Dynamic 시나리오 세션 생성
+      const { data, error } = await supabase
+        .from('dynamic_scenario_sessions')
+        .insert({
+          user_id: userId,
+          template_id: scenarioConfig.dynamicTemplateId,
+          persona_id: personaId,
+          trigger_context: context,
+        })
+        .select('id')
+        .single();
+
+      if (error) throw error;
+      sessionId = data.id;
+    } else if (scenarioConfig.scenarioId) {
+      scenarioId = scenarioConfig.scenarioId;
+    }
+
+    // 트리거 히스토리 기록
+    await supabase.from('user_trigger_history').insert({
+      user_id: userId,
+      trigger_rule_id: triggerId,
+      persona_id: personaId,
+      context,
+      action_type: 'start_scenario',
+      action_result: {
+        scenario_started: true,
+        scenario_id: scenarioId,
+        session_id: sessionId,
+        scenario_type: scenarioConfig.scenarioType,
+      },
+      success: true,
+    });
+
+    return {
+      triggered: true,
+      scenarioType: scenarioConfig.scenarioType,
+      scenarioId,
+      sessionId,
+    };
+  } catch (err) {
+    const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+
+    // 실패 기록
+    await supabase.from('user_trigger_history').insert({
+      user_id: userId,
+      trigger_rule_id: triggerId,
+      persona_id: personaId,
+      context,
+      action_type: 'start_scenario',
+      action_result: {},
+      success: false,
+      error_message: errorMessage,
+    });
+
+    return { triggered: false, error: errorMessage };
+  }
+}
+
+// 내부 헬퍼 함수들
+function evaluateConditionsInternal(
+  conditions: Record<string, unknown>,
+  context: { affection: number; relationshipStage: string; hoursSinceLastActivity: number; sessionMessageCount?: number; lastMessageContent?: string },
+  currentHour: number
+): boolean {
+  // 호감도 체크
+  if (conditions.minAffection !== undefined && context.affection < (conditions.minAffection as number)) {
+    return false;
+  }
+  if (conditions.maxAffection !== undefined && context.affection > (conditions.maxAffection as number)) {
+    return false;
+  }
+
+  // 관계 단계 체크
+  if (conditions.relationshipStage) {
+    const stages = conditions.relationshipStage as string[];
+    if (!stages.includes(context.relationshipStage)) {
+      return false;
+    }
+  }
+
+  // 비활성 시간 체크
+  if (conditions.hoursSinceLastActivity) {
+    const range = conditions.hoursSinceLastActivity as { min?: number; max?: number };
+    if (range.min !== undefined && context.hoursSinceLastActivity < range.min) {
+      return false;
+    }
+    if (range.max !== undefined && context.hoursSinceLastActivity > range.max) {
+      return false;
+    }
+  }
+
+  // 시간대 체크
+  if (conditions.timeRange) {
+    const range = conditions.timeRange as { start: string; end: string };
+    const startHour = parseInt(range.start.split(':')[0], 10);
+    const endHour = parseInt(range.end.split(':')[0], 10);
+
+    if (startHour <= endHour) {
+      if (currentHour < startHour || currentHour >= endHour) return false;
+    } else {
+      if (currentHour < startHour && currentHour >= endHour) return false;
+    }
+  }
+
+  return true;
+}
+
+function calculateProbabilityInternal(
+  baseProbability: number,
+  modifiers: Record<string, number>,
+  context: { affection: number; relationshipStage: string; hoursSinceLastActivity: number },
+  currentHour: number
+): number {
+  let probability = baseProbability;
+
+  if (modifiers.affectionPer10) {
+    probability += Math.floor(context.affection / 10) * modifiers.affectionPer10;
+  }
+
+  if (modifiers.intimateStageBonus) {
+    if (['intimate', 'lover'].includes(context.relationshipStage)) {
+      probability += modifiers.intimateStageBonus;
+    }
+  }
+
+  if (modifiers.nightTimeBonus) {
+    if (currentHour >= 22 || currentHour < 6) {
+      probability += modifiers.nightTimeBonus;
+    }
+  }
+
+  if (modifiers.daysInactiveBonus) {
+    const daysInactive = Math.floor(context.hoursSinceLastActivity / 24);
+    probability += daysInactive * modifiers.daysInactiveBonus;
+  }
+
+  if (modifiers.maxProbability) {
+    probability = Math.min(probability, modifiers.maxProbability);
+  }
+
+  return Math.max(0, Math.min(1, probability));
+}
+
+// ============================================
 // 싱글톤 인스턴스
 // ============================================
 

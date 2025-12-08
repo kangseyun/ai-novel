@@ -4,16 +4,18 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Image from 'next/image';
 import {
-  X,
-  Send,
   Heart,
-  MessageCircle,
   Lock,
   ShieldAlert,
-  Eye,
+  MessageCircle,
 } from 'lucide-react';
-import { JUN_PROFILE } from '@/lib/hacked-sns-data';
 import { ONBOARDING_STORY_SEQUENCE } from '@/lib/onboarding-data';
+
+// 온보딩용 Jun 프로필 (DB 연결 전 기본값)
+const DEFAULT_JUN_PROFILE = {
+  profileImage: '/images/personas/jun.jpg',
+  displayName: 'Jun ✨',
+};
 
 interface OnboardingStoryProps {
   onComplete: () => void;
@@ -24,6 +26,26 @@ export default function OnboardingStory({ onComplete }: OnboardingStoryProps) {
   const [showReplyPrompt, setShowReplyPrompt] = useState(false);
   const [progress, setProgress] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
+  const [junProfile, setJunProfile] = useState(DEFAULT_JUN_PROFILE);
+
+  // Jun 프로필 로드
+  useEffect(() => {
+    const loadJunProfile = async () => {
+      try {
+        const res = await fetch('/api/personas/jun');
+        if (res.ok) {
+          const data = await res.json();
+          setJunProfile({
+            profileImage: data.persona.avatar_url || DEFAULT_JUN_PROFILE.profileImage,
+            displayName: data.persona.display_name || DEFAULT_JUN_PROFILE.displayName,
+          });
+        }
+      } catch (err) {
+        console.error('[OnboardingStory] Failed to load Jun profile:', err);
+      }
+    };
+    loadJunProfile();
+  }, []);
 
   const currentContent = ONBOARDING_STORY_SEQUENCE[currentIndex];
 
@@ -109,8 +131,8 @@ export default function OnboardingStory({ onComplete }: OnboardingStoryProps) {
         <div className="flex items-center gap-3 mt-4">
           <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-red-500/50">
             <Image
-              src={JUN_PROFILE.profileImage}
-              alt={JUN_PROFILE.displayName}
+              src={junProfile.profileImage}
+              alt={junProfile.displayName}
               width={40}
               height={40}
               className="object-cover"
@@ -118,7 +140,7 @@ export default function OnboardingStory({ onComplete }: OnboardingStoryProps) {
           </div>
           <div className="flex-1">
             <div className="flex items-center gap-2">
-              <span className="font-medium text-white text-sm">{JUN_PROFILE.displayName}</span>
+              <span className="font-medium text-white text-sm">{junProfile.displayName}</span>
               <span className="text-[10px] text-red-400 bg-red-500/20 px-1.5 py-0.5 rounded">
                 비공개
               </span>

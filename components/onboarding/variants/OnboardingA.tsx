@@ -2,15 +2,18 @@
 
 /**
  * 옵션 A: 잠금화면 제거, 심플한 메시지 리스트
+ * - DB 기반 페르소나 목록 사용
  */
 
 import { useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { PERSONAS, PersonaCard } from '@/lib/persona-data';
+import { Loader2 } from 'lucide-react';
+import { PERSONAS } from '@/lib/persona-data';
 import OnboardingScenario, { ScenarioResultData } from '../OnboardingScenario';
 import OnboardingSignup from '../OnboardingSignup';
 import { getPersonaById } from '@/lib/persona-data';
-import { useTranslations } from '@/lib/i18n';
+import { useTranslations, useLocale } from '@/lib/i18n';
+import { useOnboardingData, OnboardingPersona } from '@/hooks/useOnboardingData';
 
 interface OnboardingAProps {
   onComplete: () => void;
@@ -19,15 +22,51 @@ interface OnboardingAProps {
 
 type Step = 'select' | 'scenario' | 'signup';
 
+// 변환된 페르소나 타입
+interface TransformedPersona {
+  id: string;
+  name: string;
+  teaserLine: string;
+  image: string;
+  color: string;
+  available: boolean;
+  archetype?: string;
+  scenarioId?: string | null;
+}
+
+// DB 페르소나를 기존 형식으로 변환
+function transformPersona(dbPersona: OnboardingPersona, locale: string): TransformedPersona {
+  return {
+    id: dbPersona.id,
+    name: dbPersona.name[locale as 'ko' | 'en'] || dbPersona.name.ko || dbPersona.id,
+    teaserLine: dbPersona.teaserLine[locale as 'ko' | 'en'] || dbPersona.teaserLine.ko || '',
+    image: dbPersona.image || '',
+    color: dbPersona.color,
+    available: dbPersona.available,
+    scenarioId: dbPersona.scenarioId,
+  };
+}
+
 export default function OnboardingA({ onComplete, onSkip }: OnboardingAProps) {
   const [step, setStep] = useState<Step>('select');
   const [selectedPersonaId, setSelectedPersonaId] = useState<string | null>(null);
+  const [selectedScenarioId, setSelectedScenarioId] = useState<string | null>(null);
   const [affectionGained, setAffectionGained] = useState(0);
   const tr = useTranslations();
+  const locale = useLocale();
 
-  const handleSelect = (persona: PersonaCard) => {
+  // DB에서 온보딩 데이터 가져오기
+  const { personas: dbPersonas, settings, isLoading } = useOnboardingData();
+
+  // DB 페르소나가 있으면 사용, 없으면 하드코딩된 데이터 사용 (폴백)
+  const personas: TransformedPersona[] = dbPersonas.length > 0
+    ? dbPersonas.map(p => transformPersona(p, locale))
+    : PERSONAS.map(p => ({ ...p, scenarioId: null }));
+
+  const handleSelect = (persona: TransformedPersona) => {
     if (!persona.available) return;
     setSelectedPersonaId(persona.id);
+    setSelectedScenarioId(persona.scenarioId || null);
     setStep('scenario');
   };
 
@@ -40,11 +79,24 @@ export default function OnboardingA({ onComplete, onSkip }: OnboardingAProps) {
   }, []);
 
   const handleScenarioConfirm = useCallback((result: ScenarioResultData) => {
+    // 확정하기를 누르면 대화 이어하기 화면으로 이동
     setAffectionGained(result.affectionGained);
     setStep('signup');
   }, []);
 
-  const persona = selectedPersonaId ? getPersonaById(selectedPersonaId) : null;
+  // 선택된 페르소나 정보 가져오기
+  const selectedPersona = selectedPersonaId
+    ? personas.find(p => p.id === selectedPersonaId) || getPersonaById(selectedPersonaId)
+    : null;
+
+  // 로딩 중일 때
+  if (isLoading) {
+    return (
+      <div className="fixed inset-0 z-[100] bg-black flex justify-center items-center">
+        <Loader2 className="w-8 h-8 animate-spin text-white/50" />
+      </div>
+    );
+  }
 
   return (
     <div className="fixed inset-0 z-[100] bg-black flex justify-center">
@@ -58,6 +110,11 @@ export default function OnboardingA({ onComplete, onSkip }: OnboardingAProps) {
               exit={{ opacity: 0 }}
               className="h-[100dvh] flex flex-col overflow-hidden"
             >
+              {/* 테스트용 변형 표시 */}
+              <div className="absolute top-4 left-4 px-2 py-1 bg-white/10 rounded text-xs text-white/50 z-20">
+                Variant A
+              </div>
+
               {/* Header */}
               <div className="px-5 pt-12 pb-4 shrink-0">
                 <motion.p
@@ -86,7 +143,7 @@ export default function OnboardingA({ onComplete, onSkip }: OnboardingAProps) {
 
               {/* Simple DM List */}
               <div className="flex-1 px-4 overflow-y-auto min-h-0 pb-16">
-                {PERSONAS.map((persona, idx) => (
+                {personas.slice(0, settings.maxPersonasDisplay).map((persona, idx) => (
                   <motion.button
                     key={persona.id}
                     initial={{ opacity: 0, y: 10 }}
@@ -102,11 +159,20 @@ export default function OnboardingA({ onComplete, onSkip }: OnboardingAProps) {
                   >
                     {/* Avatar */}
                     <div className="w-12 h-12 rounded-full overflow-hidden bg-white/10">
-                      <img
-                        src={persona.image}
-                        alt={persona.name}
-                        className="w-full h-full object-cover"
-                      />
+                      {persona.image ? (
+                        <img
+                          src={persona.image}
+                          alt={persona.name}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div
+                          className="w-full h-full flex items-center justify-center text-white font-bold"
+                          style={{ backgroundColor: persona.color }}
+                        >
+                          {persona.name[0]}
+                        </div>
+                      )}
                     </div>
 
                     {/* Content */}
@@ -114,7 +180,9 @@ export default function OnboardingA({ onComplete, onSkip }: OnboardingAProps) {
                       <div className="flex items-center justify-between mb-0.5">
                         <div className="flex items-center gap-2">
                           <span className="font-medium text-white">{persona.name}</span>
-                          <span className="text-xs text-white/30">{persona.archetype}</span>
+                          {persona.archetype && (
+                            <span className="text-xs text-white/30">{persona.archetype}</span>
+                          )}
                         </div>
                         {persona.available && (
                           <span className="text-xs text-white/30">{tr.onboarding.justNow}</span>
@@ -133,7 +201,7 @@ export default function OnboardingA({ onComplete, onSkip }: OnboardingAProps) {
                 ))}
               </div>
 
-              {onSkip && (
+              {settings.showSkipButton && onSkip && (
                 <button
                   onClick={onSkip}
                   className="absolute bottom-8 right-6 text-xs text-white/30 hover:text-white/50 transition"
@@ -152,6 +220,7 @@ export default function OnboardingA({ onComplete, onSkip }: OnboardingAProps) {
               exit={{ opacity: 0 }}
             >
               <OnboardingScenario
+                scenarioId={selectedScenarioId}
                 onProgress={handleScenarioProgress}
                 onCliffhanger={handleCliffhanger}
                 onConfirm={handleScenarioConfirm}
@@ -169,9 +238,9 @@ export default function OnboardingA({ onComplete, onSkip }: OnboardingAProps) {
               <OnboardingSignup
                 affectionGained={affectionGained}
                 onSignup={onComplete}
-                personaName={persona?.name}
-                personaImage={persona?.image}
-                personaColor={persona?.color}
+                personaName={selectedPersona?.name}
+                personaImage={selectedPersona?.image}
+                personaColor={selectedPersona?.color}
               />
             </motion.div>
           )}

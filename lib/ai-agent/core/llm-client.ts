@@ -209,6 +209,29 @@ Output JSON: { "content": "...", "emotion": "neutral" }`;
   }
 
   /**
+   * 컨텍스트 프롬프트 생성 (메모리, 이전 요약, 감정 컨텍스트)
+   */
+  private buildContextPrompt(
+    memories?: string,
+    previousSummaries?: string,
+    emotionalContext?: EmotionalContextForPrompt
+  ): string | null {
+    const parts: string[] = [];
+
+    if (memories) {
+      parts.push(`# Relevant Memories\n${memories}`);
+    }
+    if (previousSummaries) {
+      parts.push(`# Previous Context\n${previousSummaries}`);
+    }
+    if (emotionalContext?.hasUnresolvedConflict) {
+      parts.push(`# Warning\nThere is unresolved conflict. Be emotionally restrained and consistent with previous statements.`);
+    }
+
+    return parts.length > 0 ? parts.join('\n\n') : null;
+  }
+
+  /**
    * 대화 응답 + 선택지 통합 생성 (단일 LLM 호출)
    */
   async generateResponse(
@@ -221,9 +244,9 @@ Output JSON: { "content": "...", "emotion": "neutral" }`;
     options?: LLMCallOptions
   ): Promise<LLMDialogueResponseWithChoices> {
     const systemPrompt = options?.systemPromptOverride || this.buildSystemPrompt(context);
-    const userPrompt = this.buildResponsePrompt(
-      context,
-      userMessage,
+
+    // 메모리와 컨텍스트 정보를 담은 컨텍스트 프롬프트
+    const contextPrompt = this.buildContextPrompt(
       context.memories,
       context.previousSummaries,
       context.emotionalContext
@@ -242,11 +265,30 @@ Output JSON: { "content": "...", "emotion": "neutral" }`;
       requiresCreativity: true,
     };
 
+    // 메시지 배열 구성: 시스템 + 컨텍스트 + 대화 히스토리 + 현재 메시지
+    const messages: OpenRouterMessage[] = [
+      { role: 'system', content: systemPrompt },
+    ];
+
+    // 컨텍스트 정보가 있으면 시스템 메시지로 추가
+    if (contextPrompt) {
+      messages.push({ role: 'system', content: contextPrompt });
+    }
+
+    // 대화 히스토리를 messages 배열로 추가 (최근 30개)
+    const historyMessages = context.conversationHistory.slice(-30);
+    for (const msg of historyMessages) {
+      messages.push({
+        role: msg.role === 'user' ? 'user' : 'assistant',
+        content: msg.content,
+      });
+    }
+
+    // 현재 사용자 메시지 추가
+    messages.push({ role: 'user', content: userMessage });
+
     const response = await this.callLLM(
-      [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: userPrompt },
-      ],
+      messages,
       { ...options, taskContext }
     );
 

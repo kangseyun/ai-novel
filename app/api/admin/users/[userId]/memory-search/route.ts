@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase-browser';
+import { supabase } from '@/lib/supabase';
 import { NextRequest, NextResponse } from 'next/server';
 import { getEmbeddingService } from '@/lib/ai-agent/memory/embedding-service';
 
@@ -10,7 +10,6 @@ export async function POST(
     const { userId } = await params;
 
     // 1. Admin Check
-    const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
 
     if (!user) {

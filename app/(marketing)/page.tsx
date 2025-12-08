@@ -17,27 +17,23 @@ import {
   Flame,
 } from 'lucide-react';
 import Link from 'next/link';
-import HackedProfile from '@/components/sns/HackedProfile';
-import StoryViewer from '@/components/sns/StoryViewer';
-import DMChat from '@/components/sns/DMChat';
 import HomeFeed from '@/components/feed/HomeFeed';
 import CreatePost from '@/components/feed/CreatePost';
 import AnalyticsPage from '@/components/analytics/AnalyticsPage';
 import MyProfile from '@/components/profile/MyProfile';
 import DMList from '@/components/dm/DMList';
-import {
-  JUN_PROFILE,
-  JUN_STORIES,
-  JUN_POSTS,
-  JUN_HIDDEN_FILES,
-  HACK_LEVELS,
-  Story,
-  getVisibleStories,
-} from '@/lib/hacked-sns-data';
 import { useHackerStore } from '@/lib/stores/hacker-store';
-import { useAuthStore } from '@/lib/stores/auth-store';
 import { supabase } from '@/lib/supabase';
 import { useTutorial } from '@/components/tutorial';
+
+// 해킹 레벨 정의 (XP bar에 사용)
+const HACK_LEVELS = [
+  { level: 1, xpRequired: 0 },
+  { level: 2, xpRequired: 100 },
+  { level: 3, xpRequired: 300 },
+  { level: 4, xpRequired: 600 },
+  { level: 5, xpRequired: 1000 },
+];
 
 type Tab = 'home' | 'dm' | 'create' | 'activity' | 'profile';
 
@@ -73,14 +69,6 @@ export default function MainPage() {
   const [bootStep, setBootStep] = useState(0);
   const [connectionStatus, setConnectionStatus] = useState<'connecting' | 'connected' | 'intercepted'>('connecting');
   const [isLoading, setIsLoading] = useState(true);
-
-  // Story viewer state
-  const [showStoryViewer, setShowStoryViewer] = useState(false);
-  const [storyIndex] = useState(0);
-
-  // DM state
-  const [showDM, setShowDM] = useState(false);
-  const [activePersonaId, setActivePersonaId] = useState<string | null>(null);
 
   // Create post modal
   const [showCreatePost, setShowCreatePost] = useState(false);
@@ -197,29 +185,6 @@ export default function MainPage() {
       return () => clearTimeout(timer);
     }
   }, [bootStep, showBootSequence, bootMessages.length]);
-
-  // Calculate visible content
-  const visibleStories = getVisibleStories(JUN_STORIES, hackLevel);
-
-  const handleStoryReply = (story: Story, message: string) => {
-    console.log('Reply to story:', story.id, message);
-    gainXP('jun', 10);
-  };
-
-  const handleOpenDM = (personaId: string) => {
-    setActivePersonaId(personaId);
-    setShowStoryViewer(false);
-    setShowDM(true);
-  };
-
-  const handleCloseDM = () => {
-    setShowDM(false);
-    setActivePersonaId(null);
-  };
-
-  const handleGainXP = (amount: number) => {
-    gainXP('jun', amount);
-  };
 
   // 로딩 중
   if (isLoading) {
@@ -385,9 +350,7 @@ export default function MainPage() {
         )}
 
         {currentTab === 'dm' && (
-          <DMList onOpenChat={(personaId) => {
-            handleOpenDM(personaId);
-          }} />
+          <DMList />
         )}
 
         {currentTab === 'activity' && (
@@ -403,33 +366,6 @@ export default function MainPage() {
       <AnimatePresence>
         {showCreatePost && (
           <CreatePost onClose={() => setShowCreatePost(false)} />
-        )}
-      </AnimatePresence>
-
-      {/* Story Viewer */}
-      <AnimatePresence>
-        {showStoryViewer && (
-          <StoryViewer
-            stories={visibleStories}
-            initialIndex={storyIndex}
-            profileImage={JUN_PROFILE.profileImage}
-            username={JUN_PROFILE.username}
-            onClose={() => setShowStoryViewer(false)}
-            onReply={handleStoryReply}
-            onStartScenario={() => handleOpenDM('jun')}
-          />
-        )}
-      </AnimatePresence>
-
-      {/* DM Chat */}
-      <AnimatePresence>
-        {showDM && activePersonaId && (
-          <DMChat
-            personaId={activePersonaId}
-            profile={JUN_PROFILE}
-            onClose={handleCloseDM}
-            onGainXP={handleGainXP}
-          />
         )}
       </AnimatePresence>
 

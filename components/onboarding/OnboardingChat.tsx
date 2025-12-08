@@ -5,16 +5,18 @@ import { motion, AnimatePresence } from 'framer-motion';
 import Image from 'next/image';
 import {
   ChevronLeft,
-  Phone,
-  Video,
-  Info,
   Lock,
   Crown,
   Sparkles,
   ShieldAlert,
 } from 'lucide-react';
-import { JUN_PROFILE } from '@/lib/hacked-sns-data';
 import { ONBOARDING_DM_SCENARIO, OnboardingMessage, OnboardingChoice, SPECIAL_SCENARIO_TRIGGER } from '@/lib/onboarding-data';
+
+// 온보딩용 Jun 프로필 (DB 연결 전 기본값)
+const DEFAULT_JUN_PROFILE = {
+  profileImage: '/images/personas/jun.jpg',
+  displayName: 'Jun ✨',
+};
 
 interface OnboardingChatProps {
   onProgress: (affection: number, isPremiumTease: boolean) => void;
@@ -36,8 +38,28 @@ export default function OnboardingChat({ onProgress, onCliffhanger, onTriggerSce
   const [showPremiumModal, setShowPremiumModal] = useState(false);
   const [premiumTease, setPremiumTease] = useState('');
   const [isStarted, setIsStarted] = useState(false);
+  const [junProfile, setJunProfile] = useState(DEFAULT_JUN_PROFILE);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const processedIdsRef = useRef<Set<string>>(new Set());
+
+  // Jun 프로필 로드
+  useEffect(() => {
+    const loadJunProfile = async () => {
+      try {
+        const res = await fetch('/api/personas/jun');
+        if (res.ok) {
+          const data = await res.json();
+          setJunProfile({
+            profileImage: data.persona.avatar_url || DEFAULT_JUN_PROFILE.profileImage,
+            displayName: data.persona.display_name || DEFAULT_JUN_PROFILE.displayName,
+          });
+        }
+      } catch (err) {
+        console.error('[OnboardingChat] Failed to load Jun profile:', err);
+      }
+    };
+    loadJunProfile();
+  }, []);
 
   // 자동 스크롤
   useEffect(() => {
@@ -183,8 +205,8 @@ export default function OnboardingChat({ onProgress, onCliffhanger, onTriggerSce
               <div className="relative">
                 <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-red-500/50">
                   <Image
-                    src={JUN_PROFILE.profileImage}
-                    alt={JUN_PROFILE.displayName}
+                    src={junProfile.profileImage}
+                    alt={junProfile.displayName}
                     width={40}
                     height={40}
                     className="object-cover"
@@ -194,7 +216,7 @@ export default function OnboardingChat({ onProgress, onCliffhanger, onTriggerSce
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <span className="font-medium text-white text-sm">{JUN_PROFILE.displayName}</span>
+                  <span className="font-medium text-white text-sm">{junProfile.displayName}</span>
                   <Lock className="w-3 h-3 text-red-400" />
                 </div>
                 <span className="text-xs text-green-400">활동 중</span>
@@ -232,7 +254,7 @@ export default function OnboardingChat({ onProgress, onCliffhanger, onTriggerSce
               <div className="flex items-end gap-2">
                 <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0">
                   <Image
-                    src={JUN_PROFILE.profileImage}
+                    src={junProfile.profileImage}
                     alt=""
                     width={32}
                     height={32}
@@ -252,7 +274,7 @@ export default function OnboardingChat({ onProgress, onCliffhanger, onTriggerSce
                 {msg.sender === 'npc' && (
                   <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0">
                     <Image
-                      src={JUN_PROFILE.profileImage}
+                      src={junProfile.profileImage}
                       alt=""
                       width={32}
                       height={32}

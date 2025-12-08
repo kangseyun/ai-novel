@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { createClient } from '@/lib/supabase-browser';
+import { supabase } from '@/lib/supabase';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 
 export interface ImageGenerationTask {
@@ -36,7 +36,6 @@ const processingTaskIds = new Set<string>(); // 현재 처리 중인 태스크 I
 export function useImageGenerationQueue() {
   const [tasks, setTasks] = useState<ImageGenerationTask[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const supabase = createClient();
   const tasksRef = useRef<ImageGenerationTask[]>([]); // 최신 tasks를 ref로 관리
 
   // 초기 로드 및 Realtime 구독
@@ -309,7 +308,6 @@ export function useImageGenerationQueue() {
 export function useImageHistory(personaId: string | null) {
   const [history, setHistory] = useState<ImageHistoryItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const supabase = createClient();
 
   useEffect(() => {
     if (!personaId) {

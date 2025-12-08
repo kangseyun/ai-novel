@@ -5,7 +5,6 @@ import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslations } from '@/lib/i18n';
 import {
-  Shield,
   ShieldAlert,
   Lock,
   Unlock,
@@ -13,25 +12,124 @@ import {
   EyeOff,
   Terminal,
   Wifi,
-  Settings,
   Grid3X3,
-  Bookmark,
   MessageCircle,
   Heart,
   MoreHorizontal,
   ChevronLeft,
   X,
 } from 'lucide-react';
-import {
-  SNSProfile,
-  Story,
-  Post,
-  HiddenFile,
-  HACK_LEVELS,
-  getVisibleStories,
-  getVisiblePosts,
-  getUnlockedFiles,
-} from '@/lib/hacked-sns-data';
+
+interface SNSProfile {
+  id: string;
+  username: string;
+  displayName: string;
+  bio: string;
+  profileImage: string;
+  isVerified: boolean;
+  followers: string;
+  following: number;
+}
+
+interface Story {
+  id: string;
+  profileId: string;
+  type: 'image' | 'video' | 'text';
+  content: string;
+  caption?: string;
+  timestamp: string;
+  isViewed: boolean;
+  isSecret: boolean;
+  requiredHackLevel: number;
+  linkedDMScenario?: string;
+}
+
+interface Post {
+  id: string;
+  profileId: string;
+  type: 'image' | 'carousel' | 'video';
+  images: string[];
+  caption: string;
+  likes: string;
+  comments: number;
+  timestamp: string;
+  isOfficial: boolean;
+  isHidden: boolean;
+  requiredHackLevel: number;
+}
+
+interface HiddenFile {
+  id: string;
+  profileId: string;
+  type: 'photo' | 'voice' | 'video' | 'document';
+  title: string;
+  description: string;
+  thumbnail?: string;
+  isUnlocked: boolean;
+  requiredHackLevel: number;
+  unlockCondition?: string;
+}
+
+const HACK_LEVELS = [
+  {
+    level: 1,
+    name: 'Script Kiddie',
+    description: '기본 접근 권한',
+    xpRequired: 0,
+    features: ['공개 스토리 보기', '공식 포스트 보기', '기본 DM'],
+  },
+  {
+    level: 2,
+    name: 'Hacker',
+    description: '비밀 스토리 접근',
+    xpRequired: 100,
+    features: ['비밀 스토리 보기', '삭제된 포스트 일부', '숨겨진 파일 1개'],
+  },
+  {
+    level: 3,
+    name: 'Elite Hacker',
+    description: '삭제된 콘텐츠 복구',
+    xpRequired: 300,
+    features: ['삭제된 포스트 전체', 'DM 기록 복구', '숨겨진 파일 3개'],
+  },
+  {
+    level: 4,
+    name: 'Shadow',
+    description: '깊은 시스템 접근',
+    xpRequired: 600,
+    features: ['비공개 메모', '초안 게시물', '음성 메시지'],
+  },
+  {
+    level: 5,
+    name: 'Ghost',
+    description: '완전한 접근',
+    xpRequired: 1000,
+    features: ['모든 콘텐츠', '실시간 알림', '특별 엔딩'],
+  },
+];
+
+function canAccessContent(requiredLevel: number, currentLevel: number): boolean {
+  return currentLevel >= requiredLevel;
+}
+
+function getVisibleStories(stories: Story[], hackLevel: number): Story[] {
+  return stories.filter(
+    (s) => !s.isSecret || canAccessContent(s.requiredHackLevel, hackLevel)
+  );
+}
+
+function getVisiblePosts(posts: Post[], hackLevel: number): Post[] {
+  return posts.filter(
+    (p) => !p.isHidden || canAccessContent(p.requiredHackLevel, hackLevel)
+  );
+}
+
+function getUnlockedFiles(files: HiddenFile[], hackLevel: number): HiddenFile[] {
+  return files.map((f) => ({
+    ...f,
+    isUnlocked: canAccessContent(f.requiredHackLevel, hackLevel),
+  }));
+}
 
 interface HackedProfileProps {
   profile: SNSProfile;

@@ -2,13 +2,19 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAuthUser, unauthorized, badRequest, serverError } from '@/lib/auth';
 import { createClient } from '@/lib/supabase-server';
 
-// 페르소나별 해금 비용
-const UNLOCK_COSTS: Record<string, number> = {
+// 페르소나별 팔로우 비용 (토큰)
+const FOLLOW_COST = 10; // 팔로우 기본 비용
+
+// 프리미엄 페르소나는 추가 비용
+const PREMIUM_FOLLOW_COSTS: Record<string, number> = {
   daniel: 100,
   kael: 100,
   adrian: 150,
   ren: 200,
 };
+
+// 새로고침 비용
+const REFRESH_COST = 5;
 
 /**
  * POST /api/personas/unlock
@@ -30,10 +36,8 @@ export async function POST(request: NextRequest) {
       return badRequest('Jun is already unlocked by default');
     }
 
-    const unlockCost = UNLOCK_COSTS[personaId];
-    if (!unlockCost) {
-      return badRequest('Invalid persona ID');
-    }
+    // 프리미엄 페르소나는 추가 비용, 일반은 기본 비용
+    const unlockCost = PREMIUM_FOLLOW_COSTS[personaId] || FOLLOW_COST;
 
     const supabase = await createClient();
 

@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { createClient } from '@/lib/supabase-browser';
+import { supabase } from '@/lib/supabase';
 import {
   ArrowLeft,
   Loader2,
@@ -287,7 +287,6 @@ export default function ProjectDetailPage() {
   const loadPersonas = useCallback(async () => {
     try {
       // persona_core 테이블에서 직접 조회 (어드민용)
-      const supabase = createClient();
       const { data, error } = await supabase
         .from('persona_core')
         .select('id, name, full_name, role, age, ethnicity, profile_image_url, appearance, core_personality, status')

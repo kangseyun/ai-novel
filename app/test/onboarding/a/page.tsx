@@ -8,7 +8,7 @@ export default function TestOnboardingAPage() {
 
   return (
     <OnboardingA
-      onComplete={() => router.push('/')}
+      onComplete={() => router.push('/login')}
       onSkip={() => router.push('/login')}
     />
   );

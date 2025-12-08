@@ -1,0 +1,954 @@
+{
+  "metadata": {
+    "testId": "2d5492a3-cd04-4fd1-b298-6ff995a66ec4",
+    "timestamp": "2025-12-08T07:04:28.388Z",
+    "personaId": "jun",
+    "config": {
+      "personaId": "jun",
+      "dmTurns": 3,
+      "scenarioTurns": 2,
+      "skipOnboarding": true,
+      "userModel": "deepseek/deepseek-chat",
+      "verbose": false
+    }
+  },
+  "summary": {
+    "totalDuration": 56299,
+    "totalMessages": 8,
+    "totalAffectionChange": 8,
+    "finalAffection": 36,
+    "finalRelationshipStage": "stranger",
+    "successRate": "3/3"
+  },
+  "phases": [
+    {
+      "phase": "dm_chat",
+      "success": true,
+      "duration": 25876,
+      "messageCount": 3,
+      "affectionChange": 3,
+      "logs": [
+        {
+          "timestamp": "2025-12-08T07:03:32.078Z",
+          "phase": "DM_CHAT",
+          "event": "PHASE_START",
+          "data": {
+            "phase": "DM_CHAT"
+          }
+        },
+        {
+          "timestamp": "2025-12-08T07:03:33.212Z",
+          "phase": "DM_CHAT",
+          "event": "INFO",
+          "data": {
+            "message": "세션 ID: new"
+          }
+        },
+        {
+          "timestamp": "2025-12-08T07:03:33.212Z",
+          "phase": "DM_CHAT",
+          "event": "INFO",
+          "data": {
+            "message": "--- Turn 1/3 ---"
+          }
+        },
+        {
+          "timestamp": "2025-12-08T07:03:34.247Z",
+          "phase": "DM_CHAT",
+          "event": "LLM_CALL",
+          "data": {
+            "model": "deepseek/deepseek-chat",
+            "duration": 1035
+          },
+          "duration": 1035
+        },
+        {
+          "timestamp": "2025-12-08T07:03:35.373Z",
+          "phase": "DM_CHAT",
+          "event": "USER_MESSAGE",
+          "data": {
+            "content": "(1분 후)  \nㅎㅇ.. 방금  롤하다  왔는데 진짜 개빡치네 ㅠㅠ"
+          }
+        },
+        {
+          "timestamp": "2025-12-08T07:03:41.435Z",
+          "phase": "DM_CHAT",
+          "event": "LLM_CALL",
+          "data": {
+            "model": "deepseek/deepseek-chat",
+            "duration": 1242
+          },
+          "duration": 1242
+        },
+        {
+          "timestamp": "2025-12-08T07:03:43.822Z",
+          "phase": "DM_CHAT",
+          "event": "PERSONA_MESSAGE",
+          "data": {
+            "content": "(화장실 거울 앞에서 머리 스타일 만지작거리며) 어머~  롤이요? 저는 게임 잘  몰라서... (살짝 당황한 표정)  헤헤...",
+            "emotion": "neutral",
+            "affection": 1
+          }
+        },
+        {
+          "timestamp": "2025-12-08T07:03:44.124Z",
+          "phase": "DM_CHAT",
+          "event": "INFO",
+          "data": {
+            "message": "--- Turn 2/3 ---"
+          }
+        },
+        {
+          "timestamp": "2025-12-08T07:03:45.323Z",
+          "phase": "DM_CHAT",
+          "event": "LLM_CALL",
+          "data": {
+            "model": "deepseek/deepseek-chat",
+            "duration": 1199
+          },
+          "duration": 1199
+        },
+        {
+          "timestamp": "2025-12-08T07:03:46.313Z",
+          "phase": "DM_CHAT",
+          "event": "USER_MESSAGE",
+          "data": {
+            "content": "ㅋㅋㅋ 나도 롤은 잘 못하는데...  \n갑자기 욕 나와서 미안 ㅎㅎ"
+          }
+        },
+        {
+          "timestamp": "2025-12-08T07:03:48.817Z",
+          "phase": "DM_CHAT",
+          "event": "LLM_CALL",
+          "data": {
+            "model": "deepseek/deepseek-chat",
+            "duration": 1543
+          },
+          "duration": 1543
+        },
+        {
+          "timestamp": "2025-12-08T07:03:51.203Z",
+          "phase": "DM_CHAT",
+          "event": "PERSONA_MESSAGE",
+          "data": {
+            "content": "(살짝 얼굴을 붉히며) 아... 괜찮아요! (웃으며) 저도 연습실에서 춤 추다가 넘어지면... 가끔... 그런 말... 나올 때도... 있죠... (소근)",
+            "emotion": "neutral",
+            "affection": 1
+          }
+        },
+        {
+          "timestamp": "2025-12-08T07:03:51.504Z",
+          "phase": "DM_CHAT",
+          "event": "INFO",
+          "data": {
+            "message": "--- Turn 3/3 ---"
+          }
+        },
+        {
+          "timestamp": "2025-12-08T07:03:51.732Z",
+          "phase": "DM_CHAT",
+          "event": "LLM_CALL",
+          "data": {
+            "model": "deepseek/deepseek-chat",
+            "duration": 228
+          },
+          "duration": 228
+        },
+        {
+          "timestamp": "2025-12-08T07:03:53.517Z",
+          "phase": "DM_CHAT",
+          "event": "USER_MESSAGE",
+          "data": {
+            "content": "연습실에서 춤추다가 넘어진다고? ㅋㅋ 나도 고등학교 때 춤 좀 추다가 넘어져서 친구들한테 놀림당했던 기억이 나네ㅠㅠ"
+          }
+        },
+        {
+          "timestamp": "2025-12-08T07:03:54.372Z",
+          "phase": "DM_CHAT",
+          "event": "LLM_CALL",
+          "data": {
+            "model": "deepseek/deepseek-chat",
+            "duration": 564
+          },
+          "duration": 564
+        },
+        {
+          "timestamp": "2025-12-08T07:03:57.652Z",
+          "phase": "DM_CHAT",
+          "event": "PERSONA_MESSAGE",
+          "data": {
+            "content": "(손으로 입을 가리고 깔깔 웃으며) 우와... 춤 좋아하시나봐요? (살짝 신이 나는 듯) 저랑 비슷하네요! 하지만 넘어져도 계속 도전해야죠. 그게... 아이돌의 미덕...? (허세 부리듯 말하며 카메라 윙크)",
+            "emotion": "neutral",
+            "affection": 1
+          }
+        },
+        {
+          "timestamp": "2025-12-08T07:03:57.954Z",
+          "phase": "DM_CHAT",
+          "event": "SUCCESS",
+          "data": {
+            "message": "DM Chat 완료",
+            "turns": 3,
+            "affectionChange": 3,
+            "currentAffection": 31,
+            "relationshipStage": "stranger"
+          }
+        }
+      ]
+    },
+    {
+      "phase": "scenario",
+      "success": true,
+      "duration": 671,
+      "messageCount": 0,
+      "affectionChange": 0,
+      "logs": [
+        {
+          "timestamp": "2025-12-08T07:03:57.955Z",
+          "phase": "SCENARIO",
+          "event": "PHASE_START",
+          "data": {
+            "phase": "SCENARIO"
+          }
+        },
+        {
+          "timestamp": "2025-12-08T07:03:57.955Z",
+          "phase": "SCENARIO",
+          "event": "INFO",
+          "data": {
+            "message": "활성 시나리오 없음. 조건에 맞는 시나리오 검색..."
+          }
+        },
+        {
+          "timestamp": "2025-12-08T07:03:58.626Z",
+          "phase": "SCENARIO",
+          "event": "INFO",
+          "data": {
+            "message": "사용 가능한 시나리오가 없습니다. 시나리오 페이즈 스킵."
+          }
+        }
+      ]
+    },
+    {
+      "phase": "post_scenario_dm",
+      "success": true,
+      "duration": 29752,
+      "messageCount": 5,
+      "affectionChange": 5,
+      "logs": [
+        {
+          "timestamp": "2025-12-08T07:03:58.626Z",
+          "phase": "POST_SCENARIO_DM",
+          "event": "PHASE_START",
+          "data": {
+            "phase": "POST_SCENARIO_DM"
+          }
+        },
+        {
+          "timestamp": "2025-12-08T07:03:59.401Z",
+          "phase": "POST_SCENARIO_DM",
+          "event": "INFO",
+          "data": {
+            "message": "--- Post-Scenario Turn 1/5 ---"
+          }
+        },
+        {
+          "timestamp": "2025-12-08T07:03:59.647Z",
+          "phase": "POST_SCENARIO_DM",
+          "event": "LLM_CALL",
+          "data": {
+            "model": "deepseek/deepseek-chat",
+            "duration": 246
+          },
+          "duration": 246
+        },
+        {
+          "timestamp": "2025-12-08T07:04:00.754Z",
+          "phase": "POST_SCENARIO_DM",
+          "event": "USER_MESSAGE",
+          "data": {
+            "content": "야 이제 됐다 ㅋㅋ 진짜 힘들었네"
+          }
+        },
+        {
+          "timestamp": "2025-12-08T07:04:02.333Z",
+          "phase": "POST_SCENARIO_DM",
+          "event": "LLM_CALL",
+          "data": {
+            "model": "deepseek/deepseek-chat",
+            "duration": 1577
+          },
+          "duration": 1577
+        },
+        {
+          "timestamp": "2025-12-08T07:04:03.382Z",
+          "phase": "POST_SCENARIO_DM",
+          "event": "PERSONA_MESSAGE",
+          "data": {
+            "content": "ㅋㅋ 그래도 같이 해내서 다행이야. 다음엔 좀 더 쉬운 거 하자~",
+            "emotion": "happy",
+            "affection": 1
+          }
+        },
+        {
+          "timestamp": "2025-12-08T07:04:03.682Z",
+          "phase": "POST_SCENARIO_DM",
+          "event": "INFO",
+          "data": {
+            "message": "--- Post-Scenario Turn 2/5 ---"
+          }
+        },
+        {
+          "timestamp": "2025-12-08T07:04:03.927Z",
+          "phase": "POST_SCENARIO_DM",
+          "event": "LLM_CALL",
+          "data": {
+            "model": "deepseek/deepseek-chat",
+            "duration": 244
+          },
+          "duration": 244
+        },
+        {
+          "timestamp": "2025-12-08T07:04:05.298Z",
+          "phase": "POST_SCENARIO_DM",
+          "event": "USER_MESSAGE",
+          "data": {
+            "content": "ㅇㅇ 진짜 좀 쉬운 걸로 ㅋㅋ 오늘은 집에서 누워있어야겠다 ㅠㅠ"
+          }
+        },
+        {
+          "timestamp": "2025-12-08T07:04:06.963Z",
+          "phase": "POST_SCENARIO_DM",
+          "event": "LLM_CALL",
+          "data": {
+            "model": "deepseek/deepseek-chat",
+            "duration": 1664
+          },
+          "duration": 1664
+        },
+        {
+          "timestamp": "2025-12-08T07:04:08.604Z",
+          "phase": "POST_SCENARIO_DM",
+          "event": "PERSONA_MESSAGE",
+          "data": {
+            "content": "ㅋㅋ 나도 오늘은 그냥 맨날 보던 드라마나 다시 보면서 쉴래. 다음에 만나면 맛있는 거 사줄게~",
+            "emotion": "happy",
+            "affection": 1
+          }
+        },
+        {
+          "timestamp": "2025-12-08T07:04:08.905Z",
+          "phase": "POST_SCENARIO_DM",
+          "event": "INFO",
+          "data": {
+            "message": "--- Post-Scenario Turn 3/5 ---"
+          }
+        },
+        {
+          "timestamp": "2025-12-08T07:04:09.943Z",
+          "phase": "POST_SCENARIO_DM",
+          "event": "LLM_CALL",
+          "data": {
+            "model": "deepseek/deepseek-chat",
+            "duration": 1038
+          },
+          "duration": 1038
+        },
+        {
+          "timestamp": "2025-12-08T07:04:11.712Z",
+          "phase": "POST_SCENARIO_DM",
+          "event": "USER_MESSAGE",
+          "data": {
+            "content": "ㅋㅋ 진짜? 기대할게~ 근데 다음에 또 미션 주면 안 된다? ㅠㅠ  \n아니면  맛집 탐방이나 할까? ㅎㅎ"
+          }
+        },
+        {
+          "timestamp": "2025-12-08T07:04:13.194Z",
+          "phase": "POST_SCENARIO_DM",
+          "event": "LLM_CALL",
+          "data": {
+            "model": "deepseek/deepseek-chat",
+            "duration": 1482
+          },
+          "duration": 1482
+        },
+        {
+          "timestamp": "2025-12-08T07:04:15.482Z",
+          "phase": "POST_SCENARIO_DM",
+          "event": "PERSONA_MESSAGE",
+          "data": {
+            "content": "ㅋㅋㅋ 미션은 No! 다음엔 진짜 그냥 맛집 탐방만 하기로 약속~  \n(단, 내가 고를 권리 있음 ㅎㅎ) 너무 매운 거 말고  맛있는 거로  골라줄게  😉",
+            "emotion": "happy",
+            "affection": 1
+          }
+        },
+        {
+          "timestamp": "2025-12-08T07:04:15.782Z",
+          "phase": "POST_SCENARIO_DM",
+          "event": "INFO",
+          "data": {
+            "message": "--- Post-Scenario Turn 4/5 ---"
+          }
+        },
+        {
+          "timestamp": "2025-12-08T07:04:17.078Z",
+          "phase": "POST_SCENARIO_DM",
+          "event": "LLM_CALL",
+          "data": {
+            "model": "deepseek/deepseek-chat",
+            "duration": 1296
+          },
+          "duration": 1296
+        },
+        {
+          "timestamp": "2025-12-08T07:04:18.460Z",
+          "phase": "POST_SCENARIO_DM",
+          "event": "USER_MESSAGE",
+          "data": {
+            "content": "ㅋㅋㅋ 약속  꼭 지켜야  돼! 매운 거  싫어하는 거 다 기억해놨지? ㅎㅎ"
+          }
+        },
+        {
+          "timestamp": "2025-12-08T07:04:18.702Z",
+          "phase": "POST_SCENARIO_DM",
+          "event": "LLM_CALL",
+          "data": {
+            "model": "deepseek/deepseek-chat",
+            "duration": 242
+          },
+          "duration": 242
+        },
+        {
+          "timestamp": "2025-12-08T07:04:20.633Z",
+          "phase": "POST_SCENARIO_DM",
+          "event": "PERSONA_MESSAGE",
+          "data": {
+            "content": "당연하지 ㅋㅋ 너 매운 거 못 먹는 거 까먹었으면 친구 맞나?  \n다음엔 진짜 맛있고 안 매운 데로 데려갈게~ 약속! ✋",
+            "emotion": "happy",
+            "affection": 1
+          }
+        },
+        {
+          "timestamp": "2025-12-08T07:04:20.978Z",
+          "phase": "POST_SCENARIO_DM",
+          "event": "INFO",
+          "data": {
+            "message": "--- Post-Scenario Turn 5/5 ---"
+          }
+        },
+        {
+          "timestamp": "2025-12-08T07:04:21.771Z",
+          "phase": "POST_SCENARIO_DM",
+          "event": "LLM_CALL",
+          "data": {
+            "model": "deepseek/deepseek-chat",
+            "duration": 778
+          },
+          "duration": 778
+        },
+        {
+          "timestamp": "2025-12-08T07:04:23.352Z",
+          "phase": "POST_SCENARIO_DM",
+          "event": "USER_MESSAGE",
+          "data": {
+            "content": "ㅋㅋ역시 Jun이 최고야~  \n근데 만약  맛집 후보 3개는 미리 보여줘야 한다? ㅎㅎ (신중한 선택 필수✨)"
+          }
+        },
+        {
+          "timestamp": "2025-12-08T07:04:25.080Z",
+          "phase": "POST_SCENARIO_DM",
+          "event": "LLM_CALL",
+          "data": {
+            "model": "deepseek/deepseek-chat",
+            "duration": 1728
+          },
+          "duration": 1728
+        },
+        {
+          "timestamp": "2025-12-08T07:04:28.042Z",
+          "phase": "POST_SCENARIO_DM",
+          "event": "PERSONA_MESSAGE",
+          "data": {
+            "content": "아니 이렇게 까다롭게 구는 거 보니 완전 회복했네 ㅋㅋㅋ  \n알았어~ 3개 찜해놓고 너한테 투표권 줄게. 내 선택 + 너의 선택 = 완벽한 맛집! 😆",
+            "emotion": "happy",
+            "affection": 1
+          }
+        },
+        {
+          "timestamp": "2025-12-08T07:04:28.378Z",
+          "phase": "POST_SCENARIO_DM",
+          "event": "SUCCESS",
+          "data": {
+            "message": "Post-Scenario DM 완료",
+            "turns": 5,
+            "finalAffection": 36
+          }
+        }
+      ]
+    }
+  ],
+  "fullLogs": [
+    {
+      "timestamp": "2025-12-08T07:03:32.077Z",
+      "phase": "init",
+      "event": "INFO",
+      "data": {
+        "message": "테스트 유저 생성: 8f5e47ff-eef7-4707-b5e1-e36fd9aea0f2"
+      }
+    },
+    {
+      "timestamp": "2025-12-08T07:03:32.078Z",
+      "phase": "init",
+      "event": "INFO",
+      "data": {
+        "message": "온보딩 스킵됨"
+      }
+    },
+    {
+      "timestamp": "2025-12-08T07:03:32.078Z",
+      "phase": "DM_CHAT",
+      "event": "PHASE_START",
+      "data": {
+        "phase": "DM_CHAT"
+      }
+    },
+    {
+      "timestamp": "2025-12-08T07:03:33.212Z",
+      "phase": "DM_CHAT",
+      "event": "INFO",
+      "data": {
+        "message": "세션 ID: new"
+      }
+    },
+    {
+      "timestamp": "2025-12-08T07:03:33.212Z",
+      "phase": "DM_CHAT",
+      "event": "INFO",
+      "data": {
+        "message": "--- Turn 1/3 ---"
+      }
+    },
+    {
+      "timestamp": "2025-12-08T07:03:34.247Z",
+      "phase": "DM_CHAT",
+      "event": "LLM_CALL",
+      "data": {
+        "model": "deepseek/deepseek-chat",
+        "duration": 1035
+      },
+      "duration": 1035
+    },
+    {
+      "timestamp": "2025-12-08T07:03:35.373Z",
+      "phase": "DM_CHAT",
+      "event": "USER_MESSAGE",
+      "data": {
+        "content": "(1분 후)  \nㅎㅇ.. 방금  롤하다  왔는데 진짜 개빡치네 ㅠㅠ"
+      }
+    },
+    {
+      "timestamp": "2025-12-08T07:03:41.435Z",
+      "phase": "DM_CHAT",
+      "event": "LLM_CALL",
+      "data": {
+        "model": "deepseek/deepseek-chat",
+        "duration": 1242
+      },
+      "duration": 1242
+    },
+    {
+      "timestamp": "2025-12-08T07:03:43.822Z",
+      "phase": "DM_CHAT",
+      "event": "PERSONA_MESSAGE",
+      "data": {
+        "content": "(화장실 거울 앞에서 머리 스타일 만지작거리며) 어머~  롤이요? 저는 게임 잘  몰라서... (살짝 당황한 표정)  헤헤...",
+        "emotion": "neutral",
+        "affection": 1
+      }
+    },
+    {
+      "timestamp": "2025-12-08T07:03:44.124Z",
+      "phase": "DM_CHAT",
+      "event": "INFO",
+      "data": {
+        "message": "--- Turn 2/3 ---"
+      }
+    },
+    {
+      "timestamp": "2025-12-08T07:03:45.323Z",
+      "phase": "DM_CHAT",
+      "event": "LLM_CALL",
+      "data": {
+        "model": "deepseek/deepseek-chat",
+        "duration": 1199
+      },
+      "duration": 1199
+    },
+    {
+      "timestamp": "2025-12-08T07:03:46.313Z",
+      "phase": "DM_CHAT",
+      "event": "USER_MESSAGE",
+      "data": {
+        "content": "ㅋㅋㅋ 나도 롤은 잘 못하는데...  \n갑자기 욕 나와서 미안 ㅎㅎ"
+      }
+    },
+    {
+      "timestamp": "2025-12-08T07:03:48.817Z",
+      "phase": "DM_CHAT",
+      "event": "LLM_CALL",
+      "data": {
+        "model": "deepseek/deepseek-chat",
+        "duration": 1543
+      },
+      "duration": 1543
+    },
+    {
+      "timestamp": "2025-12-08T07:03:51.203Z",
+      "phase": "DM_CHAT",
+      "event": "PERSONA_MESSAGE",
+      "data": {
+        "content": "(살짝 얼굴을 붉히며) 아... 괜찮아요! (웃으며) 저도 연습실에서 춤 추다가 넘어지면... 가끔... 그런 말... 나올 때도... 있죠... (소근)",
+        "emotion": "neutral",
+        "affection": 1
+      }
+    },
+    {
+      "timestamp": "2025-12-08T07:03:51.504Z",
+      "phase": "DM_CHAT",
+      "event": "INFO",
+      "data": {
+        "message": "--- Turn 3/3 ---"
+      }
+    },
+    {
+      "timestamp": "2025-12-08T07:03:51.732Z",
+      "phase": "DM_CHAT",
+      "event": "LLM_CALL",
+      "data": {
+        "model": "deepseek/deepseek-chat",
+        "duration": 228
+      },
+      "duration": 228
+    },
+    {
+      "timestamp": "2025-12-08T07:03:53.517Z",
+      "phase": "DM_CHAT",
+      "event": "USER_MESSAGE",
+      "data": {
+        "content": "연습실에서 춤추다가 넘어진다고? ㅋㅋ 나도 고등학교 때 춤 좀 추다가 넘어져서 친구들한테 놀림당했던 기억이 나네ㅠㅠ"
+      }
+    },
+    {
+      "timestamp": "2025-12-08T07:03:54.372Z",
+      "phase": "DM_CHAT",
+      "event": "LLM_CALL",
+      "data": {
+        "model": "deepseek/deepseek-chat",
+        "duration": 564
+      },
+      "duration": 564
+    },
+    {
+      "timestamp": "2025-12-08T07:03:57.652Z",
+      "phase": "DM_CHAT",
+      "event": "PERSONA_MESSAGE",
+      "data": {
+        "content": "(손으로 입을 가리고 깔깔 웃으며) 우와... 춤 좋아하시나봐요? (살짝 신이 나는 듯) 저랑 비슷하네요! 하지만 넘어져도 계속 도전해야죠. 그게... 아이돌의 미덕...? (허세 부리듯 말하며 카메라 윙크)",
+        "emotion": "neutral",
+        "affection": 1
+      }
+    },
+    {
+      "timestamp": "2025-12-08T07:03:57.954Z",
+      "phase": "DM_CHAT",
+      "event": "SUCCESS",
+      "data": {
+        "message": "DM Chat 완료",
+        "turns": 3,
+        "affectionChange": 3,
+        "currentAffection": 31,
+        "relationshipStage": "stranger"
+      }
+    },
+    {
+      "timestamp": "2025-12-08T07:03:57.955Z",
+      "phase": "SCENARIO",
+      "event": "PHASE_START",
+      "data": {
+        "phase": "SCENARIO"
+      }
+    },
+    {
+      "timestamp": "2025-12-08T07:03:57.955Z",
+      "phase": "SCENARIO",
+      "event": "INFO",
+      "data": {
+        "message": "활성 시나리오 없음. 조건에 맞는 시나리오 검색..."
+      }
+    },
+    {
+      "timestamp": "2025-12-08T07:03:58.626Z",
+      "phase": "SCENARIO",
+      "event": "INFO",
+      "data": {
+        "message": "사용 가능한 시나리오가 없습니다. 시나리오 페이즈 스킵."
+      }
+    },
+    {
+      "timestamp": "2025-12-08T07:03:58.626Z",
+      "phase": "POST_SCENARIO_DM",
+      "event": "PHASE_START",
+      "data": {
+        "phase": "POST_SCENARIO_DM"
+      }
+    },
+    {
+      "timestamp": "2025-12-08T07:03:59.401Z",
+      "phase": "POST_SCENARIO_DM",
+      "event": "INFO",
+      "data": {
+        "message": "--- Post-Scenario Turn 1/5 ---"
+      }
+    },
+    {
+      "timestamp": "2025-12-08T07:03:59.647Z",
+      "phase": "POST_SCENARIO_DM",
+      "event": "LLM_CALL",
+      "data": {
+        "model": "deepseek/deepseek-chat",
+        "duration": 246
+      },
+      "duration": 246
+    },
+    {
+      "timestamp": "2025-12-08T07:04:00.754Z",
+      "phase": "POST_SCENARIO_DM",
+      "event": "USER_MESSAGE",
+      "data": {
+        "content": "야 이제 됐다 ㅋㅋ 진짜 힘들었네"
+      }
+    },
+    {
+      "timestamp": "2025-12-08T07:04:02.333Z",
+      "phase": "POST_SCENARIO_DM",
+      "event": "LLM_CALL",
+      "data": {
+        "model": "deepseek/deepseek-chat",
+        "duration": 1577
+      },
+      "duration": 1577
+    },
+    {
+      "timestamp": "2025-12-08T07:04:03.382Z",
+      "phase": "POST_SCENARIO_DM",
+      "event": "PERSONA_MESSAGE",
+      "data": {
+        "content": "ㅋㅋ 그래도 같이 해내서 다행이야. 다음엔 좀 더 쉬운 거 하자~",
+        "emotion": "happy",
+        "affection": 1
+      }
+    },
+    {
+      "timestamp": "2025-12-08T07:04:03.682Z",
+      "phase": "POST_SCENARIO_DM",
+      "event": "INFO",
+      "data": {
+        "message": "--- Post-Scenario Turn 2/5 ---"
+      }
+    },
+    {
+      "timestamp": "2025-12-08T07:04:03.927Z",
+      "phase": "POST_SCENARIO_DM",
+      "event": "LLM_CALL",
+      "data": {
+        "model": "deepseek/deepseek-chat",
+        "duration": 244
+      },
+      "duration": 244
+    },
+    {
+      "timestamp": "2025-12-08T07:04:05.298Z",
+      "phase": "POST_SCENARIO_DM",
+      "event": "USER_MESSAGE",
+      "data": {
+        "content": "ㅇㅇ 진짜 좀 쉬운 걸로 ㅋㅋ 오늘은 집에서 누워있어야겠다 ㅠㅠ"
+      }
+    },
+    {
+      "timestamp": "2025-12-08T07:04:06.963Z",
+      "phase": "POST_SCENARIO_DM",
+      "event": "LLM_CALL",
+      "data": {
+        "model": "deepseek/deepseek-chat",
+        "duration": 1664
+      },
+      "duration": 1664
+    },
+    {
+      "timestamp": "2025-12-08T07:04:08.604Z",
+      "phase": "POST_SCENARIO_DM",
+      "event": "PERSONA_MESSAGE",
+      "data": {
+        "content": "ㅋㅋ 나도 오늘은 그냥 맨날 보던 드라마나 다시 보면서 쉴래. 다음에 만나면 맛있는 거 사줄게~",
+        "emotion": "happy",
+        "affection": 1
+      }
+    },
+    {
+      "timestamp": "2025-12-08T07:04:08.905Z",
+      "phase": "POST_SCENARIO_DM",
+      "event": "INFO",
+      "data": {
+        "message": "--- Post-Scenario Turn 3/5 ---"
+      }
+    },
+    {
+      "timestamp": "2025-12-08T07:04:09.943Z",
+      "phase": "POST_SCENARIO_DM",
+      "event": "LLM_CALL",
+      "data": {
+        "model": "deepseek/deepseek-chat",
+        "duration": 1038
+      },
+      "duration": 1038
+    },
+    {
+      "timestamp": "2025-12-08T07:04:11.712Z",
+      "phase": "POST_SCENARIO_DM",
+      "event": "USER_MESSAGE",
+      "data": {
+        "content": "ㅋㅋ 진짜? 기대할게~ 근데 다음에 또 미션 주면 안 된다? ㅠㅠ  \n아니면  맛집 탐방이나 할까? ㅎㅎ"
+      }
+    },
+    {
+      "timestamp": "2025-12-08T07:04:13.194Z",
+      "phase": "POST_SCENARIO_DM",
+      "event": "LLM_CALL",
+      "data": {
+        "model": "deepseek/deepseek-chat",
+        "duration": 1482
+      },
+      "duration": 1482
+    },
+    {
+      "timestamp": "2025-12-08T07:04:15.482Z",
+      "phase": "POST_SCENARIO_DM",
+      "event": "PERSONA_MESSAGE",
+      "data": {
+        "content": "ㅋㅋㅋ 미션은 No! 다음엔 진짜 그냥 맛집 탐방만 하기로 약속~  \n(단, 내가 고를 권리 있음 ㅎㅎ) 너무 매운 거 말고  맛있는 거로  골라줄게  😉",
+        "emotion": "happy",
+        "affection": 1
+      }
+    },
+    {
+      "timestamp": "2025-12-08T07:04:15.782Z",
+      "phase": "POST_SCENARIO_DM",
+      "event": "INFO",
+      "data": {
+        "message": "--- Post-Scenario Turn 4/5 ---"
+      }
+    },
+    {
+      "timestamp": "2025-12-08T07:04:17.078Z",
+      "phase": "POST_SCENARIO_DM",
+      "event": "LLM_CALL",
+      "data": {
+        "model": "deepseek/deepseek-chat",
+        "duration": 1296
+      },
+      "duration": 1296
+    },
+    {
+      "timestamp": "2025-12-08T07:04:18.460Z",
+      "phase": "POST_SCENARIO_DM",
+      "event": "USER_MESSAGE",
+      "data": {
+        "content": "ㅋㅋㅋ 약속  꼭 지켜야  돼! 매운 거  싫어하는 거 다 기억해놨지? ㅎㅎ"
+      }
+    },
+    {
+      "timestamp": "2025-12-08T07:04:18.702Z",
+      "phase": "POST_SCENARIO_DM",
+      "event": "LLM_CALL",
+      "data": {
+        "model": "deepseek/deepseek-chat",
+        "duration": 242
+      },
+      "duration": 242
+    },
+    {
+      "timestamp": "2025-12-08T07:04:20.633Z",
+      "phase": "POST_SCENARIO_DM",
+      "event": "PERSONA_MESSAGE",
+      "data": {
+        "content": "당연하지 ㅋㅋ 너 매운 거 못 먹는 거 까먹었으면 친구 맞나?  \n다음엔 진짜 맛있고 안 매운 데로 데려갈게~ 약속! ✋",
+        "emotion": "happy",
+        "affection": 1
+      }
+    },
+    {
+      "timestamp": "2025-12-08T07:04:20.978Z",
+      "phase": "POST_SCENARIO_DM",
+      "event": "INFO",
+      "data": {
+        "message": "--- Post-Scenario Turn 5/5 ---"
+      }
+    },
+    {
+      "timestamp": "2025-12-08T07:04:21.771Z",
+      "phase": "POST_SCENARIO_DM",
+      "event": "LLM_CALL",
+      "data": {
+        "model": "deepseek/deepseek-chat",
+        "duration": 778
+      },
+      "duration": 778
+    },
+    {
+      "timestamp": "2025-12-08T07:04:23.352Z",
+      "phase": "POST_SCENARIO_DM",
+      "event": "USER_MESSAGE",
+      "data": {
+        "content": "ㅋㅋ역시 Jun이 최고야~  \n근데 만약  맛집 후보 3개는 미리 보여줘야 한다? ㅎㅎ (신중한 선택 필수✨)"
+      }
+    },
+    {
+      "timestamp": "2025-12-08T07:04:25.080Z",
+      "phase": "POST_SCENARIO_DM",
+      "event": "LLM_CALL",
+      "data": {
+        "model": "deepseek/deepseek-chat",
+        "duration": 1728
+      },
+      "duration": 1728
+    },
+    {
+      "timestamp": "2025-12-08T07:04:28.042Z",
+      "phase": "POST_SCENARIO_DM",
+      "event": "PERSONA_MESSAGE",
+      "data": {
+        "content": "아니 이렇게 까다롭게 구는 거 보니 완전 회복했네 ㅋㅋㅋ  \n알았어~ 3개 찜해놓고 너한테 투표권 줄게. 내 선택 + 너의 선택 = 완벽한 맛집! 😆",
+        "emotion": "happy",
+        "affection": 1
+      }
+    },
+    {
+      "timestamp": "2025-12-08T07:04:28.378Z",
+      "phase": "POST_SCENARIO_DM",
+      "event": "SUCCESS",
+      "data": {
+        "message": "Post-Scenario DM 완료",
+        "turns": 5,
+        "finalAffection": 36
+      }
+    },
+    {
+      "timestamp": "2025-12-08T07:04:28.387Z",
+      "phase": "REPORT",
+      "event": "PHASE_START",
+      "data": {
+        "phase": "REPORT"
+      }
+    }
+  ]
+}

@@ -12,6 +12,8 @@ import { LLMClient, getLLMClient } from './llm-client';
 import type { LLMCallOptions } from './llm-client';
 import type { TaskContext } from './model-selector';
 import { EventTriggerEngine, EventScheduler } from '../modules/event-trigger-engine';
+import { evaluateScenarioTriggers, executeScenarioTrigger } from '../modules/event-trigger-service';
+import { getScenarioSessionManager, ScenarioSessionManager, ScenarioMode } from '../modules/scenario-session-manager';
 import { PromptEngine } from './prompt-engine';
 import { memoryService } from '../memory/memory-service';
 import { getPersonaConfig, getFullPersonaData } from '../memory/persona-config-store';
@@ -45,10 +47,12 @@ import {
 export class AIAgent {
   private supabase: SupabaseClient;
   private llmClient: LLMClient;
+  private scenarioManager: ScenarioSessionManager;
 
   constructor(supabaseUrl: string, supabaseKey: string) {
     this.supabase = createClient(supabaseUrl, supabaseKey);
     this.llmClient = getLLMClient();
+    this.scenarioManager = getScenarioSessionManager(this.supabase);
   }
 
   // ============================================
@@ -139,10 +143,10 @@ export class AIAgent {
       userMessage,
       session.userId,
       {
-        matchThreshold: 0.6,
-        memoryCount: 5,
-        conversationCount: 5,
-        loreCount: 3,
+        matchThreshold: 0.4,  // 0.6 → 0.4: 더 많은 관련 기억 검색
+        memoryCount: 10,      // 5 → 10: 더 많은 기억 검색
+        conversationCount: 10, // 5 → 10: 더 많은 대화 기록 검색
+        loreCount: 5,         // 3 → 5: 더 많은 설정 검색
       }
     );
 
@@ -257,11 +261,60 @@ export class AIAgent {
       context.relationship.affection
     );
 
+    // 6. 시나리오 트리거 평가 (DB 기반)
+    let scenarioTrigger = llmResponse.scenarioTrigger;
+
+    if (!scenarioTrigger?.shouldStart) {
+      // LLM에서 트리거가 없으면 DB 트리거 규칙 평가
+      const triggerResult = await evaluateScenarioTriggers(
+        this.supabase,
+        session.userId,
+        session.personaId,
+        {
+          affection: context.relationship.affection + (llmResponse.affectionModifier || 0),
+          relationshipStage: context.relationship.relationshipStage,
+          hoursSinceLastActivity: 0, // 현재 활동 중이므로 0
+          sessionMessageCount: context.conversationHistory.length,
+          lastMessageContent: userMessage,
+        }
+      );
+
+      if (triggerResult.shouldTrigger && triggerResult.trigger) {
+        console.log(`[AIAgent][${processId}] 🎬 Scenario trigger matched: ${triggerResult.trigger.name}`);
+
+        // 트리거 실행
+        const execResult = await executeScenarioTrigger(
+          this.supabase,
+          session.userId,
+          session.personaId,
+          triggerResult.trigger.id,
+          triggerResult.trigger.scenarioConfig,
+          {
+            affection: context.relationship.affection,
+            relationshipStage: context.relationship.relationshipStage,
+            lastMessage: userMessage,
+          }
+        );
+
+        if (execResult.triggered) {
+          // scenarioType을 기존 타입으로 매핑 (static/guided/dynamic → meeting/custom 등)
+          const mappedScenarioType = execResult.scenarioType === 'dynamic' ? 'custom' : 'meeting';
+          scenarioTrigger = {
+            shouldStart: true,
+            scenarioType: mappedScenarioType,
+            scenarioContext: `Triggered by: ${triggerResult.trigger.name}`,
+            location: undefined,
+            transitionMessage: `${personaConfig?.name || '캐릭터'}가 특별한 이야기를 준비했어요...`,
+          };
+        }
+      }
+    }
+
     return {
       response: personaMsg,
       choices: [],
       affectionChange: llmResponse.affectionModifier,
-      scenarioTrigger: llmResponse.scenarioTrigger,
+      scenarioTrigger,
     };
   }
 
@@ -771,7 +824,7 @@ export class AIAgent {
             .select('*')
             .eq('session_id', sessionId)
             .order('sequence_number', { ascending: true })
-            .limit(50)
+            .limit(100)  // 50 → 100: 더 많은 대화 맥락 유지
         : Promise.resolve({ data: null }),
       sessionId
         ? this.supabase
@@ -1070,6 +1123,210 @@ export class AIAgent {
       actionData: data.action_data as Record<string, unknown>,
       sessionId: data.session_id as string | undefined,
       timestamp: new Date(data.created_at as string),
+    };
+  }
+
+  // ============================================
+  // 시나리오 관리 (Guided/Dynamic 통합)
+  // ============================================
+
+  /**
+   * 시나리오 시작
+   */
+  async startScenario(
+    mode: ScenarioMode,
+    scenarioId: string,
+    userId: string,
+    personaId: string,
+    triggerContext?: {
+      affection: number;
+      relationshipStage: string;
+      triggeredBy?: string;
+    }
+  ): Promise<{
+    success: boolean;
+    sessionId?: string;
+    openingMessage?: {
+      content: string;
+      emotion?: string;
+      choices?: { id: string; text: string; isPremium: boolean }[];
+    };
+    error?: string;
+  }> {
+    const result = await this.scenarioManager.startScenario(
+      mode,
+      scenarioId,
+      userId,
+      personaId,
+      triggerContext
+    );
+
+    if (!result.success) {
+      return { success: false, error: result.error };
+    }
+
+    return {
+      success: true,
+      sessionId: result.session?.id,
+      openingMessage: result.openingMessage
+        ? {
+            content: result.openingMessage.content,
+            emotion: result.openingMessage.emotion,
+            choices: result.openingMessage.choices?.map(c => ({
+              id: c.id,
+              text: c.text,
+              isPremium: c.isPremium,
+            })),
+          }
+        : undefined,
+    };
+  }
+
+  /**
+   * 시나리오 메시지 처리
+   */
+  async processScenarioMessage(
+    sessionId: string,
+    mode: ScenarioMode,
+    userMessage: string,
+    userId: string,
+    personaId: string
+  ): Promise<{
+    success: boolean;
+    message?: {
+      content: string;
+      emotion?: string;
+      narration?: string;
+      choices?: { id: string; text: string; isPremium: boolean }[];
+    };
+    scenarioComplete?: boolean;
+    error?: string;
+  }> {
+    const result = await this.scenarioManager.processMessage(sessionId, mode, userMessage);
+
+    if (!result.success) {
+      return { success: false, error: result.error };
+    }
+
+    // 시나리오 완료 시 보상 처리
+    if (result.sessionComplete) {
+      await this.handleScenarioCompletion(sessionId, mode, userId, personaId);
+    }
+
+    return {
+      success: true,
+      message: result.message
+        ? {
+            content: result.message.content,
+            emotion: result.message.emotion,
+            narration: result.message.narration,
+            choices: result.message.choices?.map(c => ({
+              id: c.id,
+              text: c.text,
+              isPremium: c.isPremium,
+            })),
+          }
+        : undefined,
+      scenarioComplete: result.sessionComplete,
+    };
+  }
+
+  /**
+   * 활성 시나리오 세션 확인
+   */
+  async getActiveScenarioSession(
+    userId: string,
+    personaId: string
+  ): Promise<{
+    hasActiveSession: boolean;
+    session?: {
+      id: string;
+      mode: ScenarioMode;
+      progress: { currentStep: number; totalSteps: number; percentComplete: number };
+    };
+  }> {
+    const session = await this.scenarioManager.getActiveSession(userId, personaId);
+
+    if (!session) {
+      return { hasActiveSession: false };
+    }
+
+    return {
+      hasActiveSession: true,
+      session: {
+        id: session.id,
+        mode: session.mode,
+        progress: session.progress,
+      },
+    };
+  }
+
+  /**
+   * 시나리오 완료 처리 (보상 등)
+   */
+  private async handleScenarioCompletion(
+    sessionId: string,
+    mode: ScenarioMode,
+    userId: string,
+    personaId: string
+  ): Promise<void> {
+    try {
+      // 시나리오 완료 기록
+      await this.supabase.from('scenario_completion_rewards').insert({
+        user_id: userId,
+        persona_id: personaId,
+        scenario_session_id: sessionId,
+        scenario_mode: mode,
+        completed_at: new Date().toISOString(),
+      });
+
+      // 관계 업데이트 (시나리오 완료 보너스)
+      await this.updateRelationship(userId, personaId, {
+        affectionChange: mode === 'dynamic' ? 5 : 3, // 동적 시나리오는 더 높은 보상
+        flagsToSet: { [`scenario_${sessionId}_completed`]: true },
+      });
+
+      // 활동 로그
+      await this.logActivity(userId, personaId, 'scenario_completed', {
+        sessionId,
+        mode,
+      });
+
+      console.log(`[AIAgent] Scenario completed: ${sessionId} (${mode})`);
+    } catch (error) {
+      console.error('[AIAgent] Failed to handle scenario completion:', error);
+    }
+  }
+
+  /**
+   * 시나리오 일시정지
+   */
+  async pauseScenario(sessionId: string, mode: ScenarioMode): Promise<void> {
+    await this.scenarioManager.pauseSession(sessionId, mode);
+  }
+
+  /**
+   * 시나리오 재개
+   */
+  async resumeScenario(sessionId: string, mode: ScenarioMode): Promise<{
+    success: boolean;
+    session?: {
+      id: string;
+      progress: { currentStep: number; totalSteps: number };
+    };
+  }> {
+    const session = await this.scenarioManager.resumeSession(sessionId, mode);
+
+    if (!session) {
+      return { success: false };
+    }
+
+    return {
+      success: true,
+      session: {
+        id: session.id,
+        progress: session.progress,
+      },
     };
   }
 }

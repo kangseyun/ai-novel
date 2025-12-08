@@ -60,8 +60,8 @@ export class MemoryService {
 
     if (supabaseUrl && supabaseKey) {
       this.supabase = createClient(supabaseUrl, supabaseKey);
-      // 10초마다 배치 임베딩 저장
-      this.flushInterval = setInterval(() => this.flushPendingEmbeddings(), 10000);
+      // 2초마다 배치 임베딩 저장 (대화 맥락 유지를 위해 빠르게 처리)
+      this.flushInterval = setInterval(() => this.flushPendingEmbeddings(), 2000);
     }
   }
 

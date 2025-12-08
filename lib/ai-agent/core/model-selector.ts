@@ -58,7 +58,8 @@ export type TaskType =
   | 'conversation_summary'   // 대화 요약
   | 'emotion_analysis'       // 감정 분석
   | 'story_branching'        // 스토리 분기점 결정
-  | 'feed_post';             // SNS 포스트 생성
+  | 'feed_post'              // SNS 포스트 생성
+  | 'scenario_generation';   // 시나리오 자동 생성
 
 export type TaskComplexity = 'critical' | 'high' | 'medium' | 'low';
 
@@ -115,6 +116,7 @@ export class ModelSelector {
     // 작업 유형별 기본 복잡도
     const typeComplexity: Record<TaskType, number> = {
       story_branching: 4,       // 스토리 분기는 항상 중요
+      scenario_generation: 4,   // 시나리오 생성도 중요
       dialogue_response: 3,     // 대화 응답은 기본적으로 중요
       emotion_analysis: 2,      // 감정 분석
       choice_generation: 2,     // 선택지 생성
@@ -195,6 +197,11 @@ export class ModelSelector {
       feed_post: {
         budgetConstraint: 'strict',
         isHighTraffic: true,
+      },
+      scenario_generation: {
+        requiresConsistency: true,
+        requiresCreativity: true,
+        emotionalIntensity: 'high',
       },
     };
 

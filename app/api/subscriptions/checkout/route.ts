@@ -105,7 +105,23 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ url: session.url });
   } catch (error) {
     console.error('Subscription checkout error:', error);
-    return NextResponse.json({ error: 'Failed to create subscription checkout' }, { status: 500 });
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    // 임시: 디버깅을 위해 production에서도 에러 메시지 노출 (나중에 제거)
+    const errorDetails = {
+      error: errorMessage,
+      code: (error as { code?: string })?.code,
+      type: (error as { type?: string })?.type,
+    };
+
+    // Production에서도 상세 로그는 서버에 남김
+    console.error('Stripe error details:', {
+      message: errorMessage,
+      stripeError: (error as { type?: string; code?: string; param?: string })?.type,
+      code: (error as { code?: string })?.code,
+      param: (error as { param?: string })?.param,
+    });
+
+    return NextResponse.json(errorDetails, { status: 500 });
   }
 }
 
@@ -134,8 +150,8 @@ async function getOrCreatePrice(planId: string, plan: { name: string; price: num
     return prices.data[0].id;
   }
 
-  // 기존 상품 사용 (이미 Stripe에 생성된 VIP 멤버십)
-  const productId = 'prod_TWQg6iFER1FGgP';
+  // Product 찾기 또는 생성
+  const productId = await getOrCreateProduct();
 
   // Price 생성
   const price = await stripe.prices.create({
@@ -149,4 +165,27 @@ async function getOrCreatePrice(planId: string, plan: { name: string; price: num
   });
 
   return price.id;
+}
+
+// Stripe Product 찾기 또는 생성
+async function getOrCreateProduct(): Promise<string> {
+  if (!stripe) throw new Error('Stripe not configured');
+
+  // 기존 VIP 멤버십 상품 찾기
+  const products = await stripe.products.search({
+    query: 'name~"VIP" AND active:"true"',
+    limit: 1,
+  });
+
+  if (products.data.length > 0) {
+    return products.data[0].id;
+  }
+
+  // 상품 생성
+  const product = await stripe.products.create({
+    name: 'VIP 멤버십',
+    description: '프리미엄 혜택을 누리세요',
+  });
+
+  return product.id;
 }

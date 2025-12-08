@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { createClient } from '@/lib/supabase-browser';
+import { supabase } from '@/lib/supabase';
 import { useImageGenerationQueue } from '@/hooks/useImageGenerationQueue';
 import {
   Loader2, Image as ImageIcon, Clock, CheckCircle2, XCircle,
@@ -54,7 +54,6 @@ export default function ImageQueuePage() {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
   const { processingTasks } = useImageGenerationQueue();
-  const supabase = createClient();
 
   useEffect(() => {
     loadData();

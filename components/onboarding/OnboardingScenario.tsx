@@ -1,16 +1,18 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Crown, Heart, History, X } from 'lucide-react';
+import { Crown, Heart, History, X, Loader2 } from 'lucide-react';
 import {
   ScenarioScene,
   ONBOARDING_SPECIAL_SCENARIO,
 } from '@/lib/onboarding-data';
 import ScenarioResult from './ScenarioResult';
 import { useTranslations } from '@/lib/i18n';
+import { useScenarioData, ScenarioScene as DBScenarioScene } from '@/hooks/useOnboardingData';
 
 interface OnboardingScenarioProps {
+  scenarioId?: string | null;  // DB 시나리오 ID (옵션)
   onProgress: (affection: number, isPremiumTease: boolean) => void;
   onCliffhanger: () => void;
   onRestart?: () => void;  // 다시하기 콜백
@@ -44,21 +46,100 @@ interface HistoryItem {
   isVoiced?: boolean;
 }
 
-// 캐릭터 정보 (Jun)
-const CHARACTER_INFO = {
+// 기본 캐릭터 정보 (폴백용)
+const DEFAULT_CHARACTER_INFO = {
   id: 'jun',
   name: 'Jun',
   image: 'https://i.pravatar.cc/400?img=68',
 };
 
+// DB 시나리오 씬을 기존 형식으로 변환하는 함수
+// API에서 이미 camelCase로 정규화되어 오므로 변환만 수행
+function convertDBSceneToLocal(dbScene: DBScenarioScene, allScenes: DBScenarioScene[]): ScenarioScene {
+  // character_appear 타입도 text가 있으면 dialogue처럼 취급
+  const isDialogue = dbScene.type === 'dialogue' ||
+    (dbScene.type === 'character_appear' && dbScene.text);
+
+  // choice 타입이면 prompt를 narration처럼 표시
+  const narrationText = dbScene.type === 'narration' ? dbScene.text :
+    dbScene.type === 'choice' ? dbScene.prompt : undefined;
+
+  // 다음 씬 ID 찾기 (choices가 없는 경우 순서대로)
+  const currentIndex = allScenes.findIndex(s => s.id === dbScene.id);
+  const nextScene = currentIndex >= 0 && currentIndex < allScenes.length - 1
+    ? allScenes[currentIndex + 1] : null;
+
+  // 마지막 씬이거나 choice 다음 씬들은 cliffhanger로 처리할지 결정
+  const isLastScene = currentIndex === allScenes.length - 1;
+
+  return {
+    id: dbScene.id,
+    background: dbScene.background || '',
+    narration: narrationText,
+    dialogue: isDialogue && dbScene.text ? {
+      speaker: dbScene.character || 'Unknown',
+      text: dbScene.text,
+      emotion: dbScene.expression || 'default',
+    } : undefined,
+    choices: dbScene.choices?.map(c => ({
+      id: c.id,
+      text: c.text,
+      nextSceneId: c.nextScene,
+      affectionChange: c.affectionChange,
+      isPremium: c.isPremium,
+    })),
+    // choices가 없고 다음 씬이 있으면 자동 진행
+    nextSceneId: !dbScene.choices?.length && nextScene ? nextScene.id : undefined,
+    // 마지막 씬이고 choices도 없으면 cliffhanger
+    isCliffhanger: isLastScene && !dbScene.choices?.length,
+    showCharacterImage: dbScene.type === 'character_appear',
+    character: dbScene.character ? {
+      image: '',
+      position: 'center',
+      expression: dbScene.expression || 'default',
+    } : undefined,
+  };
+}
+
 export default function OnboardingScenario({
+  scenarioId,
   onProgress,
   onCliffhanger,
   onRestart,
   onConfirm,
 }: OnboardingScenarioProps) {
   const tr = useTranslations();
-  const [currentSceneId, setCurrentSceneId] = useState('scene_1');
+
+  // DB에서 시나리오 가져오기
+  const { scenario: dbScenario, isLoading: isLoadingScenario } = useScenarioData(scenarioId || null);
+
+  // DB 시나리오를 로컬 형식으로 변환 (useMemo로 최적화)
+  const scenarioScenes = useMemo(() => {
+    const dbScenes = dbScenario?.content?.scenes || [];
+    console.log('[OnboardingScenario] dbScenario:', dbScenario?.id, 'scenes count:', dbScenes.length);
+
+    if (dbScenes.length > 0) {
+      console.log('[OnboardingScenario] Converting DB scenes:', dbScenes.length, 'first scene:', dbScenes[0]);
+      const converted = dbScenes.map((scene) => convertDBSceneToLocal(scene, dbScenes));
+      console.log('[OnboardingScenario] Converted scenes:', converted.length, 'first converted:', converted[0]);
+      return converted;
+    }
+    console.log('[OnboardingScenario] Using fallback ONBOARDING_SPECIAL_SCENARIO');
+    return ONBOARDING_SPECIAL_SCENARIO;
+  }, [dbScenario]);
+
+  // 캐릭터 정보 (profileImageUrl을 우선 사용, 없으면 appearance.profile_image, 그것도 없으면 기본값)
+  const characterInfo = dbScenario?.character
+    ? {
+        id: dbScenario.character.id,
+        name: dbScenario.character.name,
+        image: dbScenario.character.profileImageUrl
+          || (dbScenario.character.appearance?.profile_image as string)
+          || DEFAULT_CHARACTER_INFO.image,
+      }
+    : DEFAULT_CHARACTER_INFO;
+
+  const [currentSceneId, setCurrentSceneId] = useState('');
   const [showContent, setShowContent] = useState(false);
   const [showChoices, setShowChoices] = useState(false);
   const [isTransitioning, setIsTransitioning] = useState(false);
@@ -75,7 +156,22 @@ export default function OnboardingScenario({
   const [totalAffection, setTotalAffection] = useState(0);
   const [showResult, setShowResult] = useState(false);
 
-  const currentScene = ONBOARDING_SPECIAL_SCENARIO.find(s => s.id === currentSceneId);
+  // 시나리오가 변경될 때 첫 번째 씬으로 시작
+  useEffect(() => {
+    if (scenarioScenes.length > 0) {
+      const firstSceneId = scenarioScenes[0].id;
+      console.log('[OnboardingScenario] Setting first scene:', firstSceneId, 'current:', currentSceneId);
+      // 시나리오가 변경되었거나 아직 설정되지 않은 경우
+      if (!currentSceneId || !scenarioScenes.find(s => s.id === currentSceneId)) {
+        setCurrentSceneId(firstSceneId);
+        setShowContent(false);
+        setShowChoices(false);
+        setHistory([]);
+      }
+    }
+  }, [scenarioScenes]); // currentSceneId를 의존성에서 제외하여 무한 루프 방지
+
+  const currentScene = scenarioScenes.find(s => s.id === currentSceneId);
   const emotion = currentScene?.dialogue?.emotion || 'default';
 
   // 히스토리에 추가
@@ -232,12 +328,21 @@ export default function OnboardingScenario({
       onConfirm({
         affectionGained: totalAffection,
         selectedChoices,
-        characterId: CHARACTER_INFO.id,
-        characterName: CHARACTER_INFO.name,
-        characterImage: CHARACTER_INFO.image,
+        characterId: characterInfo.id,
+        characterName: characterInfo.name,
+        characterImage: characterInfo.image,
       });
     }
   };
+
+  // 시나리오 로딩 중일 때
+  if (isLoadingScenario) {
+    return (
+      <div className="h-[100dvh] bg-zinc-950 flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-white/50" />
+      </div>
+    );
+  }
 
   if (!currentScene) return null;
 
@@ -247,8 +352,8 @@ export default function OnboardingScenario({
       <ScenarioResult
         affectionGained={totalAffection}
         selectedChoices={selectedChoices}
-        characterName={CHARACTER_INFO.name}
-        characterImage={CHARACTER_INFO.image}
+        characterName={characterInfo.name}
+        characterImage={characterInfo.image}
         onRestart={handleResultRestart}
         onConfirm={handleResultConfirm}
         restartCost={50}
@@ -274,8 +379,10 @@ export default function OnboardingScenario({
         </button>
       </div>
 
-      {/* 메인 콘텐츠 영역 */}
-      <div className="flex-1 flex flex-col items-center justify-center px-8 py-8 min-h-0 overflow-y-auto">
+      {/* 메인 콘텐츠 영역 - 고정 위치 레이아웃 */}
+      <div className="flex-1 flex flex-col px-8 min-h-0 overflow-hidden">
+        {/* 상단 여백 - 화면의 약 30% */}
+        <div className="h-[28%] shrink-0" />
 
         {/* 호감도 이펙트 */}
         <AnimatePresence>
@@ -285,7 +392,7 @@ export default function OnboardingScenario({
               animate={{ opacity: 1, y: -20 }}
               exit={{ opacity: 0, y: -40 }}
               transition={{ duration: 0.8 }}
-              className="absolute top-1/3 flex items-center gap-2"
+              className="absolute top-[25%] left-1/2 -translate-x-1/2 flex items-center gap-2 z-20"
             >
               <Heart className="w-6 h-6 text-rose-400 fill-rose-400" />
               <span className="text-lg font-medium text-rose-300">+{heartAmount}</span>
@@ -293,129 +400,136 @@ export default function OnboardingScenario({
           )}
         </AnimatePresence>
 
-        {/* 텍스트 */}
-        <AnimatePresence mode="wait">
-          {showContent && (
-            <motion.div
-              key={currentScene.id}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.5 }}
-              className="max-w-md w-full text-center"
-            >
-              {/* 나레이션 */}
-              {currentScene.narration && (
-                <p className="text-white/50 text-base leading-loose mb-12">
-                  {currentScene.narration}
-                </p>
-              )}
+        {/* 텍스트 - 고정 시작 위치에서 아래로 확장 */}
+        <div className="flex-1 flex flex-col items-center overflow-y-auto">
+          <AnimatePresence mode="wait">
+            {showContent && (
+              <motion.div
+                key={currentScene.id}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.4 }}
+                className="max-w-md w-full text-center"
+              >
+                {/* 나레이션 */}
+                {currentScene.narration && (
+                  <p className="text-white/70 text-base leading-loose mb-10">
+                    {currentScene.narration}
+                  </p>
+                )}
 
-              {/* 캐릭터 프로필 이미지 (가끔만 표시) */}
-              {currentScene.showCharacterImage && currentScene.character && (
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.8 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ duration: 0.4, ease: 'easeOut' }}
-                  className="mb-8 flex justify-center"
-                >
-                  <div className="relative">
-                    <div className="w-20 h-20 rounded-full overflow-hidden ring-2 ring-white/20 shadow-xl">
-                      <img
-                        src={currentScene.character.image}
-                        alt={currentScene.dialogue?.speaker || 'Character'}
-                        className="w-full h-full object-cover"
-                      />
+                {/* 캐릭터 프로필 이미지 (가끔만 표시) */}
+                {currentScene.showCharacterImage && (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ duration: 0.3, ease: 'easeOut' }}
+                    className="mb-6 flex justify-center"
+                  >
+                    <div className="relative">
+                      <div className="w-20 h-20 rounded-full overflow-hidden ring-2 ring-white/20 shadow-xl">
+                        <img
+                          src={characterInfo.image}
+                          alt={currentScene.dialogue?.speaker || characterInfo.name}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                      <div className="absolute inset-0 rounded-full bg-gradient-to-b from-white/10 to-transparent pointer-events-none" />
                     </div>
-                    {/* 미묘한 글로우 효과 */}
-                    <div className="absolute inset-0 rounded-full bg-gradient-to-b from-white/10 to-transparent pointer-events-none" />
-                  </div>
-                </motion.div>
-              )}
+                  </motion.div>
+                )}
 
-              {/* 대화 */}
-              {currentScene.dialogue && (
-                <div className="space-y-4">
-                  {/* 화자 + 사운드 웨이브 */}
-                  <div className="flex items-center justify-center gap-2">
-                    <SoundWave />
-                    <p className="text-white/40 text-sm tracking-wider">
-                      {currentScene.dialogue.speaker}
-                    </p>
-                  </div>
+                {/* 대화 */}
+                {currentScene.dialogue && (
+                  <div className="space-y-3">
+                    {/* 화자 + 사운드 웨이브 */}
+                    <div className="flex items-center justify-center gap-2">
+                      <SoundWave />
+                      <p className="text-white/60 text-sm tracking-wider">
+                        {currentScene.dialogue.speaker}
+                      </p>
+                    </div>
 
-                  {/* 대사 - 감정에 따라 다른 스타일 */}
-                  <DialogueText
-                    text={currentScene.dialogue.text}
-                    emotion={emotion}
-                    isVoiced={true}
-                  />
-                </div>
-              )}
+                    {/* 대사 - 감정에 따라 다른 스타일 */}
+                    <DialogueText
+                      text={currentScene.dialogue.text}
+                      emotion={emotion}
+                      isVoiced={true}
+                    />
+                  </div>
+                )}
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      </div>
+
+      {/* 하단 영역 - 절대 위치로 고정하여 메인 콘텐츠에 영향 없음 */}
+      <div className="absolute bottom-0 left-0 right-0 px-6 pb-8 pointer-events-none">
+        {/* 탭 힌트 */}
+        <AnimatePresence>
+          {showContent && !showChoices && !currentScene.isCliffhanger && (
+            <motion.p
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 0.3 }}
+              exit={{ opacity: 0 }}
+              transition={{ delay: 1 }}
+              className="py-6 text-center text-xs text-white/30"
+            >
+              {tr.scenario.tapToContinue}
+            </motion.p>
+          )}
+        </AnimatePresence>
+
+        {/* 선택지 */}
+        <AnimatePresence>
+          {showChoices && currentScene.choices && (
+            <motion.div
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 8 }}
+              transition={{ duration: 0.25 }}
+              className="pb-6 space-y-2.5 pointer-events-auto"
+            >
+              {currentScene.choices.map((choice, idx) => (
+                <motion.button
+                  key={choice.id}
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: idx * 0.08 }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleChoice(choice);
+                  }}
+                  className={`w-full py-3.5 px-4 rounded-xl text-left transition-all active:scale-[0.98] ${
+                    choice.isPremium
+                      ? 'bg-amber-900/20 border border-amber-600/30'
+                      : 'bg-white/5 border border-white/10 hover:bg-white/8'
+                  }`}
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <span className={`text-[15px] leading-snug ${
+                      choice.isPremium ? 'text-amber-100' : 'text-white/90'
+                    }`}>
+                      {choice.text}
+                    </span>
+
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      {choice.affectionChange && choice.affectionChange > 0 && (
+                        <span className="text-xs text-rose-400 font-medium">+{choice.affectionChange}</span>
+                      )}
+                      {choice.isPremium && (
+                        <Crown className="w-4 h-4 text-amber-500" />
+                      )}
+                    </div>
+                  </div>
+                </motion.button>
+              ))}
             </motion.div>
           )}
         </AnimatePresence>
       </div>
-
-      {/* 탭 힌트 */}
-      {showContent && !showChoices && !currentScene.isCliffhanger && (
-        <motion.p
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 0.3 }}
-          transition={{ delay: 1 }}
-          className="py-4 text-center text-xs text-white/30 shrink-0"
-        >
-          {tr.scenario.tapToContinue}
-        </motion.p>
-      )}
-
-      {/* 선택지 */}
-      <AnimatePresence>
-        {showChoices && currentScene.choices && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.3 }}
-            className="px-6 pb-8 space-y-3 shrink-0"
-          >
-            {currentScene.choices.map((choice, idx) => (
-              <motion.button
-                key={choice.id}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: idx * 0.1 }}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleChoice(choice);
-                }}
-                className={`w-full py-4 px-5 rounded-lg text-left transition-colors ${
-                  choice.isPremium
-                    ? 'bg-amber-900/20 border border-amber-700/30'
-                    : 'bg-white/5 border border-white/10'
-                }`}
-              >
-                <div className="flex items-center justify-between gap-4">
-                  <span className={`text-sm ${
-                    choice.isPremium ? 'text-amber-200' : 'text-white/80'
-                  }`}>
-                    {choice.text}
-                  </span>
-
-                  <div className="flex items-center gap-2 shrink-0">
-                    {choice.affectionChange && choice.affectionChange > 0 && (
-                      <span className="text-xs text-rose-400">+{choice.affectionChange}</span>
-                    )}
-                    {choice.isPremium && (
-                      <Crown className="w-4 h-4 text-amber-500" />
-                    )}
-                  </div>
-                </div>
-              </motion.button>
-            ))}
-          </motion.div>
-        )}
-      </AnimatePresence>
 
       {/* 히스토리 팝업 */}
       <AnimatePresence>
@@ -566,29 +680,29 @@ function DialogueText({
   emotion: string;
   isVoiced?: boolean;
 }) {
-  // 감정별 스타일 매핑
+  // 감정별 스타일 매핑 (더 밝은 색상)
   const getEmotionStyle = () => {
     switch (emotion) {
       case 'surprised':
-        return 'text-amber-100 text-2xl';
+        return 'text-amber-50 text-2xl';
       case 'soft':
-        return 'text-pink-100 text-xl';
+        return 'text-pink-50 text-xl';
       case 'vulnerable':
-        return 'text-blue-100 text-xl italic';
+        return 'text-blue-50 text-xl italic';
       case 'touched':
-        return 'text-rose-100 text-xl';
+        return 'text-rose-50 text-xl';
       case 'shy':
-        return 'text-pink-200 text-lg';
+        return 'text-pink-100 text-lg';
       case 'flustered':
-        return 'text-red-200 text-xl';
+        return 'text-red-100 text-xl';
       case 'curious':
-        return 'text-purple-100 text-xl';
+        return 'text-purple-50 text-xl';
       case 'serious':
-        return 'text-slate-100 text-2xl font-semibold';
+        return 'text-slate-50 text-2xl font-semibold';
       case 'hesitant':
-        return 'text-gray-300 text-lg tracking-wider';
+        return 'text-gray-200 text-lg tracking-wider';
       case 'melancholy':
-        return 'text-blue-200 text-xl';
+        return 'text-blue-100 text-xl';
       default:
         return 'text-white text-xl';
     }

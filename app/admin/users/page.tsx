@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { createClient } from '@/lib/supabase-browser';
+import { supabase } from '@/lib/supabase';
 import {
   Table,
   TableBody,
@@ -32,10 +32,6 @@ type User = {
   referral_count: number;
   streak_count: number;
   personality_type: string | null;
-  user_journey_stats: {
-    total_dm_sessions: number;
-    total_time_spent_minutes: number;
-  } | null;
 };
 
 const ITEMS_PER_PAGE = 10;
@@ -49,7 +45,6 @@ export default function UsersPage() {
   const [totalUsers, setTotalUsers] = useState(0);
   const [sortOrder, setSortOrder] = useState<'newest' | 'oldest' | 'active'>('newest');
   
-  const supabase = createClient();
 
   useEffect(() => {
     fetchUsers();
@@ -60,13 +55,7 @@ export default function UsersPage() {
     try {
       let query = supabase
         .from('users')
-        .select(`
-          *,
-          user_journey_stats (
-            total_dm_sessions,
-            total_time_spent_minutes
-          )
-        `, { count: 'exact' });
+        .select('*', { count: 'exact' });
 
       // 검색 필터
       if (searchTerm) {
@@ -89,8 +78,10 @@ export default function UsersPage() {
 
       const { data, error, count } = await query;
 
+      console.log('[Admin Users] Query result:', { data, error, count, dataLength: data?.length });
+
       if (error) throw error;
-      
+
       setUsers(data || []);
       if (count !== null) {
         setTotalUsers(count);
@@ -245,9 +236,6 @@ export default function UsersPage() {
                       </TableCell>
                       <TableCell>
                         <div className="text-xs space-y-0.5">
-                          <div className="text-muted-foreground">
-                            대화 세션: <span className="font-medium text-foreground">{user.user_journey_stats?.total_dm_sessions || 0}</span>
-                          </div>
                           <div className="text-muted-foreground">
                             스트릭: <span className="font-medium text-foreground">{user.streak_count || 0}일</span>
                           </div>

@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { createClient } from '@/lib/supabase-browser';
+import { supabase } from '@/lib/supabase';
 import { Plus, Users, MessageSquare, DollarSign, Activity, AlertCircle, ArrowUpRight } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
@@ -47,7 +47,6 @@ export default function AdminDashboard() {
   const [recentUsers, setRecentUsers] = useState<any[]>([]);
   const [recentErrors, setRecentErrors] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const supabase = createClient();
 
   useEffect(() => {
     async function loadDashboardData() {
