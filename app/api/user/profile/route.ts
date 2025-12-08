@@ -81,6 +81,7 @@ export async function PUT(request: NextRequest) {
       interests,
       love_language,
       attachment_style,
+      preferred_target_audience,
     } = body;
 
     const supabase = await createServerClient();
@@ -96,6 +97,7 @@ export async function PUT(request: NextRequest) {
     if (interests !== undefined) updateData.interests = interests;
     if (love_language !== undefined) updateData.love_language = love_language;
     if (attachment_style !== undefined) updateData.attachment_style = attachment_style;
+    if (preferred_target_audience !== undefined) updateData.preferred_target_audience = preferred_target_audience;
 
     const { data, error } = await supabase
       .from('users')

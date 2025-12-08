@@ -19,6 +19,7 @@ import { useEffect, useState, useRef } from 'react';
 import analytics from '@/lib/analytics';
 import { supabase } from '@/lib/supabase';
 import { useHackerStore } from '@/lib/stores/hacker-store';
+import { useTutorial } from '@/components/tutorial/useTutorial';
 
 // DB에서 가져올 데이터 타입 정의
 interface PersonaProfile {
@@ -64,6 +65,8 @@ export default function PersonaProfilePage() {
   const [showHackOverlay, setShowHackOverlay] = useState(false);
 
   const eventTrackedRef = useRef(false);
+  const tutorialTriggered = useRef(false);
+  const { startProfileTutorial, isProfileTutorialCompleted } = useTutorial();
 
   // 데이터 로딩
   useEffect(() => {
@@ -127,6 +130,17 @@ export default function PersonaProfilePage() {
       });
     }
   }, [personaId, profile]);
+
+  // 프로필 튜토리얼 트리거
+  useEffect(() => {
+    if (!loading && profile && !tutorialTriggered.current && !isProfileTutorialCompleted()) {
+      tutorialTriggered.current = true;
+      const timer = setTimeout(() => {
+        startProfileTutorial();
+      }, 800);
+      return () => clearTimeout(timer);
+    }
+  }, [loading, profile, startProfileTutorial, isProfileTutorialCompleted]);
 
   // Private 탭 접근 핸들러
   const handlePrivateTabClick = () => {
@@ -237,7 +251,7 @@ export default function PersonaProfilePage() {
             </div>
 
             {/* 통계 */}
-            <div className="flex-1 flex justify-around pt-2">
+            <div className="flex-1 flex justify-around pt-2" data-tutorial="profile-stats">
               <div className="text-center">
                 <p className={`font-bold ${activeTab === 'private' ? 'text-red-400' : ''}`}>
                   {activeTab === 'private' ? privatePosts.length : publicPosts.length}
@@ -276,13 +290,14 @@ export default function PersonaProfilePage() {
 
           {/* 액션 버튼 */}
           <div className="flex gap-2 mt-6">
-            <button 
+            <button
               onClick={() => router.push(`/dm/${personaId}`)}
               className={`flex-1 py-2.5 rounded-lg text-sm font-semibold transition-all ${
                 activeTab === 'private'
                   ? 'bg-red-900/20 border border-red-500/50 text-red-400 hover:bg-red-900/40'
                   : 'bg-white text-black hover:bg-white/90'
               }`}
+              data-tutorial="message-button"
             >
               {activeTab === 'private' ? 'INTERCEPT MESSAGE' : tr.nav.messages}
             </button>
@@ -317,6 +332,7 @@ export default function PersonaProfilePage() {
                   ? 'border-red-500 text-red-500'
                   : 'border-transparent text-white/30 hover:text-red-400/50'
               }`}
+              data-tutorial="private-tab"
             >
               {hackLevel >= 2 ? <Unlock className="w-4 h-4" /> : <Lock className="w-4 h-4" />}
               <span className="text-xs font-medium font-mono">PRIVATE_FILES</span>

@@ -180,6 +180,7 @@ class ApiClient {
       bio: string | null;
       tokens: number;
       onboarding_completed: boolean;
+      preferred_target_audience: 'female' | 'male' | 'anime' | null;
       subscription: { plan: string; expires_at: string | null };
     }>('/user/profile');
   }
@@ -194,6 +195,7 @@ class ApiClient {
     interests?: string[];
     love_language?: string;
     attachment_style?: string;
+    preferred_target_audience?: 'female' | 'male' | 'anime';
   }) {
     return this.request('/user/profile', {
       method: 'PUT',

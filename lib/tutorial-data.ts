@@ -106,12 +106,89 @@ export const SCENARIO_TUTORIAL: TutorialSequence = {
 };
 
 /**
+ * 추천 친구 튜토리얼: DM 목록에서 새 친구 만들기 안내
+ */
+export const SUGGESTED_FRIENDS_TUTORIAL: TutorialSequence = {
+  id: 'suggested-friends-tutorial',
+  name: '추천 친구 사용법',
+  steps: [
+    {
+      id: 'suggested-list',
+      targetSelector: '[data-tutorial="suggested-friends-list"]',
+      message: '여기서 새로운 캐릭터를 만날 수 있어요!',
+      subMessage: '팔로우하면 DM을 보낼 수 있어요',
+      position: 'top',
+      advanceOn: 'auto',
+      autoDelay: 3000,
+      padding: 8,
+    },
+    {
+      id: 'follow-button',
+      targetSelector: '[data-tutorial="follow-button"]',
+      message: '팔로우 버튼을 눌러 친구가 되어보세요',
+      subMessage: '토큰이 필요해요',
+      position: 'top',
+      advanceOn: 'click',
+      padding: 8,
+    },
+    {
+      id: 'refresh-button',
+      targetSelector: '[data-tutorial="refresh-button"]',
+      message: '다른 캐릭터를 보고 싶다면 새로고침!',
+      subMessage: '무료 새로고침은 5분마다 가능해요',
+      position: 'top',
+      advanceOn: 'click',
+      padding: 8,
+    },
+  ],
+};
+
+/**
+ * 프로필 튜토리얼: 캐릭터 프로필 탐색 안내
+ */
+export const PROFILE_TUTORIAL: TutorialSequence = {
+  id: 'profile-tutorial',
+  name: '프로필 사용법',
+  steps: [
+    {
+      id: 'profile-stats',
+      targetSelector: '[data-tutorial="profile-stats"]',
+      message: '캐릭터의 인기도를 확인할 수 있어요',
+      position: 'bottom',
+      advanceOn: 'auto',
+      autoDelay: 2500,
+      padding: 8,
+    },
+    {
+      id: 'message-button',
+      targetSelector: '[data-tutorial="message-button"]',
+      message: '메시지 버튼으로 DM을 보낼 수 있어요',
+      position: 'top',
+      advanceOn: 'auto',
+      autoDelay: 2500,
+      padding: 8,
+    },
+    {
+      id: 'private-tab',
+      targetSelector: '[data-tutorial="private-tab"]',
+      message: '비밀 게시물은 관계가 깊어지면 볼 수 있어요',
+      subMessage: '해킹 레벨을 올려보세요!',
+      position: 'top',
+      advanceOn: 'click',
+      padding: 8,
+    },
+  ],
+};
+
+/**
  * 모든 튜토리얼 목록
  */
 export const ALL_TUTORIALS: TutorialSequence[] = [
   INITIAL_TUTORIAL,
   DM_TUTORIAL,
   SCENARIO_TUTORIAL,
+  SUGGESTED_FRIENDS_TUTORIAL,
+  PROFILE_TUTORIAL,
 ];
 
 /**

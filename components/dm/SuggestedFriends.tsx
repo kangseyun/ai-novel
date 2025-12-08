@@ -296,6 +296,7 @@ export default function SuggestedFriends({
           onClick={handleFreeRefresh}
           disabled={isRefreshing}
           className="flex items-center gap-1.5 px-3 py-1.5 bg-green-500/20 rounded-lg text-xs text-green-400 hover:bg-green-500/30 transition disabled:opacity-50"
+          data-tutorial="refresh-button"
         >
           <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
           <span>무료</span>
@@ -352,7 +353,7 @@ export default function SuggestedFriends({
         </div>
 
         {/* 추천 친구 목록 */}
-        <div className="space-y-2">
+        <div className="space-y-2" data-tutorial="suggested-friends-list">
           {personas.map((persona, idx) => {
             const cost = getFollowCost(persona.id, persona.is_premium);
 
@@ -405,6 +406,7 @@ export default function SuggestedFriends({
                 <button
                   onClick={() => handleFollowClick(persona)}
                   className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm transition flex-shrink-0 bg-white/10 text-white/80 hover:bg-white/15"
+                  {...(idx === 0 ? { 'data-tutorial': 'follow-button' } : {})}
                 >
                   <span>{tr.dm.follow}</span>
                   <span className="text-xs opacity-70">{cost}</span>

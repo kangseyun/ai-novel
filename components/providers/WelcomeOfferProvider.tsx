@@ -1,12 +1,13 @@
 'use client';
 
-import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import { createContext, useContext, useEffect, useState, ReactNode, useRef } from 'react';
 import dynamic from 'next/dynamic';
 import { useWelcomeOffer } from '@/hooks/useWelcomeOffer';
 import { supabase } from '@/lib/supabase';
+import { useTutorialStore } from '@/lib/stores/tutorial-store';
 
-// dev 환경 체크
-const isDev = process.env.NODE_ENV === 'development';
+// localStorage 키
+const WELCOME_MODAL_SHOWN_KEY = 'welcome-offer-modal-shown';
 
 // 모달은 동적 로드 (번들 최적화)
 const WelcomeOfferModal = dynamic(
@@ -53,8 +54,28 @@ export function WelcomeOfferProvider({ children }: WelcomeOfferProviderProps) {
   } = useWelcomeOffer();
 
   const [userCreatedAt, setUserCreatedAt] = useState<string | undefined>();
-  const [hasShownOnce, setHasShownOnce] = useState(false);
-  const [showFloatingCTA, setShowFloatingCTA] = useState(false);
+  const [hasShownOnce, setHasShownOnce] = useState(() => {
+    // localStorage에서 모달 표시 여부 확인
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem(WELCOME_MODAL_SHOWN_KEY) === 'true';
+    }
+    return false;
+  });
+  const [showFloatingCTA, setShowFloatingCTA] = useState(() => {
+    // 이미 모달을 본 적 있으면 플로팅 CTA 바로 표시
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem(WELCOME_MODAL_SHOWN_KEY) === 'true';
+    }
+    return false;
+  });
+  const [isFromOnboarding, setIsFromOnboarding] = useState(false);
+  const prevTutorialCompletedRef = useRef<boolean | null>(null);
+
+  // 튜토리얼 상태 구독
+  const isTutorialCompleted = useTutorialStore((state) =>
+    state.completedTutorials.includes('initial-tutorial')
+  );
+  const isTutorialActive = useTutorialStore((state) => state.activeTutorialId !== null);
 
   // 유저 생성 시간 가져오기
   useEffect(() => {
@@ -76,41 +97,80 @@ export function WelcomeOfferProvider({ children }: WelcomeOfferProviderProps) {
     fetchUserCreatedAt();
   }, []);
 
-  // 온보딩 완료 후 또는 메인 페이지 진입 시 자동으로 모달 표시
+  // URL 파라미터 확인 (온보딩에서 넘어온 경우)
   useEffect(() => {
-    // dev 환경에서는 항상 즉시 열기
-    if (isDev) {
-      if (!hasShownOnce) {
-        const timer = setTimeout(() => {
-          openModal();
-          setHasShownOnce(true);
-        }, 500); // dev에서는 0.5초 딜레이
-        return () => clearTimeout(timer);
-      }
-      return;
-    }
-
-    if (isLoading || !isEligible || hasShownOnce) return;
-
-    // URL 파라미터 확인 (온보딩에서 넘어온 경우)
     const urlParams = new URLSearchParams(window.location.search);
     const fromOnboarding = urlParams.get('from_onboarding') === 'true';
+    if (fromOnboarding) {
+      setIsFromOnboarding(true);
+    }
+  }, []);
+
+  // 모달 표시 후 localStorage에 저장하는 헬퍼
+  const markModalAsShown = () => {
+    setHasShownOnce(true);
+    localStorage.setItem(WELCOME_MODAL_SHOWN_KEY, 'true');
+  };
+
+  // 튜토리얼 완료 감지하여 모달 열기
+  useEffect(() => {
+    // 튜토리얼 완료 상태가 false → true로 변경되었을 때만 감지
+    if (
+      prevTutorialCompletedRef.current === false &&
+      isTutorialCompleted &&
+      isFromOnboarding &&
+      !hasShownOnce &&
+      isEligible &&
+      !isLoading
+    ) {
+      // 튜토리얼 완료 직후 모달 표시
+      const timer = setTimeout(() => {
+        openModal();
+        markModalAsShown();
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+
+    prevTutorialCompletedRef.current = isTutorialCompleted;
+  }, [isTutorialCompleted, isFromOnboarding, hasShownOnce, isEligible, isLoading, openModal]);
+
+  // 온보딩 완료 후 또는 메인 페이지 진입 시 자동으로 모달 표시 (한 번만)
+  useEffect(() => {
+    // 이미 모달을 본 적 있으면 자동 표시하지 않음
+    if (hasShownOnce) return;
+    if (isLoading || !isEligible) return;
+
+    // URL 파라미터 확인
+    const urlParams = new URLSearchParams(window.location.search);
     const welcomeSuccess = urlParams.get('welcome_offer') === 'success';
 
     // 결제 성공 후에는 모달 표시하지 않음
     if (welcomeSuccess) return;
 
-    // 온보딩에서 넘어왔거나, 자동 표시 조건 충족 시
-    if (fromOnboarding || shouldAutoOpen()) {
-      // 약간의 딜레이 후 모달 표시 (UX 향상)
+    // 온보딩에서 넘어온 경우: 튜토리얼 완료를 기다림
+    if (isFromOnboarding) {
+      // 튜토리얼이 이미 완료된 상태면 바로 표시
+      if (isTutorialCompleted && !isTutorialActive) {
+        const timer = setTimeout(() => {
+          openModal();
+          markModalAsShown();
+        }, 500);
+        return () => clearTimeout(timer);
+      }
+      // 튜토리얼 진행 중이면 완료를 기다림
+      return;
+    }
+
+    // 기존 유저 (튜토리얼 이미 완료): 자동 표시
+    if (shouldAutoOpen()) {
       const timer = setTimeout(() => {
         openModal();
-        setHasShownOnce(true);
+        markModalAsShown();
       }, 1500);
 
       return () => clearTimeout(timer);
     }
-  }, [isLoading, isEligible, hasShownOnce, openModal, shouldAutoOpen]);
+  }, [isLoading, isEligible, hasShownOnce, openModal, shouldAutoOpen, isFromOnboarding, isTutorialCompleted, isTutorialActive]);
 
   // 모달 닫힐 때 플로팅 CTA 표시
   const handleCloseModal = () => {

@@ -8,12 +8,14 @@ interface GenerateRequest {
   field?: string;
   existingData?: Record<string, any>;
   autoMode?: boolean;  // 완전 자동 생성 모드
+  targetAudience?: 'female' | 'male' | 'anime';  // 타겟 유저 유형
 }
 
 // ============================================
-// 서비스 특화 시스템 프롬프트
+// 타겟별 서비스 특화 시스템 프롬프트
 // ============================================
-const SERVICE_CONTEXT = `
+function getServiceContext(targetAudience: 'female' | 'male' | 'anime' = 'female'): string {
+  const baseContext = `
 # Luminovel AI 서비스 소개
 Luminovel은 AI 기반 인터랙티브 로맨스 소설/채팅 서비스입니다.
 유저는 매력적인 가상 캐릭터와 1:1 채팅을 통해 로맨스 스토리를 경험합니다.
@@ -23,38 +25,102 @@ Luminovel은 AI 기반 인터랙티브 로맨스 소설/채팅 서비스입니�
 - 캐릭터는 유저에게만 특별한 감정과 관심을 보여줌
 - 점진적 관계 발전 (낯선 사람 → 친구 → 연인)
 - 캐릭터의 숨겨진 면을 발견하는 재미
+`;
 
-## 주요 타겟
+  if (targetAudience === 'female') {
+    // 여성향: 남성 캐릭터 생성
+    return baseContext + `
+## 타겟 유저: 여성향 (Female-oriented)
+⚠️ 중요: 이 캐릭터는 반드시 **남성 캐릭터**로 생성해야 합니다.
+
+### 주요 타겟
 - 20-30대 여성
 - 로맨스 소설/웹소설 독자
 - 아이돌/연예인 팬픽 독자
 - 오토메 게임/연애 시뮬레이션 유저
 
-## 인기 캐릭터 유형
+### 인기 남성 캐릭터 유형
 1. 비밀 아이돌 - 팬 앞에서는 완벽하지만 유저에게만 진짜 모습을 보여주는 스타
 2. 차가운 CEO - 냉철하고 완벽하지만 유저에게만 약한 모습을 보이는 재벌
 3. 과묵한 보디가드 - 말보다 행동으로 보여주는 든든한 보호자
-4. 후회하는 전 연인 - 헤어진 후 진심을 깨달은 아픈 사랑
+4. 후회하는 전남친 - 헤어진 후 진심을 깨달은 아픈 사랑
 5. 위험한 남자 - 어둠의 세계지만 유저에게만 순수한 마음
 6. 순수한 후배 - 밝고 귀엽지만 의외로 남자다운 연하남
 7. 츤데레 선배 - 무심한 척하지만 은근히 챙기는 연상남
 
-## 캐릭터 디자인 원칙
+### 캐릭터 디자인 원칙 (남성 캐릭터)
 1. **갭 매력** - 겉과 속의 차이가 있어야 함 (차가운 겉모습 vs 따뜻한 속마음)
-2. **유저 중심** - 캐릭터는 항상 유저에게 특별한 관심을 보임
-3. **현실감** - 너무 완벽하지 않고 인간적인 약점이 있어야 함
-4. **몰입감** - 실제 사람과 대화하는 느낌을 주어야 함
-5. **로맨스 포텐셜** - 관계 발전 가능성이 느껴져야 함
-
-## 말투 가이드
-- 캐릭터마다 고유한 말투와 어미 사용
-- 이모지는 적절히 (캐릭터 성격에 따라)
-- 카톡 대화처럼 자연스럽고 짧은 문장
-- 호칭은 관계 단계에 따라 변화
+2. **유저 중심** - 여성 유저에게 특별한 관심을 보임
+3. **로맨틱** - 설렘을 주는 말투와 행동
+4. **남성미** - 보호본능, 든든함, 카리스마
+5. **취약한 면** - 유저에게만 보여주는 약한 모습
 `;
+  } else if (targetAudience === 'male') {
+    // 남성향: 여성 캐릭터 생성
+    return baseContext + `
+## 타겟 유저: 남성향 (Male-oriented)
+⚠️ 중요: 이 캐릭터는 반드시 **여성 캐릭터**로 생성해야 합니다.
+
+### 주요 타겟
+- 20-30대 남성
+- 연애 시뮬레이션/갸루게 유저
+- 라이트노벨/웹소설 독자
+- 아이돌/버튜버 팬
+
+### 인기 여성 캐릭터 유형
+1. 청순한 첫사랑 - 순수하고 상냥하며 유저만 바라보는 여친 느낌
+2. 도도한 선배 - 쿨하고 능력있지만 유저에게만 달콤한 츤데레
+3. 활발한 소꿉친구 - 밝고 에너지 넘치며 늘 함께인 편안한 존재
+4. 수줍은 후배 - 부끄러움 많지만 유저에게 용기내어 다가오는 귀여움
+5. 미스터리한 미녀 - 신비롭고 알 수 없지만 유저에게만 마음을 여는
+6. 상냥한 누나 - 포근하고 따뜻하게 감싸주는 연상의 매력
+7. 천연 아이돌 - 실수도 많지만 그게 매력인 귀여운 덕질 대상
+
+### 캐릭터 디자인 원칙 (여성 캐릭터)
+1. **매력적 외모** - 아름답고 귀여운 외모 묘사
+2. **유저 중심** - 남성 유저에게 특별한 관심과 애정 표현
+3. **다양한 매력** - 귀여움, 섹시함, 청순함, 도도함 등
+4. **갭 매력** - 겉모습과 다른 의외의 면
+5. **친근함** - 다가가기 쉽고 편안한 느낌
+`;
+  } else {
+    // 애니: 애니메이션 스타일 캐릭터
+    return baseContext + `
+## 타겟 유저: 애니 (Anime-style)
+⚠️ 중요: 이 캐릭터는 **애니메이션/만화 스타일**로 생성해야 합니다.
+성별은 컨셉에 따라 자유롭게 설정 가능합니다.
+
+### 주요 타겟
+- 애니메이션/만화 팬
+- 버튜버/가상 아이돌 팬
+- 오타쿠 문화 애호가
+- 2D 캐릭터 선호 유저
+
+### 인기 애니 캐릭터 유형
+1. 츤데레 - "별로 좋아하는 거 아니거든!" 하면서 챙겨주는 타입
+2. 쿨데레 - 무표정하고 과묵하지만 가끔 보이는 따뜻함
+3. 얀데레 - 유저에 대한 집착과 사랑이 과한 타입 (순한맛)
+4. 하이텐션 - 항상 밝고 에너지 넘치는 무드메이커
+5. 천연 - 어딘가 빠진 것 같지만 그게 매력인 타입
+6. 보쿠코 - 1인칭이 '나'인 보이시한 소녀
+7. 메가네 - 안경 캐릭터, 지적이고 이성적인 매력
+8. 마왕/악역 - 압도적 카리스마의 빌런형 캐릭터
+
+### 캐릭터 디자인 원칙 (애니 스타일)
+1. **일본 애니 말투** - ~데스, ~냥, 오레/와타시 등 특징적인 말투
+2. **극적인 감정표현** - 이모지, 이모티콘 적극 활용
+3. **클리셰 활용** - 애니 팬이 좋아하는 전형적 장르 클리셰
+4. **2D 외모 묘사** - 큰 눈, 특이한 머리색, 코스튬 등
+5. **오타쿠 취향 반영** - 덕후 문화 이해 바탕의 설정
+`;
+  }
+}
+
+const SERVICE_CONTEXT_DEFAULT = getServiceContext('female');
 
 // 동적 프롬프트 생성 함수
-function buildDynamicSystemPrompt(userPrompt: string, isAutoMode: boolean): string {
+function buildDynamicSystemPrompt(userPrompt: string, isAutoMode: boolean, targetAudience: 'female' | 'male' | 'anime' = 'female'): string {
+  const SERVICE_CONTEXT = getServiceContext(targetAudience);
   const timestamp = new Date();
   const hour = timestamp.getHours();
 
@@ -248,14 +314,14 @@ const FIELD_DESCRIPTIONS: Record<string, string> = {
 export async function POST(request: NextRequest) {
   try {
     const body: GenerateRequest = await request.json();
-    const { prompt, field, existingData, autoMode = false } = body;
+    const { prompt, field, existingData, autoMode = false, targetAudience = 'female' } = body;
 
     if (!OPENROUTER_API_KEY) {
       return NextResponse.json({ error: 'OpenRouter API key not configured' }, { status: 500 });
     }
 
-    // 동적 시스템 프롬프트 생성
-    const dynamicContext = buildDynamicSystemPrompt(prompt, autoMode);
+    // 동적 시스템 프롬프트 생성 (타겟 오디언스 반영)
+    const dynamicContext = buildDynamicSystemPrompt(prompt, autoMode, targetAudience);
 
     let systemPrompt: string;
     let userPrompt: string;

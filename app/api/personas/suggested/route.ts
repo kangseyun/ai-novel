@@ -30,25 +30,33 @@ export async function GET(request: NextRequest) {
     // jun은 기본 팔로우로 추천 목록에서 제외
     followedIds.push('jun');
 
-    // 페르소나 목록 조회 (팔로우하지 않은 것만)
-    const { data: personas, error } = await supabase
+    // 유저 토큰, 마지막 새로고침 시간, 선호 타입 조회
+    const { data: userData } = await supabase
+      .from('users')
+      .select('tokens, last_suggestion_refresh_at, preferred_target_audience')
+      .eq('id', user.id)
+      .single();
+
+    const preferredAudience = userData?.preferred_target_audience;
+
+    // 페르소나 목록 조회 (팔로우하지 않은 것 + 유저 선호 타입)
+    let query = supabase
       .from('personas')
-      .select('id, name, display_name, username, bio, avatar_url, is_verified, is_premium, category')
+      .select('id, name, display_name, username, bio, avatar_url, is_verified, is_premium, category, target_audience')
       .not('id', 'in', `(${followedIds.join(',')})`)
-      .eq('is_active', true)
-      .limit(5);
+      .eq('is_active', true);
+
+    // 유저의 선호 타입이 있으면 해당 타입만 필터링
+    if (preferredAudience) {
+      query = query.eq('target_audience', preferredAudience);
+    }
+
+    const { data: personas, error } = await query.limit(5);
 
     if (error) {
       console.error('[Suggested] Error:', error);
       throw error;
     }
-
-    // 유저 토큰 및 마지막 새로고침 시간 조회
-    const { data: userData } = await supabase
-      .from('users')
-      .select('tokens, last_suggestion_refresh_at')
-      .eq('id', user.id)
-      .single();
 
     // 다음 무료 새로고침까지 남은 시간 계산
     const lastRefreshAt = userData?.last_suggestion_refresh_at
@@ -99,7 +107,7 @@ export async function POST(request: NextRequest) {
     // 1. 현재 유저 정보 확인
     const { data: userData, error: userError } = await supabase
       .from('users')
-      .select('tokens, last_suggestion_refresh_at')
+      .select('tokens, last_suggestion_refresh_at, preferred_target_audience')
       .eq('id', user.id)
       .single();
 
@@ -191,13 +199,19 @@ export async function POST(request: NextRequest) {
     const followedIds = following?.map(f => f.persona_id) || [];
     followedIds.push('jun');
 
-    // 4. 새로운 추천 페르소나 (랜덤 정렬)
-    const { data: personas, error } = await supabase
+    // 4. 새로운 추천 페르소나 (랜덤 정렬 + 유저 선호 타입 필터)
+    const preferredAudience = userData?.preferred_target_audience;
+    let personasQuery = supabase
       .from('personas')
-      .select('id, name, display_name, username, bio, avatar_url, is_verified, is_premium, category')
+      .select('id, name, display_name, username, bio, avatar_url, is_verified, is_premium, category, target_audience')
       .not('id', 'in', `(${followedIds.join(',')})`)
-      .eq('is_active', true)
-      .limit(5);
+      .eq('is_active', true);
+
+    if (preferredAudience) {
+      personasQuery = personasQuery.eq('target_audience', preferredAudience);
+    }
+
+    const { data: personas, error } = await personasQuery.limit(5);
 
     if (error) {
       console.error('[Refresh] Personas fetch error:', error);

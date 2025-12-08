@@ -39,6 +39,16 @@ export function useTutorial() {
     startTutorial('scenario-tutorial');
   }, [startTutorial]);
 
+  // 추천 친구 튜토리얼 시작
+  const startSuggestedFriendsTutorial = useCallback(() => {
+    startTutorial('suggested-friends-tutorial');
+  }, [startTutorial]);
+
+  // 프로필 튜토리얼 시작
+  const startProfileTutorial = useCallback(() => {
+    startTutorial('profile-tutorial');
+  }, [startTutorial]);
+
   // 현재 튜토리얼 정보
   const tutorial = activeTutorialId ? tutorials[activeTutorialId] : null;
   const currentStep = getCurrentStep();
@@ -51,6 +61,8 @@ export function useTutorial() {
     startInitialTutorial,
     startDMTutorial,
     startScenarioTutorial,
+    startSuggestedFriendsTutorial,
+    startProfileTutorial,
     nextStep,
     prevStep,
     skipTutorial,
@@ -71,5 +83,7 @@ export function useTutorial() {
     isInitialTutorialCompleted: () => isTutorialCompleted('initial-tutorial'),
     isDMTutorialCompleted: () => isTutorialCompleted('dm-tutorial'),
     isScenarioTutorialCompleted: () => isTutorialCompleted('scenario-tutorial'),
+    isSuggestedFriendsTutorialCompleted: () => isTutorialCompleted('suggested-friends-tutorial'),
+    isProfileTutorialCompleted: () => isTutorialCompleted('profile-tutorial'),
   };
 }

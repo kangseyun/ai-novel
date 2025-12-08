@@ -1,9 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import DMChat from '@/components/sns/DMChat';
+import { useTutorial } from '@/components/tutorial/useTutorial';
 
 interface SNSProfile {
   id: string;
@@ -24,6 +25,8 @@ export default function DMChatPage() {
   const [profile, setProfile] = useState<SNSProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const tutorialTriggered = useRef(false);
+  const { startDMTutorial, isDMTutorialCompleted } = useTutorial();
 
   // Auth check
   useEffect(() => {
@@ -99,6 +102,17 @@ export default function DMChatPage() {
     // XP gain handling (if needed)
     console.log('[DMChatPage] XP gained:', amount);
   };
+
+  // DM 튜토리얼 트리거
+  useEffect(() => {
+    if (!isLoading && profile && !tutorialTriggered.current && !isDMTutorialCompleted()) {
+      tutorialTriggered.current = true;
+      const timer = setTimeout(() => {
+        startDMTutorial();
+      }, 800);
+      return () => clearTimeout(timer);
+    }
+  }, [isLoading, profile, startDMTutorial, isDMTutorialCompleted]);
 
   // 로딩 중
   if (isLoading) {

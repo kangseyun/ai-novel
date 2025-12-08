@@ -62,19 +62,14 @@ export default function FollowPersonasPage() {
     setIsLoading(true);
     try {
       const res = await fetch(`/api/onboarding/follow?target_audience=${audience}`);
-      const response: { personas: Persona[]; initialFollowsCompleted: boolean } = await res.json();
+      const response: { personas?: Persona[]; initialFollowsCompleted?: boolean } = await res.json();
 
-      if (response.initialFollowsCompleted) {
-        // 이미 초기 팔로우를 완료한 경우 홈으로
-        router.replace('/');
-        return;
-      }
-
-      setPersonas(response.personas);
+      const personas = response.personas || [];
+      setPersonas(personas);
 
       // 이미 팔로우된 페르소나 선택 상태로 설정
       const alreadyFollowed = new Set<string>(
-        response.personas.filter((p: Persona) => p.isFollowed).map((p: Persona) => p.id)
+        personas.filter((p: Persona) => p.isFollowed).map((p: Persona) => p.id)
       );
       setSelectedPersonas(alreadyFollowed);
     } catch (error) {

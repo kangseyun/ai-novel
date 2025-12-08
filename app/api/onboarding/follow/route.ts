@@ -117,14 +117,9 @@ export async function POST(request: NextRequest) {
       .eq('id', user.id)
       .single();
 
-    if (userData?.initial_follows_completed) {
-      return NextResponse.json(
-        { success: false, message: '이미 초기 팔로우를 완료했습니다' },
-        { status: 400 }
-      );
-    }
+    const isFirstTime = !userData?.initial_follows_completed;
 
-    // 2. 선택한 페르소나들 무료로 팔로우
+    // 2. 선택한 페르소나들 팔로우 (첫 온보딩 시에만 무료)
     const now = new Date().toISOString();
     const relationships = personaIds.map((personaId: string) => ({
       user_id: user.id,
@@ -149,13 +144,17 @@ export async function POST(request: NextRequest) {
     }
 
     // 3. 초기 팔로우 완료 표시 + 선호 타겟 저장
+    const updateData: Record<string, unknown> = {
+      preferred_target_audience: targetAudience,
+      updated_at: now,
+    };
+    if (isFirstTime) {
+      updateData.initial_follows_completed = true;
+    }
+
     const { error: updateError } = await supabase
       .from('users')
-      .update({
-        initial_follows_completed: true,
-        preferred_target_audience: targetAudience,
-        updated_at: now,
-      })
+      .update(updateData)
       .eq('id', user.id);
 
     if (updateError) {

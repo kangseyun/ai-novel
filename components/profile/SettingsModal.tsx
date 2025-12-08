@@ -14,10 +14,20 @@ import {
   Gift,
   Bell,
   Flame,
+  Heart,
 } from 'lucide-react';
 import { useTranslations, useLocale, useSetLocale, Locale } from '@/lib/i18n';
 import ReferralModal from '@/components/settings/ReferralModal';
 import StreakModal from '@/components/settings/StreakModal';
+import { useAuthStore } from '@/lib/stores/auth-store';
+
+type TargetAudience = 'female' | 'male' | 'anime';
+
+const AUDIENCE_OPTIONS: { id: TargetAudience; label: string; icon: string }[] = [
+  { id: 'female', label: '여성향', icon: '💜' },
+  { id: 'male', label: '남성향', icon: '💖' },
+  { id: 'anime', label: '애니', icon: '✨' },
+];
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -33,6 +43,7 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   const t = useTranslations();
   const locale = useLocale();
   const setLocale = useSetLocale();
+  const { user } = useAuthStore();
 
   const togglePushNotification = () => {
     // 알림 권한 요청 로직 구현 예정
@@ -60,6 +71,11 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   const handleLanguageChange = (newLocale: Locale) => {
     setLocale(newLocale);
     setShowLanguageSelect(false);
+  };
+
+  const getCurrentAudienceLabel = () => {
+    const option = AUDIENCE_OPTIONS.find(o => o.id === user?.preferred_target_audience);
+    return option ? `${option.icon} ${option.label}` : '선택 안함';
   };
 
   if (!isOpen) return null;
@@ -134,6 +150,25 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                     </div>
                   </div>
                 )}
+              </div>
+            </div>
+
+            {/* 취향 선택 섹션 */}
+            <div>
+              <p className="text-xs text-white/40 mb-2 px-1">컨셉 설정</p>
+              <div className="bg-white/5 rounded-xl overflow-hidden">
+                <SettingItem
+                  icon={<Heart className="w-5 h-5 text-purple-400" />}
+                  label="선호 캐릭터 유형 변경"
+                  subLabel={
+                    <span className="text-sm text-white/50">
+                      {getCurrentAudienceLabel()}
+                    </span>
+                  }
+                  onClick={() => {
+                    window.location.href = '/follow-personas';
+                  }}
+                />
               </div>
             </div>
 

@@ -9,6 +9,7 @@ interface User {
   profile_image: string | null;
   tokens: number;
   onboarding_completed: boolean;
+  preferred_target_audience: 'female' | 'male' | 'anime' | null;
 }
 
 interface AuthState {
@@ -89,6 +90,7 @@ export const useAuthStore = create<AuthState>()(
               profile_image: profile.profile_image,
               tokens: profile.tokens,
               onboarding_completed: profile.onboarding_completed,
+              preferred_target_audience: profile.preferred_target_audience,
             },
             isAuthenticated: true,
             isLoading: false,

@@ -1,10 +1,11 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Crown, Heart, History, X } from 'lucide-react';
 import type { ScenarioContent, ScenarioScene, ScenarioChoice } from '@/lib/ai-agent/modules/scenario-service';
 import { useTranslations } from '@/lib/i18n';
+import { useTutorial } from '@/components/tutorial/useTutorial';
 
 // ============================================
 // 타입 정의
@@ -75,6 +76,8 @@ export default function ScenarioPlayer({
   showHistory = true,
 }: ScenarioPlayerProps) {
   const tr = useTranslations();
+  const tutorialTriggered = useRef(false);
+  const { startScenarioTutorial, isScenarioTutorialCompleted } = useTutorial();
 
   // 현재 씬 인덱스 찾기
   const findSceneIndex = useCallback((sceneId?: string) => {
@@ -162,6 +165,17 @@ export default function ScenarioPlayer({
       return () => clearTimeout(timer);
     }
   }, [currentScene, showContent, isTransitioning, isLastScene]);
+
+  // 시나리오 튜토리얼 트리거
+  useEffect(() => {
+    if (showContent && !tutorialTriggered.current && !isScenarioTutorialCompleted()) {
+      tutorialTriggered.current = true;
+      const timer = setTimeout(() => {
+        startScenarioTutorial();
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [showContent, startScenarioTutorial, isScenarioTutorialCompleted]);
 
   // 씬 이동
   const goToScene = useCallback((sceneIdOrIndex: string | number) => {
@@ -343,6 +357,7 @@ export default function ScenarioPlayer({
               exit={{ opacity: 0 }}
               transition={{ duration: 0.5 }}
               className="max-w-md w-full text-center"
+              data-tutorial="scenario-text"
             >
               {/* 나레이션 */}
               {currentScene.type === 'narration' && currentScene.text && (
@@ -423,6 +438,7 @@ export default function ScenarioPlayer({
             exit={{ opacity: 0 }}
             transition={{ duration: 0.3 }}
             className="px-6 pb-8 space-y-3 shrink-0"
+            data-tutorial="scenario-choices"
           >
             {currentScene.choices.map((choice, idx) => (
               <motion.button

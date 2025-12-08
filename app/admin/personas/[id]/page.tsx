@@ -25,6 +25,7 @@ interface PersonaFormData {
   role: string;
   age: number;
   ethnicity: string;
+  target_audience: 'female' | 'male' | 'anime';
   voice_description: string;
   profile_image_url: string | null;
   appearance: {
@@ -98,6 +99,7 @@ const defaultFormData: PersonaFormData = {
   role: '',
   age: 20,
   ethnicity: 'Korean',
+  target_audience: 'female',
   voice_description: '',
   profile_image_url: null,
   appearance: {
@@ -259,6 +261,7 @@ export default function PersonaEditPage({ params }: { params: Promise<{ id: stri
         ...defaultFormData,
         ...persona,
         profile_image_url: persona.profile_image_url || null,
+        target_audience: persona.target_audience || 'female',
         appearance: persona.appearance || defaultFormData.appearance,
         core_personality: persona.core_personality || defaultFormData.core_personality,
         speech_patterns: persona.speech_patterns || defaultFormData.speech_patterns,
@@ -473,6 +476,7 @@ export default function PersonaEditPage({ params }: { params: Promise<{ id: stri
         role: formData.role,
         age: formData.age,
         ethnicity: formData.ethnicity,
+        target_audience: formData.target_audience,
         voice_description: formData.voice_description,
         profile_image_url: selectedImageUrl,
         appearance: formData.appearance,
@@ -990,6 +994,22 @@ export default function PersonaEditPage({ params }: { params: Promise<{ id: stri
                   onChange={(e) => updateFormData('ethnicity', e.target.value)}
                   placeholder="예: Korean"
                 />
+              </div>
+              <div className="space-y-2">
+                <Label>타겟 유저 <span className="text-destructive">*</span></Label>
+                <Select
+                  value={formData.target_audience}
+                  onValueChange={(v) => updateFormData('target_audience', v)}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="female">💜 여성향</SelectItem>
+                    <SelectItem value="male">💖 남성향</SelectItem>
+                    <SelectItem value="anime">✨ 애니</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
             <div className="mt-4 space-y-2">

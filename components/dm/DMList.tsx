@@ -11,6 +11,7 @@ import SuggestedFriends from './SuggestedFriends';
 import { DMListSkeleton } from '@/components/ui/Skeleton';
 import { useTranslations, useLocale, t } from '@/lib/i18n';
 import { toast } from 'sonner';
+import { useTutorial } from '@/components/tutorial/useTutorial';
 
 interface DMListProps {
   onOpenChat?: (personaId: string) => void; // Optional - 기본은 URL 라우팅 사용
@@ -49,8 +50,10 @@ export default function DMList({ onOpenChat }: DMListProps = {}) {
   const [junProfile, setJunProfile] = useState<PersonaProfile | null>(null);
   const isAuthenticated = useAuthStore(state => state.isAuthenticated);
   const hasFetched = useRef(false);
+  const tutorialTriggered = useRef(false);
   const tr = useTranslations();
   const locale = useLocale();
+  const { startSuggestedFriendsTutorial, isSuggestedFriendsTutorialCompleted } = useTutorial();
 
   // 서버에서 DM 목록 로드
   useEffect(() => {
@@ -62,6 +65,18 @@ export default function DMList({ onOpenChat }: DMListProps = {}) {
       setIsLoading(false);
     }
   }, [isAuthenticated]);
+
+  // 추천 친구 튜토리얼 트리거
+  useEffect(() => {
+    if (!isLoading && !tutorialTriggered.current && !isSuggestedFriendsTutorialCompleted()) {
+      tutorialTriggered.current = true;
+      // 로딩 완료 후 약간의 딜레이를 두고 튜토리얼 시작
+      const timer = setTimeout(() => {
+        startSuggestedFriendsTutorial();
+      }, 800);
+      return () => clearTimeout(timer);
+    }
+  }, [isLoading, startSuggestedFriendsTutorial, isSuggestedFriendsTutorialCompleted]);
 
   const loadDMList = async () => {
     try {
