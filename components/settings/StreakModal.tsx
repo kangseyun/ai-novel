@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, Flame, Calendar, Gift, CheckCircle2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
+import { useTranslations, t as translate } from '@/lib/i18n';
 
 interface StreakModalProps {
   isOpen: boolean;
@@ -13,6 +14,8 @@ interface StreakModalProps {
 export default function StreakModal({ isOpen, onClose }: StreakModalProps) {
   const [streak, setStreak] = useState(0);
   const [lastActive, setLastActive] = useState<string | null>(null);
+  const tr = useTranslations();
+  const t = tr.settings.streak;
   
   useEffect(() => {
     if (isOpen) {
@@ -59,7 +62,7 @@ export default function StreakModal({ isOpen, onClose }: StreakModalProps) {
           <div className="flex items-center justify-between px-6 py-5 border-b border-white/[0.05]">
             <h2 className="text-base font-medium text-white flex items-center gap-2">
               <Flame className="w-4 h-4 text-orange-500 fill-orange-500" />
-              출석 현황
+              {t.title}
             </h2>
             <button onClick={onClose} className="text-white/40 hover:text-white transition">
               <X className="w-5 h-5" />
@@ -75,18 +78,18 @@ export default function StreakModal({ isOpen, onClose }: StreakModalProps) {
                 <Flame className="w-20 h-20 text-orange-500 fill-orange-500 drop-shadow-[0_0_15px_rgba(249,115,22,0.5)]" />
               </div>
               <h3 className="text-4xl font-bold text-white tracking-tight">
-                {streak}<span className="text-lg text-white/40 ml-1 font-normal">일</span>
+                {streak}<span className="text-lg text-white/40 ml-1 font-normal">{t.days}</span>
               </h3>
               <p className="text-sm text-orange-400 font-medium">
-                연속 출석 중입니다! 🔥
+                {t.consecutiveStreak}
               </p>
             </div>
 
             {/* Next Bonus Progress */}
             <div className="bg-white/[0.03] border border-white/10 rounded-xl p-4 space-y-3">
               <div className="flex items-center justify-between text-xs">
-                <span className="text-white/60">다음 보너스까지</span>
-                <span className="text-white font-bold">{daysUntilBonus}일 남음</span>
+                <span className="text-white/60">{t.nextBonus}</span>
+                <span className="text-white font-bold">{translate(t.daysLeft, { n: daysUntilBonus })}</span>
               </div>
               <div className="relative h-2 bg-white/10 rounded-full overflow-hidden">
                 <motion.div 
@@ -97,14 +100,14 @@ export default function StreakModal({ isOpen, onClose }: StreakModalProps) {
               </div>
               <div className="flex items-center gap-2 text-xs text-yellow-400 bg-yellow-500/10 px-3 py-2 rounded-lg border border-yellow-500/20">
                 <Gift className="w-3 h-3" />
-                <span>7일 달성 시 50 크레딧 지급!</span>
+                <span>{t.bonusReward}</span>
               </div>
             </div>
 
             {/* Weekly Status (Visual Only for MVP) */}
             <div className="space-y-3">
               <p className="text-[10px] font-semibold text-white/30 uppercase tracking-widest px-1">
-                이번 주 활동
+                {t.weeklyActivity}
               </p>
               <div className="flex justify-between">
                 {weekDays.map((day, idx) => {
@@ -130,7 +133,7 @@ export default function StreakModal({ isOpen, onClose }: StreakModalProps) {
             </div>
 
             <p className="text-center text-xs text-white/30">
-              매일 접속하여 스트릭을 유지하세요!
+              {t.keepStreak}
             </p>
           </div>
         </motion.div>

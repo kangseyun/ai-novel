@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Copy, Gift, Users, Check } from 'lucide-react';
 import { apiClient } from '@/lib/api-client';
-import { useTranslations, useLocale } from '@/lib/i18n';
+import { useTranslations } from '@/lib/i18n';
 import { toast } from 'sonner';
 
 interface ReferralModalProps {
@@ -21,26 +21,8 @@ export default function ReferralModal({ isOpen, onClose }: ReferralModalProps) {
   } | null>(null);
   const [inputCode, setInputCode] = useState('');
   const [claiming, setClaiming] = useState(false);
-  
-  // 번역 (임시)
-  const t = {
-    title: '친구 초대',
-    subtitle: '친구도 나도 50 크레딧씩 받아요!',
-    myCode: '나의 초대 코드',
-    copy: '복사',
-    copied: '복사됨!',
-    inviteFriends: '친구 초대하기',
-    statLabel: '초대한 친구',
-    statValue: '{n}명',
-    enterCode: '추천인 코드 입력',
-    enterPlaceholder: '코드를 입력하세요',
-    claimReward: '보상 받기',
-    alreadyClaimed: '이미 추천인을 등록했습니다.',
-    successClaim: '50 크레딧을 받았습니다! 🎉',
-    errorSelf: '자기 자신의 코드는 사용할 수 없습니다.',
-    errorInvalid: '유효하지 않은 코드입니다.',
-    shareMessage: 'Luminovel에서 나만의 AI 캐릭터와 대화해보세요! 가입할 때 제 코드를 입력하면 50 크레딧을 드려요. \n\n초대 코드: {code}\nhttps://luminovel.ai',
-  };
+  const tr = useTranslations();
+  const t = tr.settings.referral;
 
   useEffect(() => {
     if (isOpen) {
@@ -95,8 +77,7 @@ export default function ReferralModal({ isOpen, onClose }: ReferralModalProps) {
       }
     } catch (error: any) {
       console.error('Claim error:', error);
-      // 에러 메시지 처리 (실제로는 서버 에러 응답 파싱 필요)
-      toast.error('코드를 확인해주세요.');
+      toast.error(t.checkCode);
     } finally {
       setClaiming(false);
     }
@@ -128,13 +109,13 @@ export default function ReferralModal({ isOpen, onClose }: ReferralModalProps) {
                 <Gift className="w-5 h-5 text-white" />
               </div>
               <h3 className="text-lg font-semibold text-white">{t.subtitle}</h3>
-              <p className="text-sm text-white/40 leading-relaxed">
-                친구에게 Luminovel을 소개하고<br/>함께 보상을 받으세요.
+              <p className="text-sm text-white/40 leading-relaxed whitespace-pre-line">
+                {t.description}
               </p>
             </div>
 
             {loading ? (
-              <div className="py-10 text-center text-white/30 text-sm">Loading...</div>
+              <div className="py-10 text-center text-white/30 text-sm">{t.loading}</div>
             ) : (
               <>
                 {/* My Code Section */}
@@ -166,7 +147,7 @@ export default function ReferralModal({ isOpen, onClose }: ReferralModalProps) {
                     <p className="text-xl font-medium text-white">{stats?.referral_count}</p>
                   </div>
                   <div className="bg-white/[0.02] border border-white/[0.05] rounded-xl p-4 text-center">
-                    <p className="text-[10px] text-white/30 mb-1">획득한 크레딧</p>
+                    <p className="text-[10px] text-white/30 mb-1">{t.earnedCredits}</p>
                     <p className="text-xl font-medium text-white">{(stats?.referral_count || 0) * 50}</p>
                   </div>
                 </div>

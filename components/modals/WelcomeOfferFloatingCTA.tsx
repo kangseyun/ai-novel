@@ -3,6 +3,7 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { Gift, Clock, X } from 'lucide-react';
 import { useState, useEffect } from 'react';
+import { useTranslations, t } from '@/lib/i18n';
 
 interface WelcomeOfferFloatingCTAProps {
   isVisible: boolean;
@@ -19,6 +20,8 @@ export default function WelcomeOfferFloatingCTA({
 }: WelcomeOfferFloatingCTAProps) {
   const [isMinimized, setIsMinimized] = useState(false);
   const [localRemaining, setLocalRemaining] = useState(remainingSeconds);
+  const tr = useTranslations();
+  const f = tr.shop.welcomeOffer.floating;
 
   useEffect(() => {
     setLocalRemaining(remainingSeconds);
@@ -86,7 +89,7 @@ export default function WelcomeOfferFloatingCTA({
             {/* 배지 */}
             <div className="absolute -top-3 left-4">
               <span className="px-2 py-1 bg-red-500 text-white text-[10px] font-bold rounded-full shadow-lg animate-pulse">
-                24시간 한정 70% OFF
+                {t(tr.shop.welcomeOffer.badge, {})} 70% OFF
               </span>
             </div>
 
@@ -99,14 +102,14 @@ export default function WelcomeOfferFloatingCTA({
               {/* 내용 */}
               <div className="flex-1 min-w-0">
                 <p className="text-white font-bold text-sm truncate">
-                  신규 가입 특별 혜택
+                  {f.title}
                 </p>
                 <div className="flex items-center gap-2 mt-1">
                   <Clock className="w-3 h-3 text-white/80" />
                   <span className="text-white/90 text-xs font-mono">
                     {formatTime(localRemaining)}
                   </span>
-                  <span className="text-white/60 text-xs">남음</span>
+                  <span className="text-white/60 text-xs">{f.remaining}</span>
                 </div>
               </div>
 
@@ -115,17 +118,17 @@ export default function WelcomeOfferFloatingCTA({
                 onClick={onClick}
                 className="px-4 py-2 bg-white text-purple-600 rounded-xl font-bold text-sm hover:bg-white/90 transition shadow-lg flex-shrink-0"
               >
-                확인하기
+                {f.check}
               </button>
             </div>
 
             {/* 하단 혜택 표시 */}
             <div className="mt-3 pt-3 border-t border-white/20 flex items-center justify-center gap-4 text-[10px] text-white/80">
-              <span>✨ 6,000 보너스 크레딧</span>
+              <span>✨ 6,000 {f.bonusCredits}</span>
               <span>•</span>
-              <span>🎯 월 $2.49부터</span>
+              <span>🎯 {t(f.startingAt, { n: '$2.49' })}</span>
               <span>•</span>
-              <span>⚡ 즉시 이용</span>
+              <span>⚡ {f.instant}</span>
             </div>
           </div>
         </motion.div>

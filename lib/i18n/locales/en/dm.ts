@@ -37,4 +37,14 @@ export const dm = {
   continueChat: 'Continue Chatting',
   activeNow: 'Active now',
   recharge: 'Recharge',
+  // Additional keys
+  personaNotFound: 'Persona not found',
+  profileLoadFailed: 'Failed to load profile',
+  unknownError: 'Unknown error',
+  goHome: 'Go home',
+  free: 'Free',
+  tokenConsume: 'tokens used',
+  refreshFailed: 'Failed to refresh',
+  followFailed: 'Failed to follow',
+  fetchFailed: 'Failed to load messages',
 } as const;

@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import DMChat from '@/components/sns/DMChat';
 import { useTutorial } from '@/components/tutorial/useTutorial';
+import { useTranslations } from '@/lib/i18n';
 
 interface SNSProfile {
   id: string;
@@ -21,6 +22,7 @@ export default function DMChatPage() {
   const params = useParams();
   const router = useRouter();
   const personaId = params.personaId as string;
+  const tr = useTranslations();
 
   const [profile, setProfile] = useState<SNSProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -63,7 +65,7 @@ export default function DMChatPage() {
 
       if (fetchError || !persona) {
         console.error('[DMChatPage] Persona not found:', fetchError);
-        setError('페르소나를 찾을 수 없습니다');
+        setError(tr.dm.personaNotFound);
         setIsLoading(false);
         return;
       }
@@ -84,7 +86,7 @@ export default function DMChatPage() {
       setIsLoading(false);
     } catch (err) {
       console.error('[DMChatPage] Error:', err);
-      setError('프로필을 불러오는데 실패했습니다');
+      setError(tr.dm.profileLoadFailed);
       setIsLoading(false);
     }
   };
@@ -118,7 +120,7 @@ export default function DMChatPage() {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
-        <div className="text-white/50 text-sm">대화를 불러오는 중...</div>
+        <div className="text-white/50 text-sm">{tr.dm.loadingChat}</div>
       </div>
     );
   }
@@ -127,12 +129,12 @@ export default function DMChatPage() {
   if (error || !profile) {
     return (
       <div className="min-h-screen bg-black flex flex-col items-center justify-center gap-4">
-        <div className="text-white/50 text-sm">{error || '알 수 없는 오류'}</div>
+        <div className="text-white/50 text-sm">{error || tr.dm.unknownError}</div>
         <button
           onClick={() => router.push('/')}
           className="px-4 py-2 bg-white/10 rounded-lg text-sm text-white hover:bg-white/20 transition"
         >
-          홈으로 돌아가기
+          {tr.dm.goHome}
         </button>
       </div>
     );

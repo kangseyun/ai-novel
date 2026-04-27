@@ -85,7 +85,7 @@ export default function DMList({ onOpenChat }: DMListProps = {}) {
       setConversations(data.conversations);
     } catch (error) {
       console.error('[DMList] Failed to load:', error);
-      toast.error('메시지 목록을 불러오지 못했어요');
+      toast.error(tr.dm.fetchFailed);
       setConversations([]);
     } finally {
       setIsLoading(false);

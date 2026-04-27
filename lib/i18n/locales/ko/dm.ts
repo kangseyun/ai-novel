@@ -37,4 +37,14 @@ export const dm = {
   continueChat: '계속 대화하기',
   activeNow: '지금 활동 중',
   recharge: '충전하기',
+  // Additional keys
+  personaNotFound: '페르소나를 찾을 수 없습니다',
+  profileLoadFailed: '프로필을 불러오는데 실패했습니다',
+  unknownError: '알 수 없는 오류',
+  goHome: '홈으로 돌아가기',
+  free: '무료',
+  tokenConsume: '토큰 소모',
+  refreshFailed: '새로고침에 실패했어요',
+  followFailed: '팔로우에 실패했어요',
+  fetchFailed: '메시지 목록을 불러오지 못했어요',
 } as const;

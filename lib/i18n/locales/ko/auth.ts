@@ -11,4 +11,6 @@ export const auth = {
   agreeTerms: '계속하면',
   and: '및',
   agree: '에 동의합니다',
+  // Additional keys
+  loggingIn: '로그인 중...',
 } as const;

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Check, Heart, Sparkles, Users, ChevronRight } from 'lucide-react';
 import { useAuthStore } from '@/lib/stores/auth-store';
+import { useTranslations, t } from '@/lib/i18n';
 
 interface Persona {
   id: string;
@@ -25,17 +26,12 @@ interface Persona {
 
 type TargetAudience = 'female' | 'male' | 'anime';
 
-const AUDIENCE_OPTIONS: { id: TargetAudience; label: string; description: string; icon: string }[] = [
-  { id: 'female', label: '여성향', description: '매력적인 남성 캐릭터들', icon: '💜' },
-  { id: 'male', label: '남성향', description: '매력적인 여성 캐릭터들', icon: '💖' },
-  { id: 'anime', label: '애니', description: '애니메이션 스타일 캐릭터', icon: '✨' },
-];
-
 const MIN_FOLLOWS = 5;
 
 export default function FollowPersonasPage() {
   const router = useRouter();
   const { isAuthenticated, isLoading: authLoading } = useAuthStore();
+  const tr = useTranslations();
 
   const [step, setStep] = useState<'category' | 'select'>('category');
   const [selectedAudience, setSelectedAudience] = useState<TargetAudience | null>(null);
@@ -43,6 +39,12 @@ export default function FollowPersonasPage() {
   const [selectedPersonas, setSelectedPersonas] = useState<Set<string>>(new Set());
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const AUDIENCE_OPTIONS: { id: TargetAudience; label: string; description: string; icon: string }[] = [
+    { id: 'female', label: tr.onboarding.femaleAudience, description: tr.onboarding.femaleAudienceDesc, icon: '💜' },
+    { id: 'male', label: tr.onboarding.maleAudience, description: tr.onboarding.maleAudienceDesc, icon: '💖' },
+    { id: 'anime', label: tr.onboarding.animeAudience, description: tr.onboarding.animeAudienceDesc, icon: '✨' },
+  ];
 
   // 인증 체크
   useEffect(() => {
@@ -113,7 +115,7 @@ export default function FollowPersonasPage() {
       router.replace('/?from_onboarding=true');
     } catch (error) {
       console.error('Failed to follow personas:', error);
-      alert('팔로우 처리 중 오류가 발생했습니다. 다시 시도해주세요.');
+      alert(tr.onboarding.followError);
     } finally {
       setIsSubmitting(false);
     }
@@ -134,6 +136,8 @@ export default function FollowPersonasPage() {
           <CategoryStep
             key="category"
             onSelect={handleAudienceSelect}
+            audienceOptions={AUDIENCE_OPTIONS}
+            tr={tr}
           />
         ) : (
           <SelectStep
@@ -146,6 +150,7 @@ export default function FollowPersonasPage() {
             onSubmit={handleSubmit}
             onBack={() => setStep('category')}
             audienceLabel={AUDIENCE_OPTIONS.find(o => o.id === selectedAudience)?.label || ''}
+            tr={tr}
           />
         )}
       </AnimatePresence>
@@ -154,7 +159,15 @@ export default function FollowPersonasPage() {
 }
 
 // 카테고리 선택 스텝
-function CategoryStep({ onSelect }: { onSelect: (audience: TargetAudience) => void }) {
+function CategoryStep({
+  onSelect,
+  audienceOptions,
+  tr
+}: {
+  onSelect: (audience: TargetAudience) => void;
+  audienceOptions: { id: TargetAudience; label: string; description: string; icon: string }[];
+  tr: ReturnType<typeof useTranslations>;
+}) {
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -173,16 +186,16 @@ function CategoryStep({ onSelect }: { onSelect: (audience: TargetAudience) => vo
           <Users className="w-8 h-8 text-white" />
         </motion.div>
         <h1 className="text-2xl font-bold text-white mb-2">
-          어떤 캐릭터와 대화하고 싶으세요?
+          {tr.onboarding.whichCharacterToChat}
         </h1>
         <p className="text-white/50 text-sm">
-          취향에 맞는 캐릭터를 추천해드릴게요
+          {tr.onboarding.recommendByPreference}
         </p>
       </div>
 
       {/* Options */}
       <div className="flex-1 flex flex-col justify-center gap-4 max-w-md mx-auto w-full">
-        {AUDIENCE_OPTIONS.map((option, index) => (
+        {audienceOptions.map((option, index) => (
           <motion.button
             key={option.id}
             initial={{ opacity: 0, x: -20 }}
@@ -216,6 +229,7 @@ function SelectStep({
   onSubmit,
   onBack,
   audienceLabel,
+  tr,
 }: {
   personas: Persona[];
   selectedPersonas: Set<string>;
@@ -225,6 +239,7 @@ function SelectStep({
   onSubmit: () => void;
   onBack: () => void;
   audienceLabel: string;
+  tr: ReturnType<typeof useTranslations>;
 }) {
   const canSubmit = selectedPersonas.size >= MIN_FOLLOWS;
   const remaining = Math.max(0, MIN_FOLLOWS - selectedPersonas.size);
@@ -242,13 +257,13 @@ function SelectStep({
           onClick={onBack}
           className="text-white/50 text-sm mb-4 hover:text-white transition-colors"
         >
-          ← 다시 선택
+          {tr.onboarding.backToSelect}
         </button>
         <h1 className="text-xl font-bold text-white mb-1">
-          팔로우할 캐릭터를 선택하세요
+          {tr.onboarding.selectCharactersToFollow}
         </h1>
         <p className="text-white/50 text-sm">
-          {audienceLabel} 캐릭터 중 최소 {MIN_FOLLOWS}명을 선택해주세요
+          {t(tr.onboarding.selectMinCharacters, { audience: audienceLabel, n: MIN_FOLLOWS })}
         </p>
       </div>
 
@@ -257,11 +272,11 @@ function SelectStep({
         <div className="flex items-center gap-2 mb-2">
           <Heart className="w-4 h-4 text-pink-400" />
           <span className="text-white text-sm font-medium">
-            {selectedPersonas.size}명 선택됨
+            {t(tr.onboarding.selectedCount, { n: selectedPersonas.size })}
           </span>
           {remaining > 0 && (
             <span className="text-white/40 text-sm">
-              (최소 {remaining}명 더 선택)
+              {t(tr.onboarding.selectMoreCount, { n: remaining })}
             </span>
           )}
         </div>
@@ -283,7 +298,7 @@ function SelectStep({
           </div>
         ) : personas.length === 0 ? (
           <div className="text-center py-20">
-            <p className="text-white/50">아직 캐릭터가 준비되지 않았어요</p>
+            <p className="text-white/50">{tr.onboarding.noCharactersYet}</p>
           </div>
         ) : (
           <div className="grid grid-cols-2 gap-3">
@@ -294,6 +309,7 @@ function SelectStep({
                 isSelected={selectedPersonas.has(persona.id)}
                 onToggle={() => onToggle(persona.id)}
                 index={index}
+                tr={tr}
               />
             ))}
           </div>
@@ -318,7 +334,7 @@ function SelectStep({
           ) : (
             <>
               <Sparkles className="w-5 h-5" />
-              시작하기
+              {tr.onboarding.startNow}
             </>
           )}
         </motion.button>
@@ -333,11 +349,13 @@ function PersonaCard({
   isSelected,
   onToggle,
   index,
+  tr,
 }: {
   persona: Persona;
   isSelected: boolean;
   onToggle: () => void;
   index: number;
+  tr: ReturnType<typeof useTranslations>;
 }) {
   return (
     <motion.button
@@ -383,7 +401,7 @@ function PersonaCard({
         {/* Verified badge */}
         {persona.isVerified && (
           <div className="absolute top-2 left-2 px-2 py-0.5 bg-blue-500/80 rounded-full text-[10px] text-white font-medium">
-            인증됨
+            {tr.onboarding.verified}
           </div>
         )}
 

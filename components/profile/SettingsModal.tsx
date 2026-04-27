@@ -23,12 +23,6 @@ import { useAuthStore } from '@/lib/stores/auth-store';
 
 type TargetAudience = 'female' | 'male' | 'anime';
 
-const AUDIENCE_OPTIONS: { id: TargetAudience; label: string; icon: string }[] = [
-  { id: 'female', label: '여성향', icon: '💜' },
-  { id: 'male', label: '남성향', icon: '💖' },
-  { id: 'anime', label: '애니', icon: '✨' },
-];
-
 interface SettingsModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -45,6 +39,12 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   const setLocale = useSetLocale();
   const { user } = useAuthStore();
 
+  const AUDIENCE_OPTIONS: { id: TargetAudience; label: string; icon: string }[] = [
+    { id: 'female', label: t.settings.femaleAudience, icon: '💜' },
+    { id: 'male', label: t.settings.maleAudience, icon: '💖' },
+    { id: 'anime', label: t.settings.animeAudience, icon: '✨' },
+  ];
+
   const togglePushNotification = () => {
     // 알림 권한 요청 로직 구현 예정
     if (!pushEnabled) {
@@ -54,7 +54,7 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
             setPushEnabled(true);
             // TODO: 서버에 토큰 저장 로직
           } else {
-            alert('알림 권한이 필요합니다.');
+            alert(t.settings.notificationPermissionRequired);
           }
         });
       }
@@ -75,7 +75,7 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
 
   const getCurrentAudienceLabel = () => {
     const option = AUDIENCE_OPTIONS.find(o => o.id === user?.preferred_target_audience);
-    return option ? `${option.icon} ${option.label}` : '선택 안함';
+    return option ? `${option.icon} ${option.label}` : t.settings.notSelected;
   };
 
   if (!isOpen) return null;
@@ -118,12 +118,12 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
 
             {/* 알림 섹션 */}
             <div>
-              <p className="text-xs text-white/40 mb-2 px-1">알림</p>
+              <p className="text-xs text-white/40 mb-2 px-1">{t.settings.notificationSection}</p>
               <div className="bg-white/5 rounded-xl overflow-hidden">
                 <div className="w-full flex items-center justify-between px-4 py-3.5 hover:bg-white/5 transition">
                   <div className="flex items-center gap-3">
                     <Bell className="w-5 h-5 text-white/60" />
-                    <span className="text-sm text-white">일상 알림 받기</span>
+                    <span className="text-sm text-white">{t.settings.dailyNotification}</span>
                   </div>
                   <button
                     onClick={togglePushNotification}
@@ -141,11 +141,11 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                 {pushEnabled && (
                   <div className="px-4 py-3 border-t border-white/5 bg-black/20">
                     <div className="flex items-center justify-between text-xs text-white/60 mb-2">
-                      <span>아침 인사</span>
+                      <span>{t.settings.morningGreeting}</span>
                       <span className="text-white">08:00 AM</span>
                     </div>
                     <div className="flex items-center justify-between text-xs text-white/60">
-                      <span>잘자요 인사</span>
+                      <span>{t.settings.goodNightGreeting}</span>
                       <span className="text-white">11:00 PM</span>
                     </div>
                   </div>
@@ -155,11 +155,11 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
 
             {/* 취향 선택 섹션 */}
             <div>
-              <p className="text-xs text-white/40 mb-2 px-1">컨셉 설정</p>
+              <p className="text-xs text-white/40 mb-2 px-1">{t.settings.conceptSection}</p>
               <div className="bg-white/5 rounded-xl overflow-hidden">
                 <SettingItem
                   icon={<Heart className="w-5 h-5 text-purple-400" />}
-                  label="선호 캐릭터 유형 변경"
+                  label={t.settings.preferredCharacterType}
                   subLabel={
                     <span className="text-sm text-white/50">
                       {getCurrentAudienceLabel()}
@@ -215,7 +215,7 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
               <div className="bg-white/5 rounded-xl overflow-hidden">
                 <SettingItem
                   icon={<Gift className="w-5 h-5 text-pink-400" />}
-                  label="친구 초대하고 무료 크레딧 받기"
+                  label={t.settings.inviteFriend}
                   labelColor="text-pink-200"
                   subLabel={<span className="text-xs text-pink-400/70">+50 Credit</span>}
                   onClick={() => setShowReferralModal(true)}
@@ -223,9 +223,9 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                 <div className="h-px bg-white/5" />
                 <SettingItem
                   icon={<Flame className="w-5 h-5 text-orange-500" />}
-                  label="연속 출석 현황"
+                  label={t.settings.streakStatus}
                   labelColor="text-orange-200"
-                  subLabel={<span className="text-xs text-orange-400/70">🔥 진행중</span>}
+                  subLabel={<span className="text-xs text-orange-400/70">🔥 {t.settings.inProgress}</span>}
                   onClick={() => setShowStreakModal(true)}
                 />
                 <div className="h-px bg-white/5" />

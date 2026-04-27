@@ -11,4 +11,6 @@ export const auth = {
   agreeTerms: 'By continuing, you agree to our',
   and: 'and',
   agree: '',
+  // Additional keys
+  loggingIn: 'Logging in...',
 } as const;

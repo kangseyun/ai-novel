@@ -6,12 +6,14 @@ import { supabase } from '@/lib/supabase';
 import { apiClient } from '@/lib/api-client';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import analytics from '@/lib/analytics';
+import { useTranslations } from '@/lib/i18n';
 
 export default function AuthCallbackPage() {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const loadUser = useAuthStore(state => state.loadUser);
   const callbackProcessedRef = useRef(false);
+  const t = useTranslations();
 
   useEffect(() => {
     // 중복 실행 방지
@@ -179,7 +181,7 @@ export default function AuthCallbackPage() {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
         <div className="text-center">
-          <p className="text-red-400 mb-2">로그인 실패</p>
+          <p className="text-red-400 mb-2">{t.auth.loginFailed}</p>
           <p className="text-white/40 text-sm">{error}</p>
         </div>
       </div>
@@ -190,7 +192,7 @@ export default function AuthCallbackPage() {
     <div className="min-h-screen bg-black flex items-center justify-center">
       <div className="text-center">
         <div className="w-8 h-8 border-2 border-white/30 border-t-white rounded-full animate-spin mx-auto mb-4" />
-        <p className="text-white/60">로그인 중...</p>
+        <p className="text-white/60">{t.auth.loggingIn}</p>
       </div>
     </div>
   );

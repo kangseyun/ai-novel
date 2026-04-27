@@ -183,7 +183,7 @@ export default function SuggestedFriends({
       }
     } catch (error) {
       console.error('[SuggestedFriends] Free refresh failed:', error);
-      toast.error('새로고침에 실패했어요');
+      toast.error(tr.dm.refreshFailed);
     } finally {
       setIsRefreshing(false);
     }
@@ -213,7 +213,7 @@ export default function SuggestedFriends({
       }
     } catch (error) {
       console.error('[SuggestedFriends] Paid refresh failed:', error);
-      toast.error('새로고침에 실패했어요');
+      toast.error(tr.dm.refreshFailed);
     } finally {
       setIsRefreshing(false);
     }
@@ -270,7 +270,7 @@ export default function SuggestedFriends({
 
     } catch (error) {
       console.error('Follow failed:', error);
-      toast.error('팔로우에 실패했어요');
+      toast.error(tr.dm.followFailed);
     } finally {
       setIsFollowing(false);
     }
@@ -299,7 +299,7 @@ export default function SuggestedFriends({
           data-tutorial="refresh-button"
         >
           <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
-          <span>무료</span>
+          <span>{tr.dm.free}</span>
         </button>
       ) : (
         <div className="flex items-center gap-1.5 px-3 py-1.5 bg-white/5 rounded-lg text-xs text-white/40">
@@ -474,7 +474,7 @@ export default function SuggestedFriends({
                     </div>
                     <p className="text-xs text-white/40">@{selectedPersona.username}</p>
                     {selectedPersona.is_premium && (
-                      <p className="text-xs text-yellow-400 mt-1">Premium Character</p>
+                      <p className="text-xs text-yellow-400 mt-1">{tr.onboarding.premiumCharacter}</p>
                     )}
                   </div>
 
@@ -484,7 +484,7 @@ export default function SuggestedFriends({
                     <span className="text-white font-medium">
                       {getFollowCost(selectedPersona.id, selectedPersona.is_premium)}
                     </span>
-                    <span className="text-white/50 text-sm">토큰 소모</span>
+                    <span className="text-white/50 text-sm">{tr.dm.tokenConsume}</span>
                   </div>
 
                   {/* 보유 토큰 */}

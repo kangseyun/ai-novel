@@ -177,7 +177,7 @@ export default function WelcomeOfferModal({
       }
     } catch (error) {
       console.error('Welcome offer purchase error:', error);
-      alert('결제 시작에 실패했습니다. 다시 시도해주세요.');
+      alert(tr.shop.paymentInitFailed);
     } finally {
       setLoading(null);
     }
@@ -274,7 +274,7 @@ export default function WelcomeOfferModal({
             >
               <div className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-pink-500/20 to-purple-500/20 border border-pink-500/30 rounded-full">
                 <Gift className="w-4 h-4 text-pink-400" />
-                <span className="text-sm font-bold text-pink-300">신규 가입 특별 혜택</span>
+                <span className="text-sm font-bold text-pink-300">{tr.shop.welcomeOffer.badge}</span>
                 <Sparkles className="w-4 h-4 text-pink-400 animate-pulse" />
               </div>
             </motion.div>
@@ -287,10 +287,10 @@ export default function WelcomeOfferModal({
               className="text-center mb-6"
             >
               <h2 className="text-2xl font-bold text-white mb-2">
-                가입 축하 <span className="text-transparent bg-clip-text bg-gradient-to-r from-pink-400 to-purple-400">{discountPercent}% 할인</span>
+                {t(tr.shop.welcomeOffer.title, { n: discountPercent })}
               </h2>
               <p className="text-sm text-white/60">
-                딱 24시간만 제공되는 특별 가격이에요
+                {tr.shop.welcomeOffer.subtitle}
               </p>
             </motion.div>
 
@@ -303,13 +303,13 @@ export default function WelcomeOfferModal({
             >
               <div className="flex items-center justify-center gap-2 mb-2">
                 <Clock className="w-4 h-4 text-red-400 animate-pulse" />
-                <span className="text-xs font-medium text-red-400">남은 시간</span>
+                <span className="text-xs font-medium text-red-400">{tr.shop.welcomeOffer.remaining}</span>
               </div>
               <div className="flex justify-center gap-3">
                 {[
-                  { value: remainingTime.hours, label: '시간' },
-                  { value: remainingTime.minutes, label: '분' },
-                  { value: remainingTime.seconds, label: '초' },
+                  { value: remainingTime.hours, label: tr.shop.welcomeOffer.hours },
+                  { value: remainingTime.minutes, label: tr.shop.welcomeOffer.minutes },
+                  { value: remainingTime.seconds, label: tr.shop.welcomeOffer.seconds },
                 ].map((item, idx) => (
                   <div key={idx} className="text-center">
                     <div className="w-16 h-16 bg-black/50 border border-red-500/30 rounded-xl flex items-center justify-center mb-1">
@@ -342,7 +342,7 @@ export default function WelcomeOfferModal({
                 {/* Best Value Badge */}
                 <div className="absolute top-0 right-0">
                   <div className="bg-gradient-to-r from-violet-500 to-purple-500 text-white text-[10px] font-bold px-3 py-1 rounded-bl-xl">
-                    BEST VALUE
+                    {tr.shop.welcomeOffer.bestValue}
                   </div>
                 </div>
 
@@ -355,7 +355,7 @@ export default function WelcomeOfferModal({
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
                       <Crown className="w-4 h-4 text-yellow-400" />
-                      <span className="font-bold text-white">연간 구독</span>
+                      <span className="font-bold text-white">{tr.shop.welcomeOffer.yearly}</span>
                     </div>
                     <div className="flex items-center gap-2 mt-1">
                       <span className="text-xs text-white/40 line-through">
@@ -365,14 +365,14 @@ export default function WelcomeOfferModal({
                         {formatPrice(WELCOME_OFFER.discounted.yearly)}
                       </span>
                       <span className="text-xs text-green-400 bg-green-500/10 px-2 py-0.5 rounded-full">
-                        월 {formatPrice(Math.round(WELCOME_OFFER.discounted.yearly / 12))}
+                        {t(tr.shop.welcomeOffer.perMonth, { n: formatPrice(Math.round(WELCOME_OFFER.discounted.yearly / 12)) })}
                       </span>
                     </div>
                   </div>
                 </div>
                 <div className="mt-3 flex items-center gap-2 text-xs text-violet-300 bg-violet-500/10 px-3 py-2 rounded-lg">
                   <Star className="w-3 h-3" />
-                  <span>{WELCOME_OFFER.credits.yearly.toLocaleString()} 보너스 크레딧 즉시 지급!</span>
+                  <span>{t(tr.shop.welcomeOffer.bonusCredits, { n: WELCOME_OFFER.credits.yearly.toLocaleString() })}</span>
                 </div>
               </button>
 
@@ -392,7 +392,7 @@ export default function WelcomeOfferModal({
                     {selectedPlan === 'monthly' && <Check className="w-3 h-3 text-white" />}
                   </div>
                   <div className="flex-1">
-                    <span className="font-bold text-white">월간 구독</span>
+                    <span className="font-bold text-white">{tr.shop.welcomeOffer.monthly}</span>
                     <div className="flex items-center gap-2 mt-1">
                       <span className="text-xs text-white/40 line-through">
                         {formatPrice(WELCOME_OFFER.original.monthly)}
@@ -404,7 +404,7 @@ export default function WelcomeOfferModal({
                   </div>
                 </div>
                 <div className="mt-2 text-xs text-pink-300">
-                  +{WELCOME_OFFER.credits.monthly.toLocaleString()} 보너스 크레딧
+                  +{t(tr.shop.welcomeOffer.bonusCredits, { n: WELCOME_OFFER.credits.monthly.toLocaleString() })}
                 </div>
               </button>
             </motion.div>
@@ -418,10 +418,10 @@ export default function WelcomeOfferModal({
             >
               <div className="grid grid-cols-2 gap-2 text-xs">
                 {[
-                  '모든 프리미엄 에피소드 무료',
-                  '광고 완전 제거',
-                  '독점 스토리 해금',
-                  '우선 고객 지원',
+                  tr.shop.welcomeOffer.features.premiumEpisodes,
+                  tr.shop.welcomeOffer.features.adFree,
+                  tr.shop.welcomeOffer.features.exclusiveStories,
+                  tr.shop.welcomeOffer.features.prioritySupport,
                 ].map((feature, idx) => (
                   <div key={idx} className="flex items-center gap-2 text-white/70">
                     <Check className="w-3 h-3 text-green-400 flex-shrink-0" />
@@ -445,7 +445,7 @@ export default function WelcomeOfferModal({
               ) : (
                 <>
                   <Zap className="w-5 h-5" />
-                  <span>지금 {discountPercent}% 할인받기</span>
+                  <span>{t(tr.shop.welcomeOffer.cta, { n: discountPercent })}</span>
                   <ChevronRight className="w-5 h-5" />
                 </>
               )}
@@ -458,7 +458,7 @@ export default function WelcomeOfferModal({
               transition={{ delay: 0.8 }}
               className="mt-4 text-center text-xs text-white/40"
             >
-              ⚠️ 이 가격은 24시간 후 사라집니다
+              ⚠️ {tr.shop.welcomeOffer.warning}
             </motion.p>
 
             {/* Trust Badges */}
@@ -468,11 +468,11 @@ export default function WelcomeOfferModal({
               transition={{ delay: 0.9 }}
               className="mt-4 flex items-center justify-center gap-4 text-[10px] text-white/30"
             >
-              <span>🔒 안전한 결제</span>
+              <span>🔒 {tr.shop.welcomeOffer.trustBadges.secure}</span>
               <span>•</span>
-              <span>언제든 취소 가능</span>
+              <span>{tr.shop.welcomeOffer.trustBadges.cancelAnytime}</span>
               <span>•</span>
-              <span>즉시 이용 가능</span>
+              <span>{tr.shop.welcomeOffer.trustBadges.instant}</span>
             </motion.div>
           </div>
         </motion.div>
@@ -496,18 +496,18 @@ export default function WelcomeOfferModal({
                   <span className="text-3xl">😢</span>
                 </div>
                 <h3 className="text-lg font-bold text-white mb-2">
-                  정말 떠나시겠어요?
+                  {tr.shop.welcomeOffer.exitConfirm.title}
                 </h3>
                 <p className="text-sm text-white/60 mb-6">
-                  이 특별 가격은 다시 제공되지 않아요!<br />
-                  <span className="text-pink-400 font-medium">{discountPercent}% 할인</span>을 놓치게 됩니다.
+                  {tr.shop.welcomeOffer.exitConfirm.message}<br />
+                  <span className="text-pink-400 font-medium">{t(tr.shop.welcomeOffer.exitConfirm.discountMiss, { n: discountPercent })}</span>
                 </p>
                 <div className="space-y-3">
                   <button
                     onClick={() => setShowExitConfirm(false)}
                     className="w-full py-3 bg-gradient-to-r from-pink-500 to-purple-500 text-white rounded-xl font-bold"
                   >
-                    할인 받을래요! 🎉
+                    {tr.shop.welcomeOffer.exitConfirm.stay}
                   </button>
                   <button
                     onClick={() => {
@@ -516,7 +516,7 @@ export default function WelcomeOfferModal({
                     }}
                     className="w-full py-3 text-white/40 text-sm hover:text-white/60 transition"
                   >
-                    나중에 정가로 구매할게요
+                    {tr.shop.welcomeOffer.exitConfirm.leave}
                   </button>
                 </div>
               </motion.div>
