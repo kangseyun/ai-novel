@@ -19,11 +19,10 @@ import {
  * 호감도 기반 관계 단계 계산
  */
 export function calculateRelationshipStage(affection: number): RelationshipStage {
-  if (affection >= 90) return 'lover';
-  if (affection >= 70) return 'intimate';
-  if (affection >= 50) return 'close';
+  if (affection >= 90) return 'heart';
+  if (affection >= 60) return 'close';
   if (affection >= 30) return 'friend';
-  if (affection >= 10) return 'acquaintance';
+  if (affection >= 10) return 'fan';
   return 'stranger';
 }
 
@@ -40,11 +39,10 @@ export function getStageIndex(stage: RelationshipStage): number {
 export function getAffectionForNextStage(currentStage: RelationshipStage): number | null {
   const thresholds: Record<RelationshipStage, number | null> = {
     stranger: 10,
-    acquaintance: 30,
-    friend: 50,
-    close: 70,
-    intimate: 90,
-    lover: null, // 최고 단계
+    fan: 30,
+    friend: 60,
+    close: 90,
+    heart: null, // 최고 단계
   };
   return thresholds[currentStage];
 }

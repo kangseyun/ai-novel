@@ -573,10 +573,10 @@ async function runDMChatPhase(ctx: UserContext): Promise<PhaseResult> {
 
       // 관계 단계 업데이트
       ctx.affection += 1;
-      if (ctx.affection >= 30 && ctx.relationshipStage === 'stranger') {
-        ctx.relationshipStage = 'acquaintance';
-        logger.info('🎉 관계 단계 업그레이드: acquaintance');
-      } else if (ctx.affection >= 50 && ctx.relationshipStage === 'acquaintance') {
+      if (ctx.affection >= 10 && ctx.relationshipStage === 'stranger') {
+        ctx.relationshipStage = 'fan';
+        logger.info('🎉 관계 단계 업그레이드: fan');
+      } else if (ctx.affection >= 30 && ctx.relationshipStage === 'fan') {
         ctx.relationshipStage = 'friend';
         logger.info('🎉 관계 단계 업그레이드: friend');
       }

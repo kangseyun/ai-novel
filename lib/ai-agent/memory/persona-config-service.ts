@@ -214,11 +214,10 @@ export async function getRelevantExampleDialogues(
     // 단계 필터링 (클라이언트 측)
     const stageOrder: Record<string, number> = {
       stranger: 0,
-      acquaintance: 1,
+      fan: 1,
       friend: 2,
       close: 3,
-      intimate: 4,
-      lover: 5,
+      heart: 4,
     };
 
     const currentStageIdx = stageOrder[stage || 'stranger'] || 0;

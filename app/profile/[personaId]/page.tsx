@@ -387,7 +387,7 @@ export default function PersonaProfilePage() {
                   // 해킹 레벨에 따른 접근 권한 체크
                   let requiredLevel = 1;
                   if (post.required_relationship_stage === 'close') requiredLevel = 3;
-                  if (post.required_relationship_stage === 'lover') requiredLevel = 5;
+                  if (post.required_relationship_stage === 'heart') requiredLevel = 5;
                   if (post.is_premium) requiredLevel = 2;
 
                   const isLocked = hackLevel < requiredLevel;

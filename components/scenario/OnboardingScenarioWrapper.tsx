@@ -77,8 +77,8 @@ export default function OnboardingScenarioWrapper({
     error,
     startScenario,
   } = useFirstMeetingScenario(personaId, {
-    onComplete: (result) => {
-      console.log('[Onboarding] Scenario completed:', result);
+    onComplete: () => {
+      // Completion handled by handleComplete below
     },
     onError: (err) => {
       console.error('[Onboarding] Scenario error:', err);
@@ -96,8 +96,7 @@ export default function OnboardingScenarioWrapper({
   }, [scenario, isStarted, startScenario]);
 
   // 프리미엄 선택지 핸들러
-  const handlePremiumChoice = (choice: ScenarioChoice) => {
-    console.log('[Onboarding] Premium choice clicked:', choice);
+  const handlePremiumChoice = (_choice: ScenarioChoice) => {
     onPremiumChoice?.();
   };
 
@@ -159,11 +158,7 @@ export default function OnboardingScenarioWrapper({
     <ScenarioPlayer
       scenario={scenarioContent}
       character={character}
-      onChoice={(choice, sceneId) => {
-        console.log('[Onboarding] Choice made:', choice.text, 'at scene:', sceneId);
-      }}
       onAffectionChange={(delta, total) => {
-        console.log('[Onboarding] Affection changed:', delta, 'total:', total);
         onAffectionChange?.(delta, total);
       }}
       onPremiumChoice={handlePremiumChoice}

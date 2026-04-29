@@ -186,10 +186,6 @@ export function useImageGenerationQueue() {
                 prompt: task.prompt,
                 is_current: true,
               });
-
-              console.log(`[ImageQueue] Task ${task.id} completed for ${task.persona_name}`);
-            } else {
-              console.log(`[ImageQueue] Task ${task.id} already processed, skipping history insert`);
             }
 
             // 태스크 완료 처리
@@ -209,7 +205,7 @@ export function useImageGenerationQueue() {
               })
               .eq('id', task.id);
 
-            console.log(`[ImageQueue] Task ${task.id} failed for ${task.persona_name}`);
+            console.warn(`[ImageQueue] Task ${task.id} failed for ${task.persona_name}`);
             processingTaskIds.delete(task.id); // 실패 후 제거
           } else {
             // 아직 처리 중이면 다음 폴링에서 다시 확인할 수 있도록 제거

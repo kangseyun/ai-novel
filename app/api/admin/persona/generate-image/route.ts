@@ -83,7 +83,6 @@ Example output: "young Korean man, black wavy hair, sharp dark brown eyes, tall 
 
     const data = await response.json();
     const translatedPrompt = data.choices[0]?.message?.content?.trim() || '';
-    console.log('[Image Prompt Translation] Result:', translatedPrompt);
     return translatedPrompt;
   } catch (error) {
     console.error('[Image Prompt Translation] Error:', error);
@@ -198,8 +197,6 @@ export async function POST(request: NextRequest) {
         aspectRatio: typeTemplate.aspectRatio,
       });
     }
-
-    console.log('[Image Generation] Prompt:', fullPrompt);
 
     const klingClient = getKlingAIClient();
 

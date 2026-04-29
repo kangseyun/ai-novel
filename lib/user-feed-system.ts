@@ -64,7 +64,7 @@ export interface TriggerCondition {
 // 페르소나별 진행 상태
 export interface PersonaProgress {
   personaId: string;
-  stage: 'stranger' | 'acquaintance' | 'friend' | 'close' | 'romantic';
+  stage: 'stranger' | 'fan' | 'friend' | 'close' | 'heart';
   affection: number;
   completedScenarios: string[];
   unlockedScenarios: string[];
@@ -246,14 +246,14 @@ export const JUN_REACTION_TRIGGERS: ReactionTrigger[] = [
     },
   },
 
-  // Stage: acquaintance (아는 사이)
+  // Stage: fan (팬)
   {
     id: 'jun_react_tired_acq',
     personaId: 'jun',
     triggerType: 'post',
     conditions: [
       { type: 'mood', value: 'tired', operator: 'eq' },
-      { type: 'progress', value: 'acquaintance', operator: 'eq' },
+      { type: 'progress', value: 'fan', operator: 'eq' },
     ],
     priority: 10,
     scenarioId: 'jun_ep3_comfort',
@@ -269,7 +269,7 @@ export const JUN_REACTION_TRIGGERS: ReactionTrigger[] = [
     triggerType: 'post',
     conditions: [
       { type: 'keyword', value: '셀카', operator: 'contains' },
-      { type: 'progress', value: 'acquaintance', operator: 'eq' },
+      { type: 'progress', value: 'fan', operator: 'eq' },
     ],
     priority: 5,
     scenarioId: 'jun_ep3_compliment',
@@ -389,10 +389,10 @@ export function findMatchingTriggers(
 
 export function getProgressStage(affection: number): PersonaProgress['stage'] {
   if (affection < 10) return 'stranger';
-  if (affection < 30) return 'acquaintance';
+  if (affection < 30) return 'fan';
   if (affection < 60) return 'friend';
-  if (affection < 100) return 'close';
-  return 'romantic';
+  if (affection < 90) return 'close';
+  return 'heart';
 }
 
 // ============================================

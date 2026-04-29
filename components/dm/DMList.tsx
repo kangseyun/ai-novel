@@ -269,8 +269,7 @@ export default function DMList({ onOpenChat }: DMListProps = {}) {
 
       {/* 추천 친구 (프리미엄 페르소나 해금) */}
       <SuggestedFriends
-        onUnlock={(personaId) => {
-          console.log('[DMList] Persona unlocked:', personaId);
+        onUnlock={() => {
           // 목록 새로고침
           loadDMList();
         }}

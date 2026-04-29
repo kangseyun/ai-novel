@@ -52,7 +52,7 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
         Notification.requestPermission().then((permission) => {
           if (permission === 'granted') {
             setPushEnabled(true);
-            // TODO: 서버에 토큰 저장 로직
+            // TODO(notifications): FCM 토큰 발급 후 user_push_tokens 테이블에 저장 — Phase: 푸시 알림 인프라 도입 시
           } else {
             alert(t.settings.notificationPermissionRequired);
           }

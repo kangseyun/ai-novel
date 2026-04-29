@@ -77,11 +77,10 @@ interface GeneratedScenario {
 
 const RELATIONSHIP_STAGES = [
   { value: 'stranger', label: '낯선 사람' },
-  { value: 'acquaintance', label: '아는 사이' },
+  { value: 'fan', label: '팬' },
   { value: 'friend', label: '친구' },
-  { value: 'close', label: '친한 친구' },
-  { value: 'intimate', label: '특별한 사이' },
-  { value: 'lover', label: '연인' },
+  { value: 'close', label: '가까운 사이' },
+  { value: 'heart', label: '진심' },
 ];
 
 const THEME_SUGGESTIONS: Record<string, { theme: string; description: string }[]> = {
@@ -90,7 +89,7 @@ const THEME_SUGGESTIONS: Record<string, { theme: string; description: string }[]
     { theme: '도움 요청', description: '작은 도움이 인연의 시작이 되는' },
     { theme: '오해와 화해', description: '처음엔 오해했지만 풀리는 과정' },
   ],
-  acquaintance: [
+  fan: [
     { theme: '공통 관심사', description: '같은 취미나 관심사를 발견하는' },
     { theme: '우연의 일치', description: '자꾸만 마주치게 되는 인연' },
     { theme: '작은 배려', description: '사소한 배려에서 시작되는 호감' },
@@ -105,12 +104,7 @@ const THEME_SUGGESTIONS: Record<string, { theme: string; description: string }[]
     { theme: '미래 이야기', description: '함께하는 미래를 상상하는' },
     { theme: '고백 직전', description: '마음을 전하고 싶은 순간' },
   ],
-  intimate: [
-    { theme: '첫 다툼', description: '처음으로 의견이 부딪히는' },
-    { theme: '기념일', description: '특별한 날을 함께 보내는' },
-    { theme: '시련 극복', description: '함께 어려움을 이겨내는' },
-  ],
-  lover: [
+  heart: [
     { theme: '평범한 행복', description: '일상 속 소소한 행복' },
     { theme: '미래 계획', description: '함께할 미래를 구체적으로 계획하는' },
     { theme: '재확인', description: '서로의 마음을 다시 확인하는' },
@@ -135,7 +129,7 @@ export default function ScenarioGeneratePage() {
   const [customTheme, setCustomTheme] = useState('');
   const [targetEmotion, setTargetEmotion] = useState('설렘');
   const [situationHint, setSituationHint] = useState('');
-  const [relationshipStage, setRelationshipStage] = useState('acquaintance');
+  const [relationshipStage, setRelationshipStage] = useState('fan');
   const [minAffection, setMinAffection] = useState(0);
   const [sceneCount, setSceneCount] = useState(4);
   const [choicesPerScene, setChoicesPerScene] = useState(2);
@@ -172,7 +166,7 @@ export default function ScenarioGeneratePage() {
   }, [fetchPersonas]);
 
   const selectedPersona = personas.find(p => p.id === selectedPersonaId);
-  const themeSuggestions = THEME_SUGGESTIONS[relationshipStage] || THEME_SUGGESTIONS.acquaintance;
+  const themeSuggestions = THEME_SUGGESTIONS[relationshipStage] || THEME_SUGGESTIONS.fan;
 
   const handleGenerate = async () => {
     if (!selectedPersonaId) {

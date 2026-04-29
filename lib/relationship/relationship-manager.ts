@@ -185,7 +185,6 @@ export class RelationshipManager {
     if (error) {
       // 중복 기억은 무시
       if (error.code === '23505') {
-        console.log('[RelationshipManager] Duplicate memory, skipped');
         return null;
       }
       throw error;

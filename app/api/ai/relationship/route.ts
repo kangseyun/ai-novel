@@ -102,10 +102,10 @@ export async function POST(request: NextRequest) {
     // 스테이지 자동 계산
     const avgLevel = (newAffection + newTrust + newIntimacy) / 3;
     let newStage = 'stranger';
-    if (avgLevel >= 80) newStage = 'lover';
-    else if (avgLevel >= 60) newStage = 'intimate';
-    else if (avgLevel >= 40) newStage = 'close';
-    else if (avgLevel >= 20) newStage = 'acquaintance';
+    if (avgLevel >= 80) newStage = 'heart';
+    else if (avgLevel >= 50) newStage = 'close';
+    else if (avgLevel >= 30) newStage = 'friend';
+    else if (avgLevel >= 10) newStage = 'fan';
 
     const updateData = {
       user_id: user.id,

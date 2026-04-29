@@ -672,7 +672,7 @@ class ApiClient {
   async getRelationship(personaId: string) {
     return this.request<{
       personaId: string;
-      stage: 'stranger' | 'acquaintance' | 'close' | 'intimate' | 'lover';
+      stage: 'stranger' | 'fan' | 'friend' | 'close' | 'heart';
       affectionLevel: number;
       trustLevel: number;
       intimacyLevel: number;

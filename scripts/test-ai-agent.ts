@@ -114,7 +114,7 @@ async function testPromptGeneration(personaData: {
     oduserId: 'test-user',
     personaId: personaData.persona.id,
     affection: 30,
-    relationshipStage: 'acquaintance',
+    relationshipStage: 'fan',
     trustLevel: 20,
     intimacyLevel: 10,
     tensionLevel: 0,
@@ -157,7 +157,7 @@ async function testPromptGeneration(personaData: {
   // 프롬프트 내용 검증
   const checks = {
     '페르소나 이름 포함': systemPrompt.includes(personaData.persona.name),
-    '관계 단계 포함': systemPrompt.includes('acquaintance') || systemPrompt.includes('아는 사이'),
+    '관계 단계 포함': systemPrompt.includes('fan') || systemPrompt.includes('팬'),
     '호감도 포함': systemPrompt.includes('30') || systemPrompt.includes('호감'),
     '말투 가이드 포함': systemPrompt.includes('formality') || systemPrompt.includes('말투'),
   };
@@ -250,10 +250,10 @@ async function testRelationshipStages(personaData: {
 
   const stages = [
     { stage: 'stranger', affection: 5 },
-    { stage: 'acquaintance', affection: 25 },
+    { stage: 'fan', affection: 25 },
     { stage: 'friend', affection: 50 },
     { stage: 'close', affection: 70 },
-    { stage: 'intimate', affection: 85 },
+    { stage: 'heart', affection: 95 },
   ] as const;
 
   const testMessage = '보고 싶었어';

@@ -112,7 +112,7 @@ ${config.name}:`;
   // ----------------------------------------------------
 
   private static selectExamples(all: ExampleDialogue[], count: number): ExampleDialogue[] {
-    // TODO: 나중에는 상황에 맞는 예시를 검색해서 가져오도록 고도화 가능
+    // 향후: 상황(감정/관계 단계 등)에 맞는 예시를 검색해서 가져오도록 고도화 가능
     const shuffled = [...all].sort(() => 0.5 - Math.random());
     return shuffled.slice(0, count);
   }

@@ -8,10 +8,8 @@
 import { useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Loader2 } from 'lucide-react';
-import { PERSONAS } from '@/lib/persona-data';
 import OnboardingScenario, { ScenarioResultData } from '../OnboardingScenario';
 import OnboardingSignup from '../OnboardingSignup';
-import { getPersonaById } from '@/lib/persona-data';
 import { useTranslations, useLocale } from '@/lib/i18n';
 import { useOnboardingData, OnboardingPersona } from '@/hooks/useOnboardingData';
 
@@ -58,10 +56,8 @@ export default function OnboardingA({ onComplete, onSkip }: OnboardingAProps) {
   // DB에서 온보딩 데이터 가져오기
   const { personas: dbPersonas, settings, isLoading } = useOnboardingData();
 
-  // DB 페르소나가 있으면 사용, 없으면 하드코딩된 데이터 사용 (폴백)
-  const personas: TransformedPersona[] = dbPersonas.length > 0
-    ? dbPersonas.map(p => transformPersona(p, locale))
-    : PERSONAS.map(p => ({ ...p, scenarioId: null }));
+  // DB 페르소나만 사용 (LUMIN 시드 데이터)
+  const personas: TransformedPersona[] = dbPersonas.map(p => transformPersona(p, locale));
 
   const handleSelect = (persona: TransformedPersona) => {
     if (!persona.available) return;
@@ -86,7 +82,7 @@ export default function OnboardingA({ onComplete, onSkip }: OnboardingAProps) {
 
   // 선택된 페르소나 정보 가져오기
   const selectedPersona = selectedPersonaId
-    ? personas.find(p => p.id === selectedPersonaId) || getPersonaById(selectedPersonaId)
+    ? personas.find(p => p.id === selectedPersonaId)
     : null;
 
   // 로딩 중일 때

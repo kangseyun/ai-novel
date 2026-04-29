@@ -49,11 +49,10 @@ export function getMemoryTitle(type: MemoryType | string): string {
 export function getRelationshipLabel(stage: RelationshipStage | string): string {
   const labels: Record<string, string> = {
     stranger: '처음',
-    acquaintance: '아는 사이',
+    fan: '팬',
     friend: '친구',
     close: '가까운 사이',
-    intimate: '특별한 사이',
-    lover: '연인',
+    heart: '진심',
   };
   return labels[stage] || stage;
 }
@@ -64,11 +63,10 @@ export function getRelationshipLabel(stage: RelationshipStage | string): string 
 export function getRelationshipLabelEn(stage: RelationshipStage | string): string {
   const labels: Record<string, string> = {
     stranger: 'Stranger',
-    acquaintance: 'Acquaintance',
+    fan: 'Fan',
     friend: 'Friend',
     close: 'Close',
-    intimate: 'Intimate',
-    lover: 'Lover',
+    heart: 'Heart',
   };
   return labels[stage] || stage;
 }
@@ -103,7 +101,7 @@ export function getUnlockCondition(
     secret_shared: '친밀도 50 이상',
     conflict: '갈등 이벤트 발생',
     reconciliation: '갈등 해결',
-    intimate_moment: '특별한 사이 이상',
+    intimate_moment: '가까운 사이 이상',
     gift_received: '선물 주고받기',
     milestone: '관계 진전',
     user_preference: '대화 중 취향 공유',
@@ -127,17 +125,17 @@ export function canUnlockMemoryType(
 ): boolean {
   const requirements: Record<MemoryType, () => boolean> = {
     first_meeting: () => true,
-    promise: () => stage !== 'stranger' && stage !== 'acquaintance',
+    promise: () => stage !== 'stranger' && stage !== 'fan',
     secret_shared: () => intimacy >= 50,
     conflict: () => affection >= 20,
     reconciliation: () => affection >= 30,
-    intimate_moment: () => stage === 'intimate' || stage === 'lover',
+    intimate_moment: () => stage === 'close' || stage === 'heart',
     gift_received: () => stage !== 'stranger',
     milestone: () => true,
     user_preference: () => true,
     emotional_event: () => affection >= 20,
     location_memory: () => stage !== 'stranger',
-    nickname: () => stage !== 'stranger' && stage !== 'acquaintance',
+    nickname: () => stage !== 'stranger' && stage !== 'fan',
     inside_joke: () => affection >= 40,
     important_date: () => stage !== 'stranger',
   };
@@ -326,11 +324,10 @@ export function getMemoryEmoji(type: MemoryType | string): string {
 export function getStageEmoji(stage: RelationshipStage | string): string {
   const emojis: Record<string, string> = {
     stranger: '👤',
-    acquaintance: '🙂',
+    fan: '🙂',
     friend: '😊',
     close: '🥰',
-    intimate: '💗',
-    lover: '💕',
+    heart: '💕',
   };
   return emojis[stage] || '👤';
 }

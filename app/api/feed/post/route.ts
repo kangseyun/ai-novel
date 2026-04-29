@@ -5,19 +5,13 @@ import { getAuthUser, unauthorized, badRequest, serverError } from '@/lib/auth';
 // POST /api/feed/post - 유저 포스트 작성
 export async function POST(request: NextRequest) {
   try {
-    console.log('[Feed Post] Start');
-
     const user = await getAuthUser(request);
     if (!user) {
-      console.log('[Feed Post] Unauthorized');
       return unauthorized();
     }
 
-    console.log('[Feed Post] User:', user.id);
-
     const body = await request.json();
     const { type, mood, caption, image } = body;
-    console.log('[Feed Post] Body:', { type, mood, caption, image: image ? 'present' : 'absent' });
 
     if (!type || !caption) {
       return badRequest('type and caption are required');
@@ -42,8 +36,6 @@ export async function POST(request: NextRequest) {
       console.error('[Feed Post] DB Error:', error);
       return serverError(error);
     }
-
-    console.log('[Feed Post] Post created:', post.id);
 
     // 게임 상태 조회 (반응 생성에 필요)
     const { data: gameState } = await supabase

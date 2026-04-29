@@ -26,10 +26,9 @@ export class GoogleAdsClient implements AdClient {
   // Google Ads API is complex (ProtoBuf/gRPC often used).
   // Here we simulate the REST interface structure.
   
-  async uploadImage(imageUrl: string): Promise<string> {
-    // 1. Upload asset (MEDIA_BUNDLE or IMAGE)
+  async uploadImage(_imageUrl: string): Promise<string> {
+    // STUB: 1. Upload asset (MEDIA_BUNDLE or IMAGE)
     // POST /v16/customers/{customerId}/assets:mutate
-    console.log('[Google Ads] Uploading image asset...');
     return 'resourceNames/customers/123/assets/456';
   }
 
@@ -44,29 +43,25 @@ export class GoogleAdsClient implements AdClient {
     });
   }
 
-  async createCampaign(config: AdCampaignConfig): Promise<string> {
-    // POST /v16/customers/{customerId}/campaigns:mutate
-    console.log('[Google Ads] Creating campaign:', config.name);
+  async createCampaign(_config: AdCampaignConfig): Promise<string> {
+    // STUB: POST /v16/customers/{customerId}/campaigns:mutate
     return 'resourceNames/customers/123/campaigns/789';
   }
 
-  async createAdGroup(campaignId: string, name: string, targeting?: any): Promise<string> {
-    // POST /v16/customers/{customerId}/adGroups:mutate
+  async createAdGroup(_campaignId: string, _name: string, _targeting?: any): Promise<string> {
+    // STUB: POST /v16/customers/{customerId}/adGroups:mutate
     return 'resourceNames/customers/123/adGroups/101';
   }
 
-  async createAd(adGroupId: string, creativeId: string, name: string): Promise<string> {
-    // POST /v16/customers/{customerId}/adGroupAds:mutate
+  async createAd(_adGroupId: string, creativeId: string, _name: string): Promise<string> {
+    // STUB: POST /v16/customers/{customerId}/adGroupAds:mutate
     // creativeId contains the JSON structure from createCreative
-    const adData = JSON.parse(creativeId);
-    console.log('[Google Ads] Creating AdGroupAd in', adGroupId, 'with data', adData);
+    JSON.parse(creativeId);
     return 'resourceNames/customers/123/adGroupAds/202';
   }
 
   async getAdInsights(adId: string): Promise<AdInsights> {
-    // Google Ads uses GoogleAdsService.SearchStream for reporting
-    // Mocking data for prototype
-    console.log('[Google Ads] Getting insights for:', adId);
+    // STUB: Google Ads uses GoogleAdsService.SearchStream for reporting
     return {
       adId,
       platform: 'google',

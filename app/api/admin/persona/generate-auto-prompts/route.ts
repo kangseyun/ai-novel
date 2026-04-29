@@ -260,8 +260,6 @@ export async function POST(request: NextRequest) {
     // 다양한 프롬프트 생성
     const prompts = generateUniquePrompts(count);
 
-    console.log(`[Auto Prompts] Generated ${prompts.length} unique prompts`);
-
     return NextResponse.json({
       success: true,
       prompts,

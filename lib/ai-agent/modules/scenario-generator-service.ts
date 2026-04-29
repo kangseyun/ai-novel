@@ -351,7 +351,7 @@ export class ScenarioGeneratorService {
       choicesPerScene: request.choicesPerScene || 2,
       includePremiumChoice: request.includePremiumChoice ?? true,
       minAffection: request.minAffection || 0,
-      relationshipStage: request.relationshipStage || 'acquaintance',
+      relationshipStage: request.relationshipStage || 'fan',
     });
 
     try {
@@ -685,7 +685,7 @@ export class ScenarioGeneratorService {
         { theme: '도움 요청', description: '작은 도움이 인연의 시작이 되는' },
         { theme: '오해와 화해', description: '처음엔 오해했지만 풀리는 과정' },
       ],
-      acquaintance: [
+      fan: [
         { theme: '공통 관심사', description: '같은 취미나 관심사를 발견하는' },
         { theme: '우연의 일치', description: '자꾸만 마주치게 되는 인연' },
         { theme: '작은 배려', description: '사소한 배려에서 시작되는 호감' },
@@ -699,20 +699,17 @@ export class ScenarioGeneratorService {
         { theme: '질투의 순간', description: '예상치 못한 질투심이 생기는' },
         { theme: '미래 이야기', description: '함께하는 미래를 상상하는' },
         { theme: '고백 직전', description: '마음을 전하고 싶은 순간' },
-      ],
-      intimate: [
         { theme: '첫 다툼', description: '처음으로 의견이 부딪히는' },
-        { theme: '기념일', description: '특별한 날을 함께 보내는' },
-        { theme: '시련 극복', description: '함께 어려움을 이겨내는' },
       ],
-      lover: [
+      heart: [
         { theme: '평범한 행복', description: '일상 속 소소한 행복' },
         { theme: '미래 계획', description: '함께할 미래를 구체적으로 계획하는' },
         { theme: '재확인', description: '서로의 마음을 다시 확인하는' },
+        { theme: '기념일', description: '특별한 날을 함께 보내는' },
       ],
     };
 
-    return suggestions[relationshipStage] || suggestions.acquaintance;
+    return suggestions[relationshipStage] || suggestions.fan;
   }
 }
 

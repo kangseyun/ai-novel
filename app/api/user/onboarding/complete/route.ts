@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
         user_id: user.id,
         persona_id,
         affection: affection_gained || 0,
-        relationship_stage: 'acquaintance',
+        relationship_stage: 'fan',
         unlocked_episodes: ['ep1'],
         story_flags: {},
         is_unlocked: true,
@@ -82,7 +82,7 @@ export async function POST(request: NextRequest) {
       initial_state: {
         persona_id,
         affection: affection_gained || 0,
-        relationship_stage: 'acquaintance',
+        relationship_stage: 'fan',
       },
     });
   } catch (error) {

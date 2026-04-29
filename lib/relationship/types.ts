@@ -8,20 +8,18 @@
 // ============================================
 
 export type RelationshipStage =
-  | 'stranger'      // 처음
-  | 'acquaintance'  // 아는 사이
-  | 'friend'        // 친구
-  | 'close'         // 가까운 사이
-  | 'intimate'      // 특별한 사이
-  | 'lover';        // 연인
+  | 'stranger'  // 처음
+  | 'fan'       // 팬 (예전 acquaintance)
+  | 'friend'    // 친구
+  | 'close'     // 가까운 사이
+  | 'heart';    // 진심 (예전 romantic/lover)
 
 export const RELATIONSHIP_STAGES: RelationshipStage[] = [
   'stranger',
-  'acquaintance',
+  'fan',
   'friend',
   'close',
-  'intimate',
-  'lover',
+  'heart',
 ];
 
 // ============================================

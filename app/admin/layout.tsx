@@ -39,10 +39,7 @@ export default function AdminLayout({
         // 로그인과 동일한 supabase 클라이언트 사용
         const { data: { session } } = await supabase.auth.getSession();
 
-        console.log('[Admin] Session check:', { hasSession: !!session, userId: session?.user?.id });
-
         if (!session?.user) {
-          console.log('[Admin] No session, redirecting to login');
           router.push('/login');
           return;
         }
@@ -53,8 +50,6 @@ export default function AdminLayout({
           .eq('id', session.user.id)
           .single();
 
-        console.log('[Admin] User data:', { userData, userError });
-
         if (userError) {
           console.error('[Admin] User fetch error:', userError);
           router.push('/');
@@ -62,12 +57,10 @@ export default function AdminLayout({
         }
 
         if (userData?.role !== 'admin') {
-          console.log('[Admin] Not admin role:', userData?.role);
           router.push('/');
           return;
         }
 
-        console.log('[Admin] Admin verified!');
         setIsAdmin(true);
       } catch (error) {
         console.error('[Admin] Check failed:', error);

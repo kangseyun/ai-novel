@@ -12,8 +12,17 @@ export async function POST(request: NextRequest) {
     const user = await getAuthUser(request);
     if (!user) return unauthorized();
 
-    // TODO: 관리자 권한 체크 추가
-    // if (!user.is_admin) return unauthorized();
+    // 관리자 권한 체크
+    const supabase = await createClient();
+    const { data: userData } = await supabase
+      .from('users')
+      .select('role')
+      .eq('id', user.id)
+      .single();
+
+    if (userData?.role !== 'admin') {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
 
     const { personaId, sceneKey, additionalPrompt, batchGenerate } = await request.json();
 

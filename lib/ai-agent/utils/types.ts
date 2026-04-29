@@ -69,11 +69,10 @@ export interface PersonaWorldview {
 
 export type RelationshipStage =
   | 'stranger'
-  | 'acquaintance'
+  | 'fan'
   | 'friend'
   | 'close'
-  | 'intimate'
-  | 'lover';
+  | 'heart';
 
 export interface RelationshipState {
   oduserId: string;

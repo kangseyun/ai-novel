@@ -348,7 +348,6 @@ export class MemoryService {
     options: SaveMemoryOptions = {}
   ): Promise<string | null> {
     if (!this.supabase) {
-      console.log(`[MemoryService] No DB, skipped: "${content.substring(0, 30)}..."`);
       return null;
     }
 
@@ -525,7 +524,6 @@ export class MemoryService {
       if (result) count++;
     }
 
-    console.log(`[MemoryService] Synced ${count} lore entries for ${personaId}`);
     return count;
   }
 
@@ -541,8 +539,6 @@ export class MemoryService {
 
     const batch = [...this.pendingEmbeddings];
     this.pendingEmbeddings = [];
-
-    console.log(`[MemoryService] Processing ${batch.length} pending embeddings`);
 
     try {
       // 배치로 임베딩 생성
@@ -574,7 +570,6 @@ export class MemoryService {
         }
       }
 
-      console.log(`[MemoryService] Updated embeddings for ${batch.length} items`);
     } catch (err) {
       console.error('[MemoryService] Flush embeddings failed:', err);
       // 실패한 항목 다시 큐에 추가

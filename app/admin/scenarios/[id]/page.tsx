@@ -123,11 +123,10 @@ const SCENARIO_TYPES = [
 
 const RELATIONSHIP_STAGES = [
   { value: 'stranger', label: '낯선 사람' },
-  { value: 'acquaintance', label: '아는 사이' },
+  { value: 'fan', label: '팬' },
   { value: 'friend', label: '친구' },
-  { value: 'close', label: '가까운 친구' },
-  { value: 'intimate', label: '친밀한 사이' },
-  { value: 'lover', label: '연인' },
+  { value: 'close', label: '가까운 사이' },
+  { value: 'heart', label: '진심' },
 ];
 
 const SCENE_TYPES = [
@@ -767,7 +766,7 @@ export default function ScenarioEditorPage() {
                                           <Input
                                             value={choice.text}
                                             onChange={(e) => updateChoice(scene.id, choice.id, { text: e.target.value })}
-                                            placeholder="혹시... ECLIPSE 준?"
+                                            placeholder="혹시... LUMIN 준?"
                                           />
                                         </div>
                                         <div className="grid grid-cols-4 gap-2">
@@ -1113,19 +1112,10 @@ export default function ScenarioEditorPage() {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="border rounded-lg p-3 space-y-2">
                     <div className="flex items-center gap-2">
-                      <div className="w-8 h-8 rounded-full bg-yellow-100 flex items-center justify-center">💰</div>
+                      <div className="w-8 h-8 rounded-full bg-yellow-100 flex items-center justify-center">🪙</div>
                       <div>
-                        <p className="font-medium text-sm">코인 (coins)</p>
-                        <p className="text-xs text-slate-500">기본 게임 화폐</p>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="border rounded-lg p-3 space-y-2">
-                    <div className="flex items-center gap-2">
-                      <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center">💎</div>
-                      <div>
-                        <p className="font-medium text-sm">젬 (gems)</p>
-                        <p className="text-xs text-slate-500">프리미엄 화폐</p>
+                        <p className="font-medium text-sm">토큰 (tokens)</p>
+                        <p className="text-xs text-slate-500">LUMIN 단일 화폐</p>
                       </div>
                     </div>
                   </div>
@@ -1176,13 +1166,13 @@ export default function ScenarioEditorPage() {
                 <h3 className="font-medium mb-3">보상 추가 예시 (SQL)</h3>
                 <pre className="bg-slate-900 text-slate-100 rounded-lg p-4 text-xs overflow-x-auto">
 {`INSERT INTO scenario_rewards (scenario_id, reward_type_id, condition_type, amount)
-VALUES ('${scenario.id || 'scenario_id'}', 'coins', 'first_completion', 100);
+VALUES ('${scenario.id || 'scenario_id'}', 'tokens', 'first_completion', 100);
 
 -- 선택지 기반 보상
 INSERT INTO scenario_rewards
   (scenario_id, reward_type_id, condition_type, required_choice_ids, amount)
 VALUES
-  ('${scenario.id || 'scenario_id'}', 'gems', 'choice_based',
+  ('${scenario.id || 'scenario_id'}', 'tokens', 'choice_based',
    ARRAY['choice_premium'], 10);`}
                 </pre>
               </div>

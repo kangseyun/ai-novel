@@ -12,15 +12,11 @@ export interface AuthUser {
 export async function getAuthUser(request: NextRequest): Promise<AuthUser | null> {
   const authHeader = request.headers.get('Authorization');
 
-  console.log('[Auth] Authorization header:', authHeader ? 'present' : 'missing');
-
   if (!authHeader?.startsWith('Bearer ')) {
-    console.log('[Auth] No Bearer token found');
     return null;
   }
 
   const token = authHeader.split(' ')[1];
-  console.log('[Auth] Token length:', token?.length);
 
   // 토큰으로 사용자 정보 조회
   const supabase = createClient(supabaseUrl, supabaseAnonKey, {
@@ -37,8 +33,6 @@ export async function getAuthUser(request: NextRequest): Promise<AuthUser | null
     console.error('[Auth] getUser error:', error?.message || 'No user data');
     return null;
   }
-
-  console.log('[Auth] User authenticated:', data.user.id);
 
   return {
     id: data.user.id,

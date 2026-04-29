@@ -153,10 +153,8 @@ async function initUpstashLimiters(): Promise<boolean> {
       })],
     ]);
 
-    console.log('[RateLimit] Upstash Redis initialized');
     return true;
   } catch {
-    console.log('[RateLimit] Upstash not available, using memory-based limiter');
     return false;
   }
 }

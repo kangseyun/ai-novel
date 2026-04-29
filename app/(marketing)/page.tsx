@@ -160,7 +160,7 @@ export default function MainPage() {
     '> Bypassing firewall... [OK]',
     '> Injecting packet sniffer... [OK]',
     '> Intercepting SSL handshake... [OK]',
-    '> Target acquired: @eclipse_jun',
+    '> Target acquired: @jun.lumin',
     '> Establishing covert connection...',
     '> ACCESS GRANTED',
   ];

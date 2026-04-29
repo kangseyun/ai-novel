@@ -35,18 +35,18 @@ export async function POST(req: Request) {
         },
       ];
     } else {
-      // For one-time payments (Gem Pack), we can use inline price data for simplicity
-      // Or use a priceId if provided
+      // For one-time token packs we can use inline price data for simplicity,
+      // or use a priceId if provided.
       if (priceId) {
          sessionConfig.line_items = [{ price: priceId, quantity: 1 }];
       } else {
-        // Fallback to inline pricing for "Gem Pack" if no ID provided
+        // Fallback to inline pricing for the starter token pack if no ID provided
         sessionConfig.line_items = [
           {
             price_data: {
               currency: 'usd',
               product_data: {
-                name: '500 Gems (Starter Pack)',
+                name: '500 Tokens (Starter Pack)',
                 description: 'Unlock premium story choices',
               },
               unit_amount: 499, // $4.99

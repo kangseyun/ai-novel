@@ -164,11 +164,10 @@ const AI_TRAITS: PersonaTraits = {
   },
   behaviorByStage: {
     stranger: { tone: 'cold', distance: 'far' },
-    acquaintance: { tone: 'cool', distance: 'guarded' },
+    fan: { tone: 'cool', distance: 'guarded' },
     friend: { tone: 'casual', distance: 'comfortable' },
     close: { tone: 'warm', distance: 'close' },
-    intimate: { tone: 'loving', distance: 'very close' },
-    lover: { tone: 'devoted', distance: 'inseparable' },
+    heart: { tone: 'devoted', distance: 'inseparable' },
   },
 };
 
@@ -250,7 +249,7 @@ function createInitialState(): ConversationState {
       hasUnresolvedConflict: false,
       consecutiveNegativeCount: 0,
     },
-    relationshipStage: 'acquaintance',
+    relationshipStage: 'fan',
     affection: 30,
     tensionLevel: 3,
   };

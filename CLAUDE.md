@@ -1,238 +1,93 @@
-# AI Novel - Claude Code Guide
+# Luminovel
 
-## Project Overview
+K-pop 가상 아이돌 그룹 **LUMIN** (7인조, 자체 IP)과의 클린(전연령) 연애 시뮬레이터. Next.js 16 + Supabase + OpenRouter. 목표 $99 PASS 10명 = $990 MRR.
 
-AI Novel is a mobile-first AI character chat platform built with Next.js 15 (App Router). Users interact with AI personas through DM-style conversations, stories, and scenarios. The platform features a social media-like experience with feeds, profiles, and relationship progression systems.
+---
 
-## Tech Stack
+## 🔴 Hard Rules — 절대 어기지 말 것
 
-- **Framework**: Next.js 15 with App Router
-- **Language**: TypeScript (strict mode)
-- **Database**: Supabase (PostgreSQL with Row Level Security)
-- **Auth**: Supabase Auth (OAuth: Google, Discord)
-- **State Management**: Zustand
-- **Styling**: Tailwind CSS
-- **Animations**: Framer Motion
-- **LLM**: OpenRouter API (multi-model support)
-- **Payments**: Stripe
-- **Analytics**: Mixpanel, Firebase/GA4, Meta Pixel, Airbridge
-- **Image Generation**: Kling AI
-- **Voice**: ElevenLabs
+콘텐츠:
+- 19+/성적 콘텐츠 일체 금지 (전연령 톤)
+- 실명 아이돌·소속사·실제 곡명 언급 금지 (자체 IP만)
+- 약물·음주 미화, 극단적 폭력, 정치·종교 발언 금지
+- 멤버 7명 외 다른 캐릭터 추가 금지 (사용자 승인 없이)
 
-## Quick Commands
+코드:
+- `console.log` 프로덕션 커밋 금지
+- `any` 타입 / implicit any 금지 (strict TypeScript)
+- 새 환경변수 추가 시 `.env.example` 동시 갱신
+- 옛 표기 사용 금지: ECLIPSE / Sophie / coins / gems / hearts / acquaintance / close_friend / romantic / intimate / lover
 
-```bash
-# Development
-npm run dev          # Start dev server (localhost:3000)
-npm run build        # Production build
-npm run lint         # ESLint check
-```
+DB:
+- `npx supabase db push` 금지 → MCP Supabase 도구 사용
+- `personas` (view) 사용. `persona_core` 직접 조회 금지 (사용자 노출 화면)
+- 마이그레이션 신규 번호는 **062부터** (018·019에 중복 있음)
 
-## Supabase Configuration
+---
 
-**Project ID**: `zwoyfqsavcghftbmijdc`
+## 📁 Where to find things
 
-Always use MCP Supabase tools for database operations:
-- `mcp__supabase__apply_migration` - Apply new migrations
-- `mcp__supabase__execute_sql` - Run SQL queries
-- `mcp__supabase__list_tables` - View table structure
-- `mcp__supabase__get_logs` - Debug issues
+| 필요한 것 | 문서 |
+|---|---|
+| 비즈니스 / 가격 / GTM / 12주 로드맵 | `docs/STRATEGY.md` |
+| 그룹 IP / 멤버 7명 톤·말투·케미 | `docs/LUMIN.md` |
+| 시스템 / DB 모델 / 유저 플로우 / 튜토리얼 / 22개 기술 개선 | `docs/ARCHITECTURE.md` |
+| 시나리오 엔진 v2 / 이벤트 트리거 | `docs/SCENARIO_SYSTEM.md` |
+| API 엔드포인트 스펙 | `docs/API_DESIGN.md` |
 
-Do NOT use CLI commands like `npx supabase db push`.
+---
 
-## Project Structure
+## ⚙️ Operating procedures
 
-```
-app/                      # Next.js App Router pages
-├── (marketing)/          # Marketing/landing pages
-├── admin/                # Admin dashboard
-├── api/                  # API routes
-├── auth/                 # Auth callback handling
-├── dm/                   # Direct message routes
-├── follow-personas/      # Initial persona follow page
-├── login/                # Login page
-├── onboarding/           # Onboarding flow
-├── profile/              # Persona profiles
-└── test/                 # Test pages
+**DB 변경 시:**
+1. `mcp__supabase__list_tables` 로 현재 스키마 확인
+2. 마이그레이션 작성 (`supabase/migrations/NNN_name.sql`, NNN ≥ 062)
+3. `mcp__supabase__apply_migration` 으로 적용
+4. RLS 정책 추가 필수 (`auth.uid() = user_id` 패턴)
 
-components/               # React components
-├── admin/                # Admin UI components
-├── analytics/            # Analytics dashboard
-├── chat/                 # Chat bubble components
-├── dm/                   # DM list components
-├── feed/                 # Activity feed
-├── modals/               # Modal dialogs
-├── onboarding/           # Onboarding flow components
-│   └── variants/         # A/B test variants
-├── profile/              # Profile components
-├── providers/            # Context providers
-├── scenario/             # Scenario player components
-├── seo/                  # SEO components (JsonLd)
-├── settings/             # Settings modals
-├── sns/                  # Social features (DM, Story, Profile)
-├── tutorial/             # Tutorial system
-└── ui/                   # Shadcn UI components
+**새 API 라우트 추가 시:**
+1. `lib/auth.ts` 의 `getAuthUser` 로 인증 → 실패 시 `unauthorized()`
+2. `lib/validations/` 에 Zod 스키마 정의 + 입력 검증
+3. `lib/middleware/rate-limit.ts` 적용 (chat 20/m, default 100/m)
+4. `createClient()` (`lib/supabase-server.ts`) 로 RLS 클라이언트 생성
 
-lib/
-├── ai-agent/             # AI Agent System
-│   ├── core/             # AI engine, LLM client, model selector
-│   ├── memory/           # Semantic memory with embeddings
-│   └── modules/          # Scenario, event trigger, relationship services
-├── i18n/                 # Internationalization (ko, en)
-├── relationship/         # Relationship progression system
-├── stores/               # Zustand stores
-│   ├── auth-store.ts     # Auth state
-│   ├── feed-store.ts     # Feed state
-│   ├── game-store.ts     # Game state
-│   ├── hacker-store.ts   # Hacker mode state
-│   ├── tutorial-store.ts # Tutorial state
-│   └── user-persona-store.ts  # User-persona relationships
-└── supabase.ts           # Supabase client
+**시나리오 추가 시:**
+1. `docs/LUMIN.md` 톤 가이드 + Hard Rules 체크
+2. `docs/SCENARIO_SYSTEM.md` 의 `forbidden_topics` 적용
+3. PASS 전용 분기는 `requires_tier: 'lumin_pass'` (코인 잠금 모델 ❌)
 
-supabase/
-└── migrations/           # SQL migrations (numbered 009-061+)
-```
+**멤버 캐릭터 작업 시:**
+1. `docs/LUMIN.md` 의 해당 멤버 섹션이 진실의 원천
+2. 옛 `personas/01-05` 파일은 삭제됨 — git history만 참조
+3. 멤버 ID, MBTI, 컬러, 호칭 등은 `LUMIN.md` 와 일치시킬 것
 
-## Key Systems
+**커밋 전:**
+- `npm run lint` 통과
+- `npm run build` 통과 (TypeScript 에러 없음)
+- 변경된 환경변수 있으면 `.env.example` 갱신
+- 사용자가 명시적으로 요청하지 않으면 커밋하지 말 것
 
-### 1. Persona System
+---
 
-Personas are AI characters with distinct personalities. Core table: `persona_core`, exposed via `personas` view.
+## 🚫 Don't
 
-Key fields:
-- `id`: Unique identifier (e.g., 'jun', 'daniel')
-- `target_audience`: 'female' (여성향), 'male' (남성향), 'anime'
-- `is_premium`: Premium unlock required
-- `category`, `tags`: For filtering
+- 옛 다크 로맨스 컨셉 캐릭터(Daniel/Adrian/야쿠자/CEO 등) 부활시키지 말 것
+- 코인/IAP 결제 모델로 회귀하지 말 것 (단일 구독 PASS 모델만)
+- 19+ Sleep Aid / Pillow Talk / "섹슈얼 테라피" 기능 부활시키지 말 것
+- 임의로 새 페르소나·시나리오·테이블·결제 티어 추가하지 말 것 (사용자 확인 후)
+- 옛 OAuth(Apple) 추가하지 말 것 (Google + Discord만 지원)
+- LLM을 OpenRouter 외 직접 호출(OpenAI/Anthropic SDK)로 바꾸지 말 것
 
-### 2. User-Persona Relationships
+---
 
-Tracked in `user_persona_relationships` table:
-- `is_unlocked`: Whether user has access
-- `affection`: 0-100 affection points
-- `relationship_stage`: 'stranger' → 'acquaintance' → 'friend' → 'close_friend' → 'romantic'
+## 📌 Quick reference
 
-### 3. AI Agent Architecture
-
-Located in `lib/ai-agent/`:
-- **AIEngine** (`core/ai-agent.ts`): Main chat orchestrator
-- **LLMClient** (`core/llm-client.ts`): OpenRouter API wrapper
-- **ModelSelector** (`core/model-selector.ts`): Multi-model selection
-- **MemoryService** (`memory/memory-service.ts`): Semantic memory with pgvector embeddings
-- **ScenarioService** (`modules/scenario-service.ts`): Guided conversation scenarios
-- **EventTriggerService** (`modules/event-trigger-service.ts`): Event-based triggers
-
-### 4. Onboarding Flow
-
-1. `/onboarding` - Scenario/story experience with persona
-2. `/login` - OAuth signup (Google/Discord)
-3. `/auth/callback` - Auth processing
-4. `/follow-personas` - Select 5+ personas to follow
-5. `/` - Main app (home feed)
-
-### 5. Token Economy
-
-- Users receive tokens (100 initial)
-- Tokens consumed per message/action
-- Premium subscriptions via Stripe
-
-## Database Patterns
-
-### Migrations
-
-SQL migrations in `supabase/migrations/` numbered sequentially. Apply via:
-- MCP Supabase tool with project ID
-- `npx supabase db push`
-
-### RLS (Row Level Security)
-
-All tables use RLS. Common patterns:
-```sql
--- User can only access own data
-CREATE POLICY "Users can view own data"
-  ON table_name FOR SELECT
-  USING (auth.uid() = user_id);
-```
-
-### Views
-
-The `personas` view combines `persona_core` with active filter. Always query `personas` view, not `persona_core` directly for user-facing features.
-
-## API Patterns
-
-### Route Handlers (`app/api/`)
-
-Standard pattern:
-```typescript
-import { getAuthUser, unauthorized, badRequest, serverError } from '@/lib/auth';
-import { createClient } from '@/lib/supabase-server';
-
-export async function GET(request: NextRequest) {
-  const user = await getAuthUser(request);
-  if (!user) return unauthorized();
-
-  const supabase = await createClient();
-  // ... logic
-  return NextResponse.json({ data });
-}
-```
-
-### Client API Calls
-
-Use direct `fetch()` for API calls:
-```typescript
-const res = await fetch('/api/endpoint', {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify(data),
-});
-```
-
-## Component Patterns
-
-### Client Components
-
-Always start with `'use client';` for interactive components.
-
-### State Management
-
-Use Zustand stores from `lib/stores/`:
-```typescript
-import { useAuthStore } from '@/lib/stores/auth-store';
-
-const { user, isAuthenticated } = useAuthStore();
-```
-
-### Styling
-
-- Tailwind CSS with dark theme (black backgrounds)
-- Mobile-first: max-w-430px constraint
-- Framer Motion for animations
-
-## Environment Variables
-
-Copy `.env.example` to `.env.local`. Required:
-- `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-- `SUPABASE_SERVICE_ROLE_KEY`
-- `OPENROUTER_API_KEY`
-- `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`
-
-## Important Notes
-
-1. **Language**: UI text uses Korean (한국어) as default with i18n support
-2. **Mobile-first**: All designs target mobile viewports (430px max)
-3. **Dark theme**: Black backgrounds with white/gray text
-4. **Path aliases**: Use `@/` for imports (e.g., `@/lib/stores`)
-5. **Type safety**: Strict TypeScript - no implicit any
-6. **No console.log in production**: Remove debug logs before commit
-
-## Admin System
-
-Admin dashboard at `/admin` for:
-- User management
-- Persona configuration
-- Marketing project management
-- Analytics
-- Scenario/trigger configuration
-
-Access requires admin role in users table.
+- **Supabase Project ID:** `zwoyfqsavcghftbmijdc`
+- **OAuth:** Google + Discord (Apple ❌)
+- **LLM:** OpenRouter (멀티모델, `lib/ai-agent/core/model-selector.ts`)
+- **결제 티어:** `free` / `standard` / `lumin_pass` (in `users.subscription_tier`)
+- **관계 단계:** `stranger` → `fan` → `friend` → `close` → `heart` (💗)
+- **화폐 단위:** `tokens` (초기 100)
+- **LUMIN 멤버 ID:** `haeon` / `kael` / `ren` / `jun` / `adrian` / `sol` / `noa`
+- **모바일 폭:** max-w-430px / Dark theme / Korean default + i18n (KR/EN/JA/ES)
+- **경로 별칭:** `@/` (예: `@/lib/stores/auth-store`)

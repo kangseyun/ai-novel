@@ -171,7 +171,6 @@ export const initAllAnalytics = async (): Promise<void> => {
     // Meta Pixel - 별도 Provider에서 초기화됨
 
     isInitialized = true;
-    console.log('[Analytics] Initialized all platforms');
   } catch (error) {
     console.error('[Analytics] Init error:', error);
   }
@@ -211,7 +210,6 @@ export const identifyUser = (userId: string, properties?: UserProperties): void 
       }
     }
 
-    console.log('[Analytics] User identified:', userId);
   } catch (error) {
     console.error('[Analytics] Identify error:', error);
   }
@@ -229,7 +227,6 @@ export const resetUser = (): void => {
     if (config.airbridge) {
       airbridge.clearUser();
     }
-    console.log('[Analytics] User reset');
   } catch (error) {
     console.error('[Analytics] Reset error:', error);
   }
@@ -279,15 +276,6 @@ export const trackStandard = (
       });
     }
 
-    if (process.env.NODE_ENV === 'development') {
-      console.log(`[Analytics] Standard Event: ${standardEvent}`, {
-        mixpanel: mapping.mixpanel,
-        firebase: mapping.firebase,
-        metaPixel: mapping.metaPixel,
-        airbridge: mapping.airbridge,
-        params,
-      });
-    }
   } catch (error) {
     console.error('[Analytics] Track standard error:', error);
   }
@@ -332,9 +320,6 @@ export const track = (
       });
     }
 
-    if (process.env.NODE_ENV === 'development') {
-      console.log(`[Analytics] Custom Event: ${eventName}`, params);
-    }
   } catch (error) {
     console.error('[Analytics] Track error:', error);
   }

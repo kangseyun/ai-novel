@@ -78,8 +78,6 @@ export default function UsersPage() {
 
       const { data, error, count } = await query;
 
-      console.log('[Admin Users] Query result:', { data, error, count, dataLength: data?.length });
-
       if (error) throw error;
 
       setUsers(data || []);

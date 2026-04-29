@@ -181,7 +181,7 @@ export const JUN_FIRST_MEETING_SCENARIO: ScenarioContent = {
   endingConditions: {
     proceedToDm: true,
     unlockDmChat: true,
-    setRelationshipStage: 'acquaintance',
+    setRelationshipStage: 'fan',
   },
 };
 

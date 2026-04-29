@@ -554,33 +554,17 @@ export class ScenarioService {
   }
 
   /**
-   * 유저 잔액 조회
+   * 유저 토큰 잔액 조회
+   * LUMIN PASS 단일 구독 모델로 통일되어 users.tokens만 조회.
    */
-  async getUserBalance(userId: string, currencyType: string): Promise<number> {
+  async getUserTokens(userId: string): Promise<number> {
     const { data } = await this.supabase
-      .from('user_balances')
-      .select('balance')
-      .eq('user_id', userId)
-      .eq('currency_type', currencyType)
+      .from('users')
+      .select('tokens')
+      .eq('id', userId)
       .single();
 
-    return data?.balance || 0;
-  }
-
-  /**
-   * 유저의 모든 잔액 조회
-   */
-  async getUserBalances(userId: string): Promise<Record<string, number>> {
-    const { data } = await this.supabase
-      .from('user_balances')
-      .select('currency_type, balance')
-      .eq('user_id', userId);
-
-    const balances: Record<string, number> = {};
-    (data || []).forEach((b: { currency_type: string; balance: number }) => {
-      balances[b.currency_type] = b.balance;
-    });
-    return balances;
+    return data?.tokens || 0;
   }
 
   /**

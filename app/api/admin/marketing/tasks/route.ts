@@ -76,7 +76,6 @@ Important: This is for a mobile dating app advertisement targeting young women. 
   }
 
   const data = await response.json();
-  console.log('[Gemini Image] Full API response:', JSON.stringify(data, null, 2));
 
   const images: string[] = [];
   const message = data.choices?.[0]?.message;
@@ -175,7 +174,6 @@ async function uploadImageToStorage(
       .from('marketing-images')
       .getPublicUrl(filePath);
 
-    console.log('[Storage] Uploaded base64 image:', filePath);
     return urlData.publicUrl;
   }
 
@@ -208,7 +206,6 @@ async function uploadImageToStorage(
         .from('marketing-images')
         .getPublicUrl(filePath);
 
-      console.log('[Storage] Uploaded URL image:', filePath);
       return urlData.publicUrl;
     } catch (error) {
       console.error('[Storage] Failed to download and upload image:', error);
@@ -546,10 +543,8 @@ async function saveGeneratedImages(
         if (existingBase.generation_group_id) {
           generationGroupId = existingBase.generation_group_id;
         }
-        console.log(`[Marketing Tasks] Using existing base image ID: ${existingBase.id}, group: ${generationGroupId}`);
       } else {
         parentImageIds = [task.selected_base_image_id];
-        console.log(`[Marketing Tasks] Using provided base image ID: ${task.selected_base_image_id}`);
       }
     } else if (task.selected_base_image) {
       const { data: existingBase } = await supabase
@@ -563,7 +558,6 @@ async function saveGeneratedImages(
         if (existingBase.generation_group_id) {
           generationGroupId = existingBase.generation_group_id;
         }
-        console.log(`[Marketing Tasks] Found existing base image by URL: ${existingBase.id}, group: ${generationGroupId}`);
       } else {
         console.warn(`[Marketing Tasks] Could not find existing base image for URL: ${task.selected_base_image}`);
       }
@@ -598,7 +592,6 @@ async function saveGeneratedImages(
       console.error('[Marketing Tasks] Failed to save base images:', baseError);
     } else if (insertedBase) {
       parentImageIds = insertedBase.map(img => img.id);
-      console.log(`[Marketing Tasks] Saved ${insertedBase.length} new base images`);
     }
   }
 
@@ -662,15 +655,8 @@ async function saveGeneratedImages(
 
     if (error) {
       console.error('[Marketing Tasks] Failed to save derived images:', error);
-    } else {
-      console.log(`[Marketing Tasks] Saved ${derivedImagesToInsert.length} derived images`);
     }
   }
-
-  // 리사이즈 모드에서는 새로 저장한 베이스 이미지가 없으므로 파생 이미지만 카운트
-  const newBaseSaved = isResizeMode ? 0 : parentImageIds.length;
-  const totalSaved = newBaseSaved + derivedImagesToInsert.length;
-  console.log(`[Marketing Tasks] Total saved: ${totalSaved} images (${newBaseSaved} new base, ${derivedImagesToInsert.length} derived, linked to parent: ${parentImageIds[0] || 'none'})`);
 }
 
 // 참조 이미지 기반 사이즈 변환용 프롬프트
@@ -762,9 +748,7 @@ async function processTask(taskId: string, prompt: string, generateAllSizes: boo
         }
 
         // Supabase Storage에 업로드
-        console.log(`[Marketing Tasks] Uploading ${allImages.length} images to storage for ${sizeKey}...`);
         const uploadedImages = await uploadImagesToStorage(supabase, allImages, task.project_id, sizeKey);
-        console.log(`[Marketing Tasks] Uploaded ${uploadedImages.length} images for ${sizeKey}`);
 
         sizeTasks[sizeKey] = {
           task_id: null,

@@ -180,10 +180,6 @@ Return ONLY a comma-separated list of English visual descriptors suitable for im
     }
 
     const actualImageCount = isResizeMode ? 1 : Math.min(Math.max(imageCount || 4, 1), 4);
-    console.log('[Marketing Ad Generation] Prompt:', translatedPrompt);
-    console.log('[Marketing Ad Generation] Size:', sizeInfo);
-    console.log('[Marketing Ad Generation] Reference Image:', isResizeMode ? 'Yes' : 'No');
-    console.log('[Marketing Ad Generation] Requested imageCount:', imageCount, '-> Actual:', actualImageCount);
 
     const klingClient = getKlingAIClient();
 

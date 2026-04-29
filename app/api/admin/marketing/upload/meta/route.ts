@@ -32,12 +32,9 @@ export async function POST(req: NextRequest) {
     const metaClient = new MetaAdsClient();
 
     // 4. Upload Image to Meta
-    // In a real scenario, we need to handle the binary upload.
-    // For this prototype, we'll simulate the upload or assume the client supports URL upload if implemented.
-    // NOTE: The previous MetaClient implementation was a skeleton. 
-    // We will assume it returns a mock hash for now to proceed with the flow.
-    console.log('[Meta Upload] Uploading image:', imageData.storage_path);
-    const imageHash = await metaClient.uploadImage(imageData.storage_path); 
+    // NOTE: MetaClient.uploadImage currently returns a stub hash; replace with real
+    // binary upload when the production Meta integration is wired up.
+    const imageHash = await metaClient.uploadImage(imageData.storage_path);
 
     // 5. Create Ad Creative
     const creativeName = `Creative - ${imageData.persona_name} - ${new Date().toISOString().split('T')[0]}`;

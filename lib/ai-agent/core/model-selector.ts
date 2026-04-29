@@ -129,11 +129,10 @@ export class ModelSelector {
     // 관계 단계에 따른 가중치 (깊은 관계일수록 미묘한 뉘앙스 필요)
     const stageWeight: Record<string, number> = {
       stranger: 0,
-      acquaintance: 1,
+      fan: 1,
       friend: 2,
       close: 3,
-      intimate: 4,
-      lover: 4,
+      heart: 4,
     };
     score += stageWeight[context.relationshipStage || 'stranger'] || 0;
 

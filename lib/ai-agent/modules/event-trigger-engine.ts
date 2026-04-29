@@ -167,7 +167,7 @@ export class EventTriggerEngine {
 
     // 친밀 단계 보너스
     if (modifiers.intimateSageBonus) {
-      if (['intimate', 'lover'].includes(relationship.relationshipStage)) {
+      if (['close', 'heart'].includes(relationship.relationshipStage)) {
         probability += modifiers.intimateSageBonus;
       }
     }

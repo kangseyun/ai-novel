@@ -1,12 +1,23 @@
-# AI Novel - Backend API 설계 문서
+# Luminovel - Backend API 설계 문서
+
+> ⚠️ **2026-04-29 피벗 안내**
+> 이 문서는 다크 로맨스 시대(코인/IAP, ECLIPSE 그룹 등)에 작성됨.
+> 다음 항목은 **deprecated** 또는 **수정 필요** 상태:
+> - "ECLIPSE" 그룹명 → **LUMIN**으로 변경 (전 문서 통일)
+> - `gems` / 단순 premium/free 구독 모델 → **Free / $19 Standard / $99 LUMIN PASS** 3티어로 변경
+> - `provider: apple` OAuth → 실제 코드는 **Google + Discord** (Apple 미사용)
+> - 캐릭터 = K-pop 그룹 LUMIN의 멤버 7인 ([`group/LUMIN_GROUP.md`](./group/LUMIN_GROUP.md))
+>
+> API 구조·엔드포인트 설계 자체는 유효하나, **상품·캐릭터·결제 모델 관련 필드**는 신규 모델로 갱신 필요.
 
 ## 기술 스택
-- **Database**: Supabase (PostgreSQL)
-- **Auth**: Supabase Auth
-- **LLM**: OpenRouter (Gemini 2.0 Flash)
-- **TTS**: ElevenLabs
-- **Payment**: Stripe
-- **Analytics**: Mixpanel
+- **Database**: Supabase (PostgreSQL + pgvector)
+- **Auth**: Supabase Auth (OAuth: **Google + Discord**)
+- **LLM**: OpenRouter (멀티모델 — ModelSelector로 동적 선택)
+- **TTS**: ElevenLabs (멤버별 음성 클로닝)
+- **Image**: Kling AI (멤버별 외모 시드)
+- **Payment**: Stripe (+ Paddle 백업)
+- **Analytics**: Mixpanel + Firebase + GA4 + Meta Pixel + Airbridge
 
 ---
 
@@ -58,10 +69,11 @@ POST /api/auth/oauth
 **Request:**
 ```json
 {
-  "provider": "google" | "apple",
+  "provider": "google" | "discord",
   "token": "oauth_token"
 }
 ```
+> Apple OAuth는 미구현 — Google과 Discord만 지원.
 
 ### 1.4 로그아웃
 ```
@@ -89,10 +101,11 @@ GET /api/user/profile
   "nickname": "사용자닉네임",
   "profile_image": "url",
   "bio": "자기소개",
-  "gems": 500,
+  "tokens": 100,
   "subscription": {
-    "plan": "premium" | "free",
-    "expires_at": "2025-12-31"
+    "plan": "free" | "standard" | "lumin_pass",
+    "billing_period": "monthly" | "annual" | null,
+    "expires_at": "2026-12-31"
   },
   "created_at": "timestamp",
   "onboarding_completed": true
@@ -158,13 +171,15 @@ GET /api/personas
   "personas": [
     {
       "id": "jun",
-      "name": "Jun",
-      "full_name": "이준",
+      "name": "JUN",
+      "full_name": "서준",
       "age": 22,
-      "occupation": "아이돌",
+      "group_id": "lumin",
+      "member_role": "sub_vocal",
+      "occupation": "아이돌 그룹 LUMIN 서브보컬/작곡",
       "image": "url",
-      "color": "#8B5CF6",
-      "teaser_line": "...잠이 안 와. 너도?",
+      "color": "#FFB6C1",
+      "teaser_line": "...있잖아, 곡 하나 만들었는데. 너한테 제일 먼저 들려주고 싶어.",
       "available": true,
       "episode_count": 5
     }
@@ -180,21 +195,23 @@ GET /api/personas/:personaId
 ```json
 {
   "id": "jun",
-  "name": "Jun",
-  "full_name": "이준",
+  "name": "JUN",
+  "full_name": "서준",
   "age": 22,
-  "occupation": "아이돌 그룹 ECLIPSE 메인보컬",
-  "public_personality": "완벽한 아이돌",
-  "private_personality": "외로움을 느끼는 청년",
+  "group_id": "lumin",
+  "member_role": "sub_vocal",
+  "occupation": "아이돌 그룹 LUMIN 서브보컬/작곡",
+  "public_personality": "강아지상의 다정한 동생 멤버",
+  "private_personality": "자기 곡에 진심, 너에게만 솔직한 멤버",
   "speech_patterns": {
     "formal": "~요, ~네요",
     "casual": "~야, ~어",
-    "emotional_cues": ["...", "ㅎㅎ"]
+    "emotional_cues": ["...", "ㅎㅎ", "🌸", "🥺"]
   },
   "sns_profile": {
-    "username": "@jun.eclipse",
+    "username": "@jun.lumin",
     "followers": "2.4M",
-    "bio": "ECLIPSE | Main Vocal"
+    "bio": "LUMIN | Sub Vocal & Composer"
   }
 }
 ```

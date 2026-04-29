@@ -116,15 +116,10 @@ export default function OnboardingScenario({
   // DB 시나리오를 로컬 형식으로 변환 (useMemo로 최적화)
   const scenarioScenes = useMemo(() => {
     const dbScenes = dbScenario?.content?.scenes || [];
-    console.log('[OnboardingScenario] dbScenario:', dbScenario?.id, 'scenes count:', dbScenes.length);
 
     if (dbScenes.length > 0) {
-      console.log('[OnboardingScenario] Converting DB scenes:', dbScenes.length, 'first scene:', dbScenes[0]);
-      const converted = dbScenes.map((scene) => convertDBSceneToLocal(scene, dbScenes));
-      console.log('[OnboardingScenario] Converted scenes:', converted.length, 'first converted:', converted[0]);
-      return converted;
+      return dbScenes.map((scene) => convertDBSceneToLocal(scene, dbScenes));
     }
-    console.log('[OnboardingScenario] Using fallback ONBOARDING_SPECIAL_SCENARIO');
     return ONBOARDING_SPECIAL_SCENARIO;
   }, [dbScenario]);
 
@@ -160,7 +155,6 @@ export default function OnboardingScenario({
   useEffect(() => {
     if (scenarioScenes.length > 0) {
       const firstSceneId = scenarioScenes[0].id;
-      console.log('[OnboardingScenario] Setting first scene:', firstSceneId, 'current:', currentSceneId);
       // 시나리오가 변경되었거나 아직 설정되지 않은 경우
       if (!currentSceneId || !scenarioScenes.find(s => s.id === currentSceneId)) {
         setCurrentSceneId(firstSceneId);

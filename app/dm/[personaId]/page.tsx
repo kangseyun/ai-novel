@@ -56,13 +56,6 @@ export default function DMChatPage() {
         .or(`id.eq.${personaId},name.eq.${personaId}`)
         .single();
 
-      console.log('[DMChatPage] Loaded persona:', personaId, {
-        id: persona?.id,
-        name: persona?.name,
-        avatar_url: persona?.avatar_url,
-        profile_image_url: persona?.profile_image_url,
-      });
-
       if (fetchError || !persona) {
         console.error('[DMChatPage] Persona not found:', fetchError);
         setError(tr.dm.personaNotFound);
@@ -100,9 +93,8 @@ export default function DMChatPage() {
     }
   };
 
-  const handleGainXP = (amount: number) => {
+  const handleGainXP = (_amount: number) => {
     // XP gain handling (if needed)
-    console.log('[DMChatPage] XP gained:', amount);
   };
 
   // DM 튜토리얼 트리거

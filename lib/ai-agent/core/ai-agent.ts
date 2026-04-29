@@ -125,16 +125,11 @@ export class AIAgent {
       transitionMessage?: string;
     };
   }> {
-    const processId = `proc-${Date.now().toString(36)}`;
-    let stepStart = Date.now();
-    console.log(`\n[AIAgent][${processId}] 📍 processUserMessage started`);
-
     // 세션 조회
     const session = await this.getSession(sessionId);
     if (!session) throw new Error('Session not found');
 
     // 1. Engine Context 구축 (RAG 포함)
-    stepStart = Date.now();
     const context = await this.buildLLMContext(session.userId, session.personaId, sessionId);
 
     // RAG 검색 (MemoryService) - userId 전달로 완전한 컨텍스트 검색
@@ -175,7 +170,6 @@ export class AIAgent {
         content: m.content
       }))
     };
-    console.log(`[AIAgent][${processId}] ⏱️ Context Build: ${Date.now() - stepStart}ms`);
 
     // 유저 메시지 저장
     await this.saveMessage(sessionId, {
@@ -192,7 +186,6 @@ export class AIAgent {
     const systemPrompt = PromptEngine.buildSystemPrompt(engineContext);
 
     // 3. LLM 호출
-    stepStart = Date.now();
     const llmOptions: LLMCallOptions = {
       taskContext: {
         type: 'dialogue_response',
@@ -213,7 +206,6 @@ export class AIAgent {
       userMessage,
       llmOptions
     );
-    console.log(`[AIAgent][${processId}] ⏱️ LLM Gen: ${Date.now() - stepStart}ms`);
 
     // 페르소나 응답 저장 + DB 작업들 병렬 실행
     const [personaMsg] = await Promise.all([
@@ -280,8 +272,6 @@ export class AIAgent {
       );
 
       if (triggerResult.shouldTrigger && triggerResult.trigger) {
-        console.log(`[AIAgent][${processId}] 🎬 Scenario trigger matched: ${triggerResult.trigger.name}`);
-
         // 트리거 실행
         const execResult = await executeScenarioTrigger(
           this.supabase,
@@ -344,9 +334,8 @@ export class AIAgent {
           memories,
           sessionId
         );
-        if (savedCount > 0) {
-          console.log(`[AIAgent] Extracted and saved ${savedCount} memories`);
-        }
+        // savedCount > 0 인 경우는 의미 있는 기억이 추출됨
+        void savedCount;
       }
     } catch (error) {
       console.error('[AIAgent] Memory extraction failed:', error);
@@ -494,7 +483,6 @@ export class AIAgent {
       );
 
       if (result) {
-        console.log(`[AIAgent] Session summary created: ${result.summary.substring(0, 50)}...`);
         return { success: true, summary: result.summary };
       }
 
@@ -527,7 +515,6 @@ export class AIAgent {
       if (result.success) closedCount++;
     }
 
-    console.log(`[AIAgent] Cleaned up ${closedCount} inactive sessions`);
     return closedCount;
   }
 
@@ -763,11 +750,10 @@ export class AIAgent {
    * 관계 단계 계산 (폴백 - 하드코딩)
    */
   private calculateRelationshipStage(affection: number): string {
-    if (affection >= 90) return 'lover';
-    if (affection >= 70) return 'intimate';
-    if (affection >= 50) return 'close';
+    if (affection >= 90) return 'heart';
+    if (affection >= 60) return 'close';
     if (affection >= 30) return 'friend';
-    if (affection >= 10) return 'acquaintance';
+    if (affection >= 10) return 'fan';
     return 'stranger';
   }
 
@@ -927,16 +913,15 @@ export class AIAgent {
     if (!dbData) {
       return {
         stranger: { ...defaultBehavior },
-        acquaintance: { ...defaultBehavior },
+        fan: { ...defaultBehavior },
         friend: { ...defaultBehavior, distance: 'casual' },
-        close: { ...defaultBehavior, distance: 'close' },
-        intimate: { ...defaultBehavior, tone: 'warm', distance: 'intimate' },
-        lover: { ...defaultBehavior, tone: 'loving', distance: 'intimate' },
+        close: { ...defaultBehavior, tone: 'warm', distance: 'close' },
+        heart: { ...defaultBehavior, tone: 'loving', distance: 'intimate' },
       };
     }
 
     const result: PersonaTraits['behaviorByStage'] = {} as PersonaTraits['behaviorByStage'];
-    const stages = ['stranger', 'acquaintance', 'friend', 'close', 'intimate', 'lover'] as const;
+    const stages = ['stranger', 'fan', 'friend', 'close', 'heart'] as const;
 
     for (const stage of stages) {
       const stageData = dbData[stage];
@@ -1291,8 +1276,6 @@ export class AIAgent {
         sessionId,
         mode,
       });
-
-      console.log(`[AIAgent] Scenario completed: ${sessionId} (${mode})`);
     } catch (error) {
       console.error('[AIAgent] Failed to handle scenario completion:', error);
     }

@@ -54,11 +54,10 @@ export const ProcessMessageRequestSchema = z.object({
 /** 관계 단계 스키마 */
 export const RelationshipStageSchema = z.enum([
   'stranger',
-  'acquaintance',
+  'fan',
   'friend',
   'close',
-  'intimate',
-  'lover',
+  'heart',
 ]);
 
 /** 시간 범위 스키마 */

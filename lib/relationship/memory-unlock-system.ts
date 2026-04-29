@@ -111,24 +111,24 @@ export const MEMORY_UNLOCK_RULES: MemoryUnlockRule[] = [
   {
     memoryType: 'intimate_moment',
     displayName: '특별한 순간',
-    description: '특별한 사이가 되면 더 깊은 순간을 공유합니다',
+    description: '가까운 사이가 되면 더 깊은 순간을 공유합니다',
     conditions: [
-      { type: 'stage', operator: '>=', value: 'intimate' },
+      { type: 'stage', operator: '>=', value: 'close' },
     ],
     requireAll: true,
     priority: 6,
-    hint: '특별한 사이가 되면 해금됩니다',
+    hint: '가까운 사이가 되면 해금됩니다',
   },
   {
     memoryType: 'gift_received',
     displayName: '선물',
     description: '선물을 주고받으면 기록됩니다',
     conditions: [
-      { type: 'stage', operator: '>=', value: 'acquaintance' },
+      { type: 'stage', operator: '>=', value: 'fan' },
     ],
     requireAll: true,
     priority: 7,
-    hint: '아는 사이가 되면 해금됩니다',
+    hint: '팬 단계가 되면 해금됩니다',
   },
   {
     memoryType: 'milestone',
@@ -168,7 +168,7 @@ export const MEMORY_UNLOCK_RULES: MemoryUnlockRule[] = [
     displayName: '함께 간 곳',
     description: '시나리오에서 함께 장소를 방문하면 기록됩니다',
     conditions: [
-      { type: 'stage', operator: '>=', value: 'acquaintance' },
+      { type: 'stage', operator: '>=', value: 'fan' },
     ],
     requireAll: true,
     priority: 11,
@@ -201,7 +201,7 @@ export const MEMORY_UNLOCK_RULES: MemoryUnlockRule[] = [
     displayName: '중요한 날',
     description: '특별한 날을 함께 기념하면 기록됩니다',
     conditions: [
-      { type: 'stage', operator: '>=', value: 'acquaintance' },
+      { type: 'stage', operator: '>=', value: 'fan' },
     ],
     requireAll: true,
     priority: 14,
@@ -215,11 +215,10 @@ export const MEMORY_UNLOCK_RULES: MemoryUnlockRule[] = [
 
 const STAGE_ORDER: Record<RelationshipStage, number> = {
   stranger: 0,
-  acquaintance: 1,
+  fan: 1,
   friend: 2,
   close: 3,
-  intimate: 4,
-  lover: 5,
+  heart: 4,
 };
 
 // ============================================
@@ -594,11 +593,10 @@ export async function getPersonaUnlockStatus(
 
   const stageOrder: Record<string, number> = {
     stranger: 0,
-    acquaintance: 1,
+    fan: 1,
     friend: 2,
     close: 3,
-    intimate: 4,
-    lover: 5,
+    heart: 4,
   };
 
   return personaMemoryTypes.map(memType => {
@@ -652,11 +650,10 @@ export async function getPersonaUnlockStatus(
       if (currentStageIdx < requiredStageIdx) {
         const stageLabels: Record<string, string> = {
           stranger: '처음',
-          acquaintance: '아는 사이',
+          fan: '팬',
           friend: '친구',
           close: '가까운 사이',
-          intimate: '특별한 사이',
-          lover: '연인',
+          heart: '진심',
         };
         hints.push(`${stageLabels[cond.minStage] || cond.minStage} 단계 필요`);
       }

@@ -375,12 +375,7 @@ export default function DMChat({
         }
 
         // Check for scenario trigger
-        console.log('[DMChat] AI Response:', {
-          content: response.response.content.slice(0, 50),
-          scenarioTrigger: response.scenarioTrigger,
-        });
         if (response.scenarioTrigger?.shouldStart) {
-          console.log('[DMChat] Scenario trigger activated!', response.scenarioTrigger);
           setScenarioTrigger(response.scenarioTrigger);
         }
       }, typingDelay);

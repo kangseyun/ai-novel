@@ -5,10 +5,10 @@ import { getAuthUser, unauthorized, serverError } from '@/lib/auth';
 // 관계 단계별 우선순위
 const STAGE_PRIORITY: Record<string, number> = {
   stranger: 0,
-  acquaintance: 1,
-  close: 2,
-  intimate: 3,
-  lover: 4,
+  fan: 1,
+  friend: 2,
+  close: 3,
+  heart: 4,
 };
 
 // GET /api/feed - 피드 조회
@@ -131,7 +131,7 @@ export async function GET(request: NextRequest) {
         },
         likes: post.likes_count,
         comments: post.comments_count,
-        user_liked: false, // TODO: 실제 좋아요 상태
+        user_liked: false, // TODO(feed): persona_post_likes 테이블 조인하여 실제 좋아요 상태 반영 — Phase: 좋아요 기능 활성화 시
         is_premium: post.is_premium,
         created_at: new Date(now - (post.hours_ago || 1) * 3600000).toISOString(),
       };

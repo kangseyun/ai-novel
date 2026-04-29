@@ -85,11 +85,10 @@ const SCENARIO_TYPE_LABELS: Record<string, { label: string; color: string }> = {
 
 const RELATIONSHIP_STAGES = [
   'stranger',
-  'acquaintance',
+  'fan',
   'friend',
   'close',
-  'intimate',
-  'lover',
+  'heart',
 ];
 
 export default function ScenariosManagementPage() {

@@ -239,7 +239,6 @@ export class EventTriggerService {
     ]);
 
     if (!relationship) {
-      console.log('[EventTriggerService] No relationship found');
       return { triggered: false };
     }
 
@@ -289,7 +288,6 @@ export class EventTriggerService {
       .limit(1);
 
     if (recentEvents && recentEvents.length > 0) {
-      console.log(`[EventTriggerService] Duplicate event prevented: ${event.eventType} for user ${event.userId}`);
       return null;
     }
 
@@ -307,7 +305,6 @@ export class EventTriggerService {
 
     const MAX_DAILY_EVENTS = 5;
     if ((todayCount || 0) >= MAX_DAILY_EVENTS) {
-      console.log(`[EventTriggerService] Daily limit reached for user ${event.userId}`);
       return null;
     }
 
@@ -807,7 +804,7 @@ function calculateProbabilityInternal(
   }
 
   if (modifiers.intimateStageBonus) {
-    if (['intimate', 'lover'].includes(context.relationshipStage)) {
+    if (['close', 'heart'].includes(context.relationshipStage)) {
       probability += modifiers.intimateStageBonus;
     }
   }

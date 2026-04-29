@@ -31,9 +31,7 @@ export class AdManager {
   ): Promise<AdExecutionResult> {
     try {
       const client = this.getClient(platform);
-      
-      console.log(`[AdManager] Starting upload for ${platform}...`);
-      
+
       const creativeId = await client.createCreative(config);
       
       return {
@@ -58,12 +56,9 @@ export class AdManager {
   async syncAdInsights(platform: AdPlatform, adId: string): Promise<AdInsights | null> {
     try {
       const client = this.getClient(platform);
-      console.log(`[AdManager] Syncing insights for ${platform} ad: ${adId}...`);
-      
+
       const insights = await client.getAdInsights(adId);
-      
-      // TODO: Save to DB here or let the caller handle persistence
-      
+      // 호출자가 필요 시 DB에 저장하도록 위임 — 본 메서드는 정규화된 데이터 반환만 담당
       return insights;
     } catch (error: any) {
       console.error(`[AdManager] Sync insights failed for ${platform}:`, error);

@@ -61,8 +61,8 @@ export default function EpisodeScenarioPlayer({
     startScenario,
     totalAffection,
   } = useSpecificScenario(personaId, episodeId, {
-    onComplete: (result) => {
-      console.log('[Episode] Completed:', result);
+    onComplete: () => {
+      // Episode complete - hook handles persistence
     },
     onError: (err) => {
       console.error('[Episode] Error:', err);

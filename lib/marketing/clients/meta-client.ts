@@ -49,12 +49,10 @@ export class MetaAdsClient implements AdClient {
 
   async uploadImage(imageUrl: string): Promise<string> {
     try {
-      const imageResponse = await axios.get(imageUrl, { responseType: 'arraybuffer' });
-      // 실제 구현 시 FormData 사용하여 /act_{id}/adimages 엔드포인트 호출
-      console.log('[Meta Client] Uploading image bytes...');
-      
-      // Mocking successful hash
-      return 'dummy_image_hash_' + Date.now();
+      await axios.get(imageUrl, { responseType: 'arraybuffer' });
+      // STUB: 실제 구현 시 FormData 사용하여 /act_{id}/adimages 엔드포인트 호출
+      // 현재는 프로토타입용으로 가짜 해시 반환
+      return 'stub_image_hash_' + Date.now();
     } catch (error) {
       return this.handleError(error, 'Upload Image');
     }
@@ -85,9 +83,9 @@ export class MetaAdsClient implements AdClient {
         access_token: this.config.accessToken,
       };
 
-      // const response = await this.http.post(url, payload);
+      // STUB: const response = await this.http.post(url, payload);
       // return response.data.id;
-      console.log('[Meta Client] Creating creative:', payload.name);
+      void url; void payload;
       return 'meta_creative_id_' + Date.now();
     } catch (error) {
       return this.handleError(error, 'Create Creative');

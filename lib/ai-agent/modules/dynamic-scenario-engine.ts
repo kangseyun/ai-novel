@@ -588,7 +588,6 @@ Output JSON:
     // 차단 주제 체크
     for (const topic of blockedTopics) {
       if (lowerMessage.includes(topic.toLowerCase())) {
-        console.log(`[DynamicEngine] Blocked topic detected: ${topic}`);
         return true;
       }
     }

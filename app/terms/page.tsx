@@ -92,8 +92,8 @@ export default function TermsPage() {
           <section>
             <h2 className="text-white font-semibold text-base mb-3">5. In-App Purchases and Subscriptions</h2>
             <p>
-              <strong className="text-white">Virtual Currency:</strong> The App offers virtual currency ("Gems")
-              that can be purchased with real money. Gems have no real-world value and cannot be
+              <strong className="text-white">Virtual Currency:</strong> The App offers virtual currency ("Tokens")
+              that can be purchased with real money. Tokens have no real-world value and cannot be
               exchanged for cash or other real-world goods.
             </p>
             <p className="mt-2">

@@ -78,7 +78,7 @@ export async function POST(request: NextRequest) {
       }
 
       default:
-        console.log(`Unhandled event type: ${event.type}`);
+        console.warn(`[Stripe Webhook] Unhandled event type: ${event.type}`);
     }
 
     return NextResponse.json({ received: true });
@@ -111,8 +111,6 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
 
     if (creditError) {
       console.error('Failed to add welcome offer bonus credits:', creditError);
-    } else {
-      console.log(`Added ${credits} welcome offer bonus credits to user ${userId}`);
     }
 
     // 웰컴 오퍼 구매 상태 업데이트
@@ -165,7 +163,6 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
       }],
     });
 
-    console.log(`Welcome offer completed for user ${userId}`);
     return;
   }
 
@@ -335,7 +332,6 @@ const SUBSCRIPTION_CREDITS = {
 
 async function handlePaymentSucceeded(invoice: Stripe.Invoice) {
   if (!stripe) throw new Error('Stripe not configured');
-  console.log('Payment succeeded for invoice:', invoice.id);
 
   // 구독 결제인 경우 크레딧 지급
   const subscriptionId = (invoice as unknown as { subscription?: string }).subscription;
@@ -368,8 +364,6 @@ async function handlePaymentSucceeded(invoice: Stripe.Invoice) {
     if (error) {
       console.error('Failed to add subscription credits:', error);
       // 크레딧 지급 실패해도 구독은 유지되어야 하므로 throw하지 않음
-    } else {
-      console.log(`Added ${creditsToAdd} credits to user ${userId}`);
     }
 
     // 크레딧 지급 기록 저장
@@ -386,7 +380,7 @@ async function handlePaymentSucceeded(invoice: Stripe.Invoice) {
 
 async function handlePaymentFailed(invoice: Stripe.Invoice) {
   if (!stripe) throw new Error('Stripe not configured');
-  console.log('Payment failed for invoice:', invoice.id);
+  console.warn('[Stripe Webhook] Payment failed for invoice:', invoice.id);
 
   const customerId = invoice.customer as string;
   const customer = await stripe.customers.retrieve(customerId);

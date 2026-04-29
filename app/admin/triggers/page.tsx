@@ -127,7 +127,7 @@ const ACTION_TYPE_LABELS: Record<string, { label: string; color: string }> = {
   generate_scenario: { label: 'AI 시나리오 생성', color: 'bg-pink-100 text-pink-700' },
 };
 
-const RELATIONSHIP_STAGES = ['stranger', 'acquaintance', 'friend', 'close', 'intimate', 'lover'];
+const RELATIONSHIP_STAGES = ['stranger', 'fan', 'friend', 'close', 'heart'];
 
 export default function TriggersManagementPage() {
   const router = useRouter();

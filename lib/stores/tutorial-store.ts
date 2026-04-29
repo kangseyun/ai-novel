@@ -80,7 +80,6 @@ export const useTutorialStore = create<TutorialState>()(
 
         // 이미 완료된 튜토리얼은 시작하지 않음
         if (get().completedTutorials.includes(tutorialId)) {
-          console.log(`Tutorial "${tutorialId}" already completed`);
           return;
         }
 

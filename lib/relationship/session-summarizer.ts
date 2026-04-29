@@ -119,7 +119,6 @@ export class SessionSummarizer {
     const messages = await this.getSessionMessages(sessionId);
 
     if (messages.length < 3) {
-      console.log('[SessionSummarizer] Too few messages to summarize');
       return null;
     }
 
@@ -337,7 +336,7 @@ export class SessionSummarizer {
 
   /**
    * LLM 기반 요약 생성 (현재는 규칙 기반으로 대체)
-   * TODO: LLM 요약 기능 추가 시 활성화
+   * TODO(memory): LLM 호출로 자연어 요약 생성 — 비용/품질 비교 후 활성화
    */
   private async generateLLMSummary(
     messages: SessionMessage[],

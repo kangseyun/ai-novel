@@ -61,7 +61,6 @@ async function sendMetaConversionEvent(
   }
 ) {
   if (!META_PIXEL_ID || !META_ACCESS_TOKEN) {
-    console.log('[Analytics Server] Meta CAPI not configured');
     return;
   }
 
@@ -94,8 +93,6 @@ async function sendMetaConversionEvent(
 
     if (!response.ok) {
       console.error('[Analytics Server] Meta CAPI error:', result);
-    } else {
-      console.log(`[Analytics Server] Meta CAPI ${eventName} sent:`, result);
     }
   } catch (error) {
     console.error('[Analytics Server] Meta CAPI request failed:', error);
@@ -112,7 +109,6 @@ async function sendMixpanelEvent(
   properties: Record<string, unknown>
 ) {
   if (!MIXPANEL_TOKEN) {
-    console.log('[Analytics Server] Mixpanel not configured');
     return;
   }
 
@@ -136,8 +132,6 @@ async function sendMixpanelEvent(
 
     if (!response.ok) {
       console.error('[Analytics Server] Mixpanel error:', await response.text());
-    } else {
-      console.log(`[Analytics Server] Mixpanel ${eventName} sent`);
     }
   } catch (error) {
     console.error('[Analytics Server] Mixpanel request failed:', error);

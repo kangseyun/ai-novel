@@ -151,11 +151,10 @@ const defaultFormData: PersonaFormData = {
   },
   behavior_by_stage: {
     stranger: { tone: 'neutral', distance: 'formal', behaviors: [], intimacy_level: 'none' },
-    acquaintance: { tone: 'friendly', distance: 'polite', behaviors: [], intimacy_level: 'low' },
+    fan: { tone: 'friendly', distance: 'polite', behaviors: [], intimacy_level: 'low' },
     friend: { tone: 'casual', distance: 'comfortable', behaviors: [], intimacy_level: 'medium' },
     close: { tone: 'warm', distance: 'close', behaviors: [], intimacy_level: 'high' },
-    intimate: { tone: 'tender', distance: 'intimate', behaviors: [], intimacy_level: 'very_high' },
-    lover: { tone: 'loving', distance: 'intimate', behaviors: [], intimacy_level: 'max' },
+    heart: { tone: 'loving', distance: 'intimate', behaviors: [], intimacy_level: 'max' },
   },
   first_scenario_id: '',
 };
@@ -1412,9 +1411,10 @@ export default function PersonaEditPage({ params }: { params: Promise<{ id: stri
                         <SelectContent>
                           <SelectItem value="">모두</SelectItem>
                           <SelectItem value="stranger">stranger+</SelectItem>
+                          <SelectItem value="fan">fan+</SelectItem>
                           <SelectItem value="friend">friend+</SelectItem>
                           <SelectItem value="close">close+</SelectItem>
-                          <SelectItem value="lover">lover</SelectItem>
+                          <SelectItem value="heart">heart</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
