@@ -12,6 +12,7 @@ import { DMListSkeleton } from '@/components/ui/Skeleton';
 import { useTranslations, useLocale, t } from '@/lib/i18n';
 import { toast } from 'sonner';
 import { useTutorial } from '@/components/tutorial/useTutorial';
+import { DEFAULT_LUMIN_MEMBER_ID } from '@/lib/constants';
 
 interface DMListProps {
   onOpenChat?: (personaId: string) => void; // Optional - 기본은 URL 라우팅 사용
@@ -47,7 +48,7 @@ export default function DMList({ onOpenChat }: DMListProps = {}) {
   };
   const [conversations, setConversations] = useState<DMConversation[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [junProfile, setJunProfile] = useState<PersonaProfile | null>(null);
+  const [defaultPersonaProfile, setDefaultPersonaProfile] = useState<PersonaProfile | null>(null);
   const isAuthenticated = useAuthStore(state => state.isAuthenticated);
   const hasFetched = useRef(false);
   const tutorialTriggered = useRef(false);
@@ -60,7 +61,7 @@ export default function DMList({ onOpenChat }: DMListProps = {}) {
     if (isAuthenticated && !hasFetched.current) {
       hasFetched.current = true;
       loadDMList();
-      loadJunProfile();
+      loadDefaultPersonaProfile();
     } else if (!isAuthenticated) {
       setIsLoading(false);
     }
@@ -92,15 +93,15 @@ export default function DMList({ onOpenChat }: DMListProps = {}) {
     }
   };
 
-  const loadJunProfile = async () => {
+  const loadDefaultPersonaProfile = async () => {
     try {
-      const res = await fetch('/api/personas/jun');
+      const res = await fetch(`/api/personas/${DEFAULT_LUMIN_MEMBER_ID}`);
       if (res.ok) {
         const data = await res.json();
-        setJunProfile(data.persona);
+        setDefaultPersonaProfile(data.persona);
       }
     } catch (error) {
-      console.error('[DMList] Failed to load Jun profile:', error);
+      console.error('[DMList] Failed to load default persona profile:', error);
     }
   };
 
@@ -224,18 +225,18 @@ export default function DMList({ onOpenChat }: DMListProps = {}) {
         )}
       </div>
 
-      {/* 대화가 없을 때 Jun 시작 카드 */}
-      {conversations.length === 0 && junProfile && (
+      {/* 대화가 없을 때 기본 LUMIN 멤버 시작 카드 */}
+      {conversations.length === 0 && defaultPersonaProfile && (
         <div className="px-4 pt-6">
           <h2 className="text-sm font-medium text-white/50 mb-3">{tr.dm.startChat}</h2>
           <div className="flex items-center gap-3 p-3 bg-white/5 rounded-xl">
             <div
               className="w-12 h-12 rounded-full overflow-hidden border border-white/20 cursor-pointer"
-              onClick={() => router.push('/profile/jun')}
+              onClick={() => router.push(`/profile/${defaultPersonaProfile.id}`)}
             >
               <Image
-                src={junProfile.avatar_url}
-                alt={junProfile.display_name}
+                src={defaultPersonaProfile.avatar_url}
+                alt={defaultPersonaProfile.display_name}
                 width={48}
                 height={48}
                 className="object-cover"
@@ -245,20 +246,20 @@ export default function DMList({ onOpenChat }: DMListProps = {}) {
               <div className="flex items-center gap-2">
                 <span
                   className="font-medium cursor-pointer hover:underline"
-                  onClick={() => router.push('/profile/jun')}
+                  onClick={() => router.push(`/profile/${defaultPersonaProfile.id}`)}
                 >
-                  {junProfile.display_name}
+                  {defaultPersonaProfile.display_name}
                 </span>
-                {junProfile.is_verified && (
+                {defaultPersonaProfile.is_verified && (
                   <div className="w-4 h-4 bg-blue-500 rounded-full flex items-center justify-center">
                     <span className="text-[8px] text-white">✓</span>
                   </div>
                 )}
               </div>
-              <p className="text-sm text-white/50 line-clamp-1">{junProfile.bio}</p>
+              <p className="text-sm text-white/50 line-clamp-1">{defaultPersonaProfile.bio}</p>
             </div>
             <button
-              onClick={() => handleOpenChat('jun')}
+              onClick={() => handleOpenChat(defaultPersonaProfile.id)}
               className="px-3 py-1.5 bg-white/10 rounded-lg text-sm hover:bg-white/15 transition"
             >
               {tr.dm.chat}

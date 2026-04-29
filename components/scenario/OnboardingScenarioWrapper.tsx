@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import ScenarioPlayer, { ScenarioResult } from './ScenarioPlayer';
 import { useFirstMeetingScenario } from '@/hooks/useScenario';
 import type { ScenarioChoice } from '@/lib/ai-agent/modules/scenario-service';
+import { DEFAULT_LUMIN_MEMBER_ID } from '@/lib/constants';
 
 // ============================================
 // 타입 정의
@@ -47,10 +48,10 @@ export interface OnboardingScenarioWrapperProps {
   };
 }
 
-// 기본 캐릭터 정보 (Jun)
+// 기본 캐릭터 정보 (폴백용 — props로 character가 전달되지 않은 경우)
 const DEFAULT_CHARACTER = {
-  id: 'jun',
-  name: 'Jun',
+  id: DEFAULT_LUMIN_MEMBER_ID,
+  name: 'LUMIN',
   image: 'https://i.pravatar.cc/400?img=68',
 };
 

@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { apiClient } from '../api-client';
+import { DEFAULT_LUMIN_MEMBER_ID } from '../constants';
 
 // 유저 페르소나 타입
 export interface UserPersona {
@@ -151,7 +152,7 @@ export const useUserPersonaStore = create<UserPersonaState>()(
       isOnboarded: false,
       isSyncing: false,
       lastSyncError: null,
-      unlockedPersonas: ['jun'], // 기본적으로 jun은 해금됨
+      unlockedPersonas: [DEFAULT_LUMIN_MEMBER_ID], // 기본 LUMIN 멤버는 해금됨
 
       // 페르소나 해금
       unlockPersona: (personaId: string) =>

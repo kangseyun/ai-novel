@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthUser, unauthorized, badRequest, serverError } from '@/lib/auth';
 import { createClient } from '@/lib/supabase-server';
+import { DEFAULT_LUMIN_MEMBER_ID } from '@/lib/constants';
 
 /**
  * GET /api/onboarding/follow
@@ -51,8 +52,8 @@ export async function GET(request: NextRequest) {
       .eq('is_unlocked', true);
 
     const followedIds = new Set(followedPersonas?.map(r => r.persona_id) || []);
-    // jun은 항상 팔로우된 것으로 간주
-    followedIds.add('jun');
+    // 기본 LUMIN 멤버는 항상 팔로우된 것으로 간주
+    followedIds.add(DEFAULT_LUMIN_MEMBER_ID);
 
     // 3. 팔로우 상태 포함하여 반환
     const mappedPersonas = (personas || []).map(p => ({

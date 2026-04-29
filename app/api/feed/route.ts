@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase-server';
 import { getAuthUser, unauthorized, serverError } from '@/lib/auth';
+import { LUMIN_MEMBER_IDS } from '@/lib/constants';
 
 // 관계 단계별 우선순위
 const STAGE_PRIORITY: Record<string, number> = {
@@ -45,8 +46,10 @@ export async function GET(request: NextRequest) {
     // 관계 맵 생성 (없으면 stranger로 기본값)
     const relationshipMap: Record<string, { stage: string; affection: number; isFollowing: boolean }> = {};
 
-    // jun은 항상 팔로우 상태
-    relationshipMap['jun'] = { stage: 'stranger', affection: 0, isFollowing: true };
+    // LUMIN 멤버는 항상 기본 팔로우 상태로 노출
+    for (const memberId of LUMIN_MEMBER_IDS) {
+      relationshipMap[memberId] = { stage: 'stranger', affection: 0, isFollowing: true };
+    }
 
     relationships?.forEach(r => {
       relationshipMap[r.persona_id] = {

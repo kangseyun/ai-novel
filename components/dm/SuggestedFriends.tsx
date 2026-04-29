@@ -10,6 +10,7 @@ import { useAuthStore } from '@/lib/stores/auth-store';
 import { apiClient } from '@/lib/api-client';
 import { useTranslations, t } from '@/lib/i18n';
 import { toast } from 'sonner';
+import { DEFAULT_LUMIN_MEMBER_ID } from '@/lib/constants';
 
 // ============================================
 // 타입 정의
@@ -147,7 +148,10 @@ export default function SuggestedFriends({
         if (response.ok) {
           const fallbackData = await response.json();
           if (fallbackData.personas) {
-            const filtered = fallbackData.personas.filter((p: { id: string }) => p.id !== 'jun');
+            // 기본 LUMIN 멤버는 다른 곳(시작 카드 등)에서 노출되므로 추천 목록에서 제외
+            const filtered = fallbackData.personas.filter(
+              (p: { id: string }) => p.id !== DEFAULT_LUMIN_MEMBER_ID
+            );
             setPersonas(filtered.slice(0, 5));
           }
         }

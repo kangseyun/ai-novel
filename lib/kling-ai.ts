@@ -54,7 +54,11 @@ export interface PersonaImagePrompt {
 // Persona Image Prompts
 // ============================================
 
+// Per-persona image prompts. Keys are persona IDs (LUMIN members + legacy
+// premium personas like daniel). Adding a new persona requires adding an
+// entry here for image generation to work.
 export const PERSONA_IMAGE_PROMPTS: Record<string, PersonaImagePrompt> = {
+  // LUMIN member jun (intentional persona ID)
   jun: {
     personaId: 'jun',
     personaName: 'Jun',

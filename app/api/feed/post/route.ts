@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase-server';
 import { getAuthUser, unauthorized, badRequest, serverError } from '@/lib/auth';
+import { DEFAULT_LUMIN_MEMBER_ID } from '@/lib/constants';
 
 // POST /api/feed/post - 유저 포스트 작성
 export async function POST(request: NextRequest) {
@@ -48,10 +49,21 @@ export async function POST(request: NextRequest) {
     const triggeredEvents = [];
 
     if (gameState && shouldTriggerReaction(mood, gameState.affection)) {
+      const reactingPersonaId = gameState.persona_id || DEFAULT_LUMIN_MEMBER_ID;
+
+      // 반응하는 페르소나의 표시명 조회 (알림 제목용)
+      const { data: personaInfo } = await supabase
+        .from('personas')
+        .select('display_name, name')
+        .eq('id', reactingPersonaId)
+        .maybeSingle();
+
+      const personaDisplayName = personaInfo?.display_name || personaInfo?.name || reactingPersonaId;
+
       const event = {
         id: `event_${Date.now()}`,
         type: 'dm_notification',
-        persona_id: gameState.persona_id || 'jun',
+        persona_id: reactingPersonaId,
         preview: getReactionPreview(mood, gameState.affection),
         delay_seconds: Math.floor(Math.random() * 180) + 60, // 1-4분
       };
@@ -61,7 +73,7 @@ export async function POST(request: NextRequest) {
         user_id: user.id,
         type: 'dm_notification',
         persona_id: event.persona_id,
-        title: 'Jun님이 DM을 보냈습니다',
+        title: `${personaDisplayName}님이 DM을 보냈습니다`,
         preview: event.preview,
         post_id: post.id,
       });

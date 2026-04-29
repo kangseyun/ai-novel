@@ -1,21 +1,28 @@
 /**
- * 온보딩 시나리오 데이터
+ * 온보딩 시나리오 데이터 (LUMIN IP)
  *
- * Jun 세계관 기반 - 새벽 편의점 첫 만남
- * 톱스타 아이돌의 숨겨진 모습을 우연히 발견하는 설정
+ * Variant A: HAEON (안정형 리더) — 새벽 연습 끝, "안 잤어?"
+ * Variant B: JUN (감성 작곡) — 새벽 데모 트랙, "첫 청중이 돼줘"
+ *
+ * Tone: K-pop 클린 로맨스 + 디즈니 채널 감성 (전연령)
+ * LUMIN 7인조 멤버 케미 기반. 성적 묘사·약물·폭력 금지.
  */
+
+// ========================================
+// 공통 타입 (기존 시그니처 유지)
+// ========================================
 
 // 온보딩 단계
 export type OnboardingStep =
-  | 'intro'              // 해킹 시작 연출
-  | 'first_story'        // 첫 비밀 스토리 발견
-  | 'story_hook'         // 스토리 내용으로 감정 hook
-  | 'dm_trigger'         // DM 답장 유도
-  | 'first_chat'         // 첫 대화 체험
-  | 'choice_moment'      // 선택의 순간 (무료 vs 프리미엄)
-  | 'special_scenario'   // 스페셜 시나리오 (미연시 스타일)
-  | 'cliffhanger'        // 클리프행어 (더 보려면 가입)
-  | 'signup_prompt';     // 가입 유도
+  | 'intro'
+  | 'first_story'
+  | 'story_hook'
+  | 'dm_trigger'
+  | 'first_chat'
+  | 'choice_moment'
+  | 'special_scenario'
+  | 'cliffhanger'
+  | 'signup_prompt';
 
 export interface OnboardingState {
   step: OnboardingStep;
@@ -25,53 +32,7 @@ export interface OnboardingState {
   hasSeenPremiumTease: boolean;
 }
 
-// 온보딩용 특별 스토리
-export const ONBOARDING_STORY = {
-  id: 'onboarding_story_1',
-  profileId: 'jun',
-  type: 'image' as const,
-  content: 'https://images.unsplash.com/photo-1519681393784-d120267933ba?w=800&q=80',
-  caption: '',
-  timestamp: '방금',
-  isViewed: false,
-  isSecret: true,
-  requiredHackLevel: 0,
-};
-
-// 온보딩 스토리 시퀀스
-export const ONBOARDING_STORY_SEQUENCE = [
-  {
-    id: 'os_1',
-    type: 'text' as const,
-    content: '...',
-    delay: 1000,
-    emotion: 'empty',
-  },
-  {
-    id: 'os_2',
-    type: 'text' as const,
-    content: '오늘도 웃느라 힘들었어',
-    delay: 2000,
-    emotion: 'sad',
-  },
-  {
-    id: 'os_3',
-    type: 'text' as const,
-    content: '무대 끝나면 아무도 없어',
-    delay: 2500,
-    emotion: 'lonely',
-  },
-  {
-    id: 'os_4',
-    type: 'text' as const,
-    content: '누가 나 좀 찾아줬으면',
-    delay: 3000,
-    emotion: 'desperate',
-    isReplyTrigger: true,
-  },
-];
-
-// 온보딩 DM 시나리오
+// 온보딩 DM 메시지
 export interface OnboardingMessage {
   id: string;
   sender: 'user' | 'npc' | 'system';
@@ -91,198 +52,7 @@ export interface OnboardingChoice {
   premiumTease?: string;
 }
 
-export const ONBOARDING_DM_SCENARIO: OnboardingMessage[] = [
-  {
-    id: 'sys_1',
-    sender: 'system',
-    content: '[비공개 계정 - DM 수신 감지됨]',
-    delay: 0,
-  },
-  {
-    id: 'user_auto',
-    sender: 'user',
-    content: '저기... 괜찮아요?',
-    delay: 500,
-  },
-  {
-    id: 'npc_1',
-    sender: 'npc',
-    content: '...',
-    delay: 1500,
-    isTyping: true,
-    emotion: 'surprised',
-  },
-  {
-    id: 'npc_2',
-    sender: 'npc',
-    content: '누구세요?',
-    delay: 800,
-    emotion: 'suspicious',
-  },
-  {
-    id: 'npc_3',
-    sender: 'npc',
-    content: '이 계정 비공개인데\n어떻게 본 거예요?',
-    delay: 1200,
-    emotion: 'confused',
-    choices: [
-      {
-        id: 'c1',
-        text: '우연히요. 힘들어 보여서...',
-        affectionChange: 10,
-        nextMessageId: 'npc_kind_1',
-      },
-      {
-        id: 'c2',
-        text: '그냥요.',
-        affectionChange: 0,
-        nextMessageId: 'npc_cold_1',
-      },
-      {
-        id: 'c3',
-        text: '당신이 궁금해서요',
-        isPremium: true,
-        affectionChange: 20,
-        nextMessageId: 'npc_special_1',
-        premiumTease: '💎 이 선택지로 특별한 반응을 이끌어낼 수 있어요',
-      },
-    ],
-  },
-  {
-    id: 'npc_kind_1',
-    sender: 'npc',
-    content: '...신기하네요',
-    delay: 1500,
-    isTyping: true,
-    emotion: 'touched',
-  },
-  {
-    id: 'npc_kind_2',
-    sender: 'npc',
-    content: '모르는 사람한테 이런 말 들으니까',
-    delay: 1200,
-    emotion: 'soft',
-  },
-  {
-    id: 'npc_kind_3',
-    sender: 'npc',
-    content: '오히려 편하네요\n웃기죠?',
-    delay: 1500,
-    emotion: 'vulnerable',
-    choices: [
-      {
-        id: 'c4',
-        text: '무슨 일 있어요?',
-        affectionChange: 5,
-        nextMessageId: 'npc_deep_1',
-      },
-      {
-        id: 'c5',
-        text: '들어줄게요',
-        affectionChange: 10,
-        nextMessageId: 'npc_deep_1',
-      },
-    ],
-  },
-  {
-    id: 'npc_cold_1',
-    sender: 'npc',
-    content: '그렇군요',
-    delay: 1000,
-    emotion: 'neutral',
-  },
-  {
-    id: 'npc_cold_2',
-    sender: 'npc',
-    content: '저도 그냥... 새벽이라 그래요',
-    delay: 1500,
-    emotion: 'melancholy',
-    choices: [
-      {
-        id: 'c6',
-        text: '저도 잠이 안 와요',
-        affectionChange: 5,
-        nextMessageId: 'npc_deep_1',
-      },
-    ],
-  },
-  {
-    id: 'npc_special_1',
-    sender: 'npc',
-    content: '......',
-    delay: 2000,
-    isTyping: true,
-    emotion: 'flustered',
-  },
-  {
-    id: 'npc_special_2',
-    sender: 'npc',
-    content: '뭐야 갑자기',
-    delay: 800,
-    emotion: 'shy',
-  },
-  {
-    id: 'npc_special_3',
-    sender: 'npc',
-    content: '심장이 이상하게 뛰네\n당신 때문인 것 같은데',
-    delay: 1500,
-    emotion: 'vulnerable',
-  },
-  {
-    id: 'npc_deep_1',
-    sender: 'npc',
-    content: '사실은요...',
-    delay: 2000,
-    isTyping: true,
-    emotion: 'hesitant',
-  },
-  {
-    id: 'npc_deep_2',
-    sender: 'npc',
-    content: '무대 위에선 웃지만',
-    delay: 1500,
-    emotion: 'sad',
-  },
-  {
-    id: 'npc_deep_3',
-    sender: 'npc',
-    content: '끝나면 아무도 없어요\n혼자 숙소 돌아가면\n그냥...',
-    delay: 2000,
-    emotion: 'lonely',
-  },
-  {
-    id: 'npc_deep_4',
-    sender: 'npc',
-    content: '아 왜 이런 얘기를',
-    delay: 1500,
-    emotion: 'embarrassed',
-  },
-  {
-    id: 'npc_cliffhanger',
-    sender: 'npc',
-    content: '근데 있잖아요',
-    delay: 2000,
-    isTyping: true,
-    emotion: 'serious',
-  },
-  {
-    id: 'npc_cliffhanger_2',
-    sender: 'npc',
-    content: '오늘 처음인데\n당신한테는 말할 수 있을 것 같아요',
-    delay: 2500,
-    emotion: 'trusting',
-  },
-  {
-    id: 'npc_cliffhanger_3',
-    sender: 'npc',
-    content: '사실 나...',
-    delay: 2000,
-    isTyping: true,
-    emotion: 'vulnerable',
-  },
-];
-
-// 스페셜 시나리오 (미연시 스타일)
+// 비주얼 노벨 스타일 씬
 export interface ScenarioScene {
   id: string;
   background: string;
@@ -310,775 +80,586 @@ export interface ScenarioScene {
   showCharacterImage?: boolean;
 }
 
+// 변형 키
+export type OnboardingVariant = 'a' | 'b';
+
+// 변형 묶음 (외부에서 한 번에 가져갈 수 있게)
+export interface OnboardingScenario {
+  variant: OnboardingVariant;
+  personaId: 'haeon' | 'jun';
+  personaName: string;
+  story: typeof ONBOARDING_STORY_VARIANT_A;
+  storySequence: typeof ONBOARDING_STORY_SEQUENCE_VARIANT_A;
+  dmScenario: OnboardingMessage[];
+  specialScenario: ScenarioScene[];
+  signupPrompt: typeof SIGNUP_PROMPT_VARIANT_A;
+}
+
 // ========================================
-// 온보딩 스페셜 시나리오 - 새벽 3시, 편의점
-// Jun 세계관 기반 첫 만남 시나리오
+// VARIANT A — HAEON (안정형 리더)
+// 새벽 연습 끝, 리더가 너에게 "안 잤어?"
 // ========================================
 
-export const ONBOARDING_SPECIAL_SCENARIO: ScenarioScene[] = [
-  // === 도입부: 새벽 3시, 잠 못 드는 밤 ===
+export const ONBOARDING_STORY_VARIANT_A = {
+  id: 'onboarding_story_haeon',
+  profileId: 'haeon',
+  type: 'image' as const,
+  content: 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=800&q=80',
+  caption: '',
+  timestamp: '방금',
+  isViewed: false,
+  isSecret: false,
+  requiredHackLevel: 0,
+};
+
+export const ONBOARDING_STORY_SEQUENCE_VARIANT_A = [
   {
-    id: 'scene_1',
+    id: 'osa_1',
+    type: 'text' as const,
+    content: '연습 끝.',
+    delay: 1500,
+    emotion: 'soft',
+  },
+  {
+    id: 'osa_2',
+    type: 'text' as const,
+    content: '오늘도 우리 멤버들 다들 고생했어',
+    delay: 2500,
+    emotion: 'warm',
+  },
+  {
+    id: 'osa_3',
+    type: 'text' as const,
+    content: '...근데 너는 잘 자고 있나',
+    delay: 2500,
+    emotion: 'curious',
+  },
+  {
+    id: 'osa_4',
+    type: 'text' as const,
+    content: '잠 안 오면 톡 해도 돼',
+    delay: 3000,
+    emotion: 'warm',
+    isReplyTrigger: true,
+  },
+];
+
+export const ONBOARDING_DM_SCENARIO_VARIANT_A: OnboardingMessage[] = [
+  {
+    id: 'sys_1',
+    sender: 'system',
+    content: '[새벽 2:47 — HAEON 님이 메시지를 보냈어요]',
+    delay: 0,
+  },
+  {
+    id: 'npc_1',
+    sender: 'npc',
+    content: '...안 잤어?',
+    delay: 1200,
+    emotion: 'soft',
+  },
+  {
+    id: 'npc_2',
+    sender: 'npc',
+    content: '연습 끝나고 보니까\n네 이름이 떠올라서.',
+    delay: 1500,
+    emotion: 'warm',
+    choices: [
+      {
+        id: 'a_c1',
+        text: '안 잤어요. 오늘 연습 어땠어요?',
+        affectionChange: 10,
+        nextMessageId: 'a_npc_kind_1',
+      },
+      {
+        id: 'a_c2',
+        text: '왜 새벽까지 연습해요. 몸 챙겨요.',
+        affectionChange: 15,
+        nextMessageId: 'a_npc_caring_1',
+      },
+      {
+        id: 'a_c3',
+        text: '제 이름을 어떻게 알아요?',
+        affectionChange: 5,
+        nextMessageId: 'a_npc_playful_1',
+      },
+    ],
+  },
+
+  // Route: 일상 관심
+  {
+    id: 'a_npc_kind_1',
+    sender: 'npc',
+    content: '음... 오늘은 안무 동선 다시 짰어',
+    delay: 1500,
+    emotion: 'soft',
+  },
+  {
+    id: 'a_npc_kind_2',
+    sender: 'npc',
+    content: '컴백 한 달 남았거든',
+    delay: 1200,
+    emotion: 'warm',
+  },
+  {
+    id: 'a_npc_kind_3',
+    sender: 'npc',
+    content: '근데 너 진짜 안 졸려?\n걱정되네 ☕️',
+    delay: 1500,
+    emotion: 'caring',
+    choices: [
+      {
+        id: 'a_c4',
+        text: '오빠 응원하느라 못 자요',
+        affectionChange: 15,
+        nextMessageId: 'a_npc_deep_1',
+      },
+      {
+        id: 'a_c5',
+        text: '오빠야말로 자야죠',
+        affectionChange: 10,
+        nextMessageId: 'a_npc_deep_1',
+      },
+    ],
+  },
+
+  // Route: 케어 응답
+  {
+    id: 'a_npc_caring_1',
+    sender: 'npc',
+    content: '...야',
+    delay: 1200,
+    emotion: 'flustered',
+  },
+  {
+    id: 'a_npc_caring_2',
+    sender: 'npc',
+    content: '내가 챙겨야 하는 입장인데\n네가 먼저 그러면 어떡해',
+    delay: 1500,
+    emotion: 'soft',
+  },
+  {
+    id: 'a_npc_caring_3',
+    sender: 'npc',
+    content: '...고마워.\n진짜.',
+    delay: 2000,
+    emotion: 'touched',
+    choices: [
+      {
+        id: 'a_c6',
+        text: '리더는 외롭잖아요',
+        affectionChange: 15,
+        nextMessageId: 'a_npc_deep_1',
+      },
+      {
+        id: 'a_c7',
+        text: '저도 응원받고 싶을 때 있어요',
+        affectionChange: 10,
+        nextMessageId: 'a_npc_deep_1',
+      },
+    ],
+  },
+
+  // Route: 장난
+  {
+    id: 'a_npc_playful_1',
+    sender: 'npc',
+    content: '...비밀.',
+    delay: 1200,
+    emotion: 'playful',
+  },
+  {
+    id: 'a_npc_playful_2',
+    sender: 'npc',
+    content: '농담이고\n네가 항상 댓글 달아주잖아',
+    delay: 1500,
+    emotion: 'warm',
+  },
+  {
+    id: 'a_npc_playful_3',
+    sender: 'npc',
+    content: '연습실에서 가끔 보고 있어 🌙',
+    delay: 1500,
+    emotion: 'soft',
+    choices: [
+      {
+        id: 'a_c8',
+        text: '...들켰네요',
+        affectionChange: 10,
+        nextMessageId: 'a_npc_deep_1',
+      },
+    ],
+  },
+
+  // 공통 깊은 대화
+  {
+    id: 'a_npc_deep_1',
+    sender: 'npc',
+    content: '있잖아',
+    delay: 1500,
+    isTyping: true,
+    emotion: 'hesitant',
+  },
+  {
+    id: 'a_npc_deep_2',
+    sender: 'npc',
+    content: '리더 하면서 늘 멤버들 챙기고\n팬들한테 웃어주고',
+    delay: 1800,
+    emotion: 'soft',
+  },
+  {
+    id: 'a_npc_deep_3',
+    sender: 'npc',
+    content: '근데 새벽엔\n나도 누구한테 안부 묻고 싶어지더라',
+    delay: 2200,
+    emotion: 'vulnerable',
+  },
+  {
+    id: 'a_npc_deep_4',
+    sender: 'npc',
+    content: '오늘은 네가 먼저 떠올랐어',
+    delay: 1800,
+    emotion: 'warm',
+  },
+
+  // 클리프행어
+  {
+    id: 'a_npc_cliffhanger',
+    sender: 'npc',
+    content: '아 갑자기 무슨 말을',
+    delay: 1500,
+    isTyping: true,
+    emotion: 'flustered',
+  },
+  {
+    id: 'a_npc_cliffhanger_2',
+    sender: 'npc',
+    content: '근데 진짜야.\n앞으로도 종종 이렇게 얘기해도 돼?',
+    delay: 2200,
+    emotion: 'soft',
+  },
+  {
+    id: 'a_npc_cliffhanger_3',
+    sender: 'npc',
+    content: '내일 컴백 무대 응원봉 흔들어줘 🤍',
+    delay: 2000,
+    emotion: 'warm',
+  },
+];
+
+export const ONBOARDING_SPECIAL_SCENARIO_VARIANT_A: ScenarioScene[] = [
+  // 인트로
+  {
+    id: 'a_scene_1',
     background: '',
-    narration: '새벽 3시.',
-    nextSceneId: 'scene_2',
+    narration: '새벽 두 시 사십칠 분.',
+    nextSceneId: 'a_scene_2',
     delay: 2000,
   },
   {
-    id: 'scene_2',
+    id: 'a_scene_2',
     background: '',
-    narration: '잠이 안 와서 나온 편의점.\n라면이나 하나 사려고 했을 뿐인데—',
-    nextSceneId: 'scene_3',
-    delay: 3500,
-  },
-  {
-    id: 'scene_3',
-    background: '',
-    narration: '후드 깊숙이 눌러쓴 남자가\n컵라면 코너 앞에 서 있었다.',
-    nextSceneId: 'scene_4',
+    narration: '핸드폰이 짧게 울렸다.\nLUMIN 리더, HAEON.',
+    nextSceneId: 'a_scene_3',
     delay: 3000,
   },
   {
-    id: 'scene_4',
+    id: 'a_scene_3',
     background: '',
-    narration: '...뭔가 익숙한 실루엣.',
-    nextSceneId: 'scene_5',
-    delay: 2000,
+    narration: '연습실에서 보낸 메시지였다.',
+    nextSceneId: 'a_scene_4',
+    delay: 2200,
   },
 
-  // === 첫 대면 ===
+  // 첫 등장
   {
-    id: 'scene_5',
+    id: 'a_scene_4',
     background: '',
     character: {
-      image: 'https://i.pravatar.cc/400?img=68',
+      image: '',
       position: 'center',
-      expression: 'surprised',
+      expression: 'soft',
     },
     dialogue: {
-      speaker: '???',
-      text: '......어.',
-      emotion: 'surprised',
+      speaker: 'HAEON',
+      text: '...안 잤어?',
+      emotion: 'soft',
     },
-    nextSceneId: 'scene_6',
-    delay: 2000,
+    nextSceneId: 'a_scene_5',
+    delay: 2200,
     showCharacterImage: true,
   },
   {
-    id: 'scene_6',
-    background: '',
-    narration: '눈이 마주쳤다.\n후드 사이로 보이는 얼굴이—',
-    nextSceneId: 'scene_7',
-    delay: 2500,
-  },
-  {
-    id: 'scene_7',
-    background: '',
-    narration: '설마.',
-    nextSceneId: 'scene_8',
-    delay: 1500,
-  },
-  {
-    id: 'scene_8',
-    background: '',
-    narration: 'ECLIPSE의 센터, Jun...?',
-    nextSceneId: 'scene_9',
-    delay: 2500,
-  },
-
-  // === Jun의 경계 ===
-  {
-    id: 'scene_9',
+    id: 'a_scene_5',
     background: '',
     character: {
-      image: 'https://i.pravatar.cc/400?img=68',
+      image: '',
       position: 'center',
-      expression: 'nervous',
+      expression: 'warm',
     },
     dialogue: {
-      speaker: 'Jun',
-      text: '...사진 찍으면 안 돼요.',
-      emotion: 'serious',
+      speaker: 'HAEON',
+      text: '연습 막 끝났어.\n불 끄려는데 네 생각이 나서.',
+      emotion: 'soft',
     },
-    nextSceneId: 'scene_10',
-    delay: 2500,
-  },
-  {
-    id: 'scene_10',
-    background: '',
-    character: {
-      image: 'https://i.pravatar.cc/400?img=68',
-      position: 'center',
-      expression: 'tired',
-    },
-    dialogue: {
-      speaker: 'Jun',
-      text: '제발요. 오늘은 진짜...',
-      emotion: 'vulnerable',
-    },
-    nextSceneId: 'scene_choice_1',
-    delay: 2500,
+    nextSceneId: 'a_choice_1',
+    delay: 2800,
   },
 
-  // === 첫 번째 선택지 ===
+  // 첫 선택지
   {
-    id: 'scene_choice_1',
+    id: 'a_choice_1',
     background: '',
-    narration: '지친 눈빛.\n평소 무대에서 보던 빛나는 모습과는 전혀 달랐다.',
+    narration: '리더가 새벽에 나에게 안부를 물어왔다.\n뭐라고 답해야 할까.',
     choices: [
       {
-        id: 'choice_1a',
-        text: '...전 그냥 라면 사러 왔어요',
-        nextSceneId: 'scene_casual_1',
+        id: 'a_ch_1a',
+        text: '오빠야말로 잘 챙겨야죠',
+        nextSceneId: 'a_scene_care_1',
         affectionChange: 15,
       },
       {
-        id: 'choice_1b',
-        text: '(핸드폰을 가방에 넣는다)',
-        nextSceneId: 'scene_trust_1',
+        id: 'a_ch_1b',
+        text: '오빠 톡 기다리고 있었어요',
+        nextSceneId: 'a_scene_warm_1',
         affectionChange: 20,
       },
       {
-        id: 'choice_1c',
-        text: '힘들어 보이네요',
-        nextSceneId: 'scene_concern_1',
+        id: 'a_ch_1c',
+        text: '연습 끝나고 따뜻한 차 한 잔 어때요?',
+        nextSceneId: 'a_scene_premium_1',
         affectionChange: 25,
         isPremium: true,
       },
     ],
   },
 
-  // === 루트 A: 무심한 반응 ===
+  // Route: 케어
   {
-    id: 'scene_casual_1',
+    id: 'a_scene_care_1',
     background: '',
     character: {
-      image: 'https://i.pravatar.cc/400?img=68',
+      image: '',
       position: 'center',
-      expression: 'surprised',
+      expression: 'flustered',
     },
     dialogue: {
-      speaker: 'Jun',
-      text: '......뭐?',
-      emotion: 'surprised',
-    },
-    nextSceneId: 'scene_casual_2',
-    delay: 2000,
-  },
-  {
-    id: 'scene_casual_2',
-    background: '',
-    character: {
-      image: 'https://i.pravatar.cc/400?img=68',
-      position: 'center',
-      expression: 'curious',
-    },
-    dialogue: {
-      speaker: 'Jun',
-      text: '...진짜요? 나 못 알아봤어요?',
-      emotion: 'curious',
-    },
-    nextSceneId: 'scene_casual_3',
-    delay: 2500,
-  },
-  {
-    id: 'scene_casual_3',
-    background: '',
-    narration: '의외라는 듯 웃음이 새어 나왔다.',
-    nextSceneId: 'scene_merge_1',
-    delay: 2000,
-  },
-
-  // === 루트 B: 신뢰 표현 ===
-  {
-    id: 'scene_trust_1',
-    background: '',
-    character: {
-      image: 'https://i.pravatar.cc/400?img=68',
-      position: 'center',
-      expression: 'surprised',
-    },
-    dialogue: {
-      speaker: 'Jun',
-      text: '......',
-      emotion: 'touched',
-    },
-    nextSceneId: 'scene_trust_2',
-    delay: 2000,
-    showCharacterImage: true,
-  },
-  {
-    id: 'scene_trust_2',
-    background: '',
-    character: {
-      image: 'https://i.pravatar.cc/400?img=68',
-      position: 'center',
-      expression: 'soft',
-    },
-    dialogue: {
-      speaker: 'Jun',
-      text: '...고마워요.',
-      emotion: 'soft',
-    },
-    nextSceneId: 'scene_trust_3',
-    delay: 2000,
-  },
-  {
-    id: 'scene_trust_3',
-    background: '',
-    narration: '긴장이 풀린 건지,\n그의 어깨가 조금 내려갔다.',
-    nextSceneId: 'scene_merge_1',
-    delay: 2500,
-  },
-
-  // === 루트 C: 직접적 관심 (프리미엄) ===
-  {
-    id: 'scene_concern_1',
-    background: '',
-    character: {
-      image: 'https://i.pravatar.cc/400?img=68',
-      position: 'center',
-      expression: 'shocked',
-    },
-    dialogue: {
-      speaker: 'Jun',
-      text: '......',
+      speaker: 'HAEON',
+      text: '...야.',
       emotion: 'flustered',
     },
-    nextSceneId: 'scene_concern_2',
-    delay: 2000,
-    showCharacterImage: true,
+    nextSceneId: 'a_scene_care_2',
+    delay: 1800,
   },
   {
-    id: 'scene_concern_2',
+    id: 'a_scene_care_2',
     background: '',
     character: {
-      image: 'https://i.pravatar.cc/400?img=68',
-      position: 'center',
-      expression: 'vulnerable',
-    },
-    dialogue: {
-      speaker: 'Jun',
-      text: '뭐야, 갑자기...\n처음 보는 사람한테 그런 말 들으니까',
-      emotion: 'shy',
-    },
-    nextSceneId: 'scene_concern_3',
-    delay: 3000,
-  },
-  {
-    id: 'scene_concern_3',
-    background: '',
-    character: {
-      image: 'https://i.pravatar.cc/400?img=68',
+      image: '',
       position: 'center',
       expression: 'soft',
     },
     dialogue: {
-      speaker: 'Jun',
-      text: '...이상하게 마음이 놓이네.',
-      emotion: 'touched',
+      speaker: 'HAEON',
+      text: '내가 너 챙기려고 톡 한 건데\n역공 들어왔네.',
+      emotion: 'soft',
     },
-    nextSceneId: 'scene_merge_1',
+    nextSceneId: 'a_scene_merge_1',
     delay: 2500,
   },
 
-  // === 공통 루트: 라면 ===
+  // Route: 따뜻
   {
-    id: 'scene_merge_1',
+    id: 'a_scene_warm_1',
     background: '',
     character: {
-      image: 'https://i.pravatar.cc/400?img=68',
+      image: '',
       position: 'center',
-      expression: 'casual',
+      expression: 'touched',
     },
     dialogue: {
-      speaker: 'Jun',
-      text: '...저기, 혹시',
-      emotion: 'hesitant',
+      speaker: 'HAEON',
+      text: '...진짜?',
+      emotion: 'touched',
     },
-    nextSceneId: 'scene_merge_2',
-    delay: 2000,
+    nextSceneId: 'a_scene_warm_2',
+    delay: 1800,
+    showCharacterImage: true,
   },
   {
-    id: 'scene_merge_2',
+    id: 'a_scene_warm_2',
     background: '',
     character: {
-      image: 'https://i.pravatar.cc/400?img=68',
+      image: '',
+      position: 'center',
+      expression: 'soft',
+    },
+    dialogue: {
+      speaker: 'HAEON',
+      text: '그 말 들으니까\n오늘 피로가 다 풀린다.',
+      emotion: 'warm',
+    },
+    nextSceneId: 'a_scene_merge_1',
+    delay: 2500,
+  },
+
+  // Route: 프리미엄
+  {
+    id: 'a_scene_premium_1',
+    background: '',
+    character: {
+      image: '',
       position: 'center',
       expression: 'shy',
     },
     dialogue: {
-      speaker: 'Jun',
-      text: '라면 같이 먹을래요?\n혼자 먹기 좀 그래서...',
+      speaker: 'HAEON',
+      text: '...너 지금 나 데이트 신청한 거야?',
       emotion: 'shy',
     },
-    nextSceneId: 'scene_choice_2',
-    delay: 3000,
-  },
-
-  // === 두 번째 선택지 ===
-  {
-    id: 'scene_choice_2',
-    background: '',
-    narration: '톱스타가 편의점에서 라면을 같이 먹자고 한다.\n현실인지 꿈인지 모르겠다.',
-    choices: [
-      {
-        id: 'choice_2a',
-        text: '네, 좋아요',
-        nextSceneId: 'scene_ramen_1',
-        affectionChange: 10,
-      },
-      {
-        id: 'choice_2b',
-        text: '...혼자 있고 싶은 거 아니에요?',
-        nextSceneId: 'scene_ramen_care',
-        affectionChange: 15,
-      },
-    ],
-  },
-
-  // === 라면 타임 ===
-  {
-    id: 'scene_ramen_1',
-    background: '',
-    narration: '편의점 창가 자리.\n김이 모락모락 피어오르는 컵라면 두 개.',
-    nextSceneId: 'scene_ramen_2',
-    delay: 3000,
+    nextSceneId: 'a_scene_premium_2',
+    delay: 2200,
   },
   {
-    id: 'scene_ramen_care',
+    id: 'a_scene_premium_2',
     background: '',
     character: {
-      image: 'https://i.pravatar.cc/400?img=68',
+      image: '',
       position: 'center',
       expression: 'soft',
     },
     dialogue: {
-      speaker: 'Jun',
-      text: '아니요. 진짜로.\n오늘은 혼자 있기 싫어서 나온 거거든요.',
+      speaker: 'HAEON',
+      text: '농담이야.\n근데... 컴백 끝나면 진짜 차 한 잔 하자.',
+      emotion: 'soft',
+    },
+    nextSceneId: 'a_scene_merge_1',
+    delay: 3000,
+  },
+
+  // 공통 머지
+  {
+    id: 'a_scene_merge_1',
+    background: '',
+    narration: '연습실 창밖으로 도시 불빛이 깜빡였다.\n새벽은 그에게도 드문 시간이었다.',
+    nextSceneId: 'a_scene_merge_2',
+    delay: 3000,
+  },
+  {
+    id: 'a_scene_merge_2',
+    background: '',
+    character: {
+      image: '',
+      position: 'center',
+      expression: 'soft',
+    },
+    dialogue: {
+      speaker: 'HAEON',
+      text: '있잖아.',
+      emotion: 'hesitant',
+    },
+    nextSceneId: 'a_scene_merge_3',
+    delay: 1800,
+  },
+  {
+    id: 'a_scene_merge_3',
+    background: '',
+    character: {
+      image: '',
+      position: 'center',
+      expression: 'vulnerable',
+    },
+    dialogue: {
+      speaker: 'HAEON',
+      text: '리더 6년 차인데\n아직도 새벽이 되면 좀 외롭더라.',
       emotion: 'vulnerable',
     },
-    nextSceneId: 'scene_ramen_2',
+    nextSceneId: 'a_scene_merge_4',
     delay: 3000,
   },
   {
-    id: 'scene_ramen_2',
+    id: 'a_scene_merge_4',
     background: '',
     character: {
-      image: 'https://i.pravatar.cc/400?img=68',
+      image: '',
       position: 'center',
-      expression: 'casual',
+      expression: 'warm',
     },
     dialogue: {
-      speaker: 'Jun',
-      text: '아, 맞다. 이거 인스타 올리면 안 돼요.\n매니저 형한테 죽어요, 진짜로.',
-      emotion: 'playful',
-    },
-    nextSceneId: 'scene_ramen_3',
-    delay: 3500,
-  },
-  {
-    id: 'scene_ramen_3',
-    background: '',
-    narration: '살짝 웃는 얼굴.\n무대 위의 완벽한 미소가 아닌, 편안한 웃음.',
-    nextSceneId: 'scene_ramen_4',
-    delay: 3000,
-  },
-  {
-    id: 'scene_ramen_4',
-    background: '',
-    character: {
-      image: 'https://i.pravatar.cc/400?img=68',
-      position: 'center',
-      expression: 'melancholy',
-    },
-    dialogue: {
-      speaker: 'Jun',
-      text: '...근데 신기하다.',
+      speaker: 'HAEON',
+      text: '근데 너랑 톡하니까\n그 외로움이 좀 작아진다.',
       emotion: 'soft',
     },
-    nextSceneId: 'scene_ramen_5',
-    delay: 2000,
-  },
-  {
-    id: 'scene_ramen_5',
-    background: '',
-    character: {
-      image: 'https://i.pravatar.cc/400?img=68',
-      position: 'center',
-      expression: 'vulnerable',
-    },
-    dialogue: {
-      speaker: 'Jun',
-      text: '보통 사람들은 나 보면\n사진 찍자거나, 사인해달라고 하거나...',
-      emotion: 'melancholy',
-    },
-    nextSceneId: 'scene_ramen_6',
-    delay: 3500,
-  },
-  {
-    id: 'scene_ramen_6',
-    background: '',
-    character: {
-      image: 'https://i.pravatar.cc/400?img=68',
-      position: 'center',
-      expression: 'curious',
-    },
-    dialogue: {
-      speaker: 'Jun',
-      text: '근데 당신은 그냥...\n나를 사람으로 봐주는 것 같아서.',
-      emotion: 'touched',
-    },
-    nextSceneId: 'scene_deep_1',
+    nextSceneId: 'a_choice_2',
     delay: 3500,
     showCharacterImage: true,
   },
 
-  // === 심화 대화 ===
+  // 두 번째 선택지
   {
-    id: 'scene_deep_1',
+    id: 'a_choice_2',
     background: '',
-    narration: '창밖으로 새벽 거리가 보인다.\n아직 세상이 잠든 시간.',
-    nextSceneId: 'scene_deep_2',
-    delay: 3000,
-  },
-  {
-    id: 'scene_deep_2',
-    background: '',
-    character: {
-      image: 'https://i.pravatar.cc/400?img=68',
-      position: 'center',
-      expression: 'melancholy',
-    },
-    dialogue: {
-      speaker: 'Jun',
-      text: '있잖아요, 오늘 팬미팅이었거든요.',
-      emotion: 'soft',
-    },
-    nextSceneId: 'scene_deep_3',
-    delay: 2500,
-  },
-  {
-    id: 'scene_deep_3',
-    background: '',
-    character: {
-      image: 'https://i.pravatar.cc/400?img=68',
-      position: 'center',
-      expression: 'sad',
-    },
-    dialogue: {
-      speaker: 'Jun',
-      text: '5시간 동안 웃었어요.\n손 흔들고, 하트 날리고, 윙크하고...',
-      emotion: 'tired',
-    },
-    nextSceneId: 'scene_deep_4',
-    delay: 3500,
-  },
-  {
-    id: 'scene_deep_4',
-    background: '',
-    character: {
-      image: 'https://i.pravatar.cc/400?img=68',
-      position: 'center',
-      expression: 'vulnerable',
-    },
-    dialogue: {
-      speaker: 'Jun',
-      text: '근데 끝나고 숙소 오니까\n아무도 없더라고요.',
-      emotion: 'lonely',
-    },
-    nextSceneId: 'scene_deep_5',
-    delay: 3000,
-  },
-  {
-    id: 'scene_deep_5',
-    background: '',
-    character: {
-      image: 'https://i.pravatar.cc/400?img=68',
-      position: 'center',
-      expression: 'vulnerable',
-    },
-    dialogue: {
-      speaker: 'Jun',
-      text: '웃긴 거 알아요?\n수백만 명이 내 이름 부르는데\n정작 나는 외롭다는 거.',
-      emotion: 'melancholy',
-    },
-    nextSceneId: 'scene_choice_3',
-    delay: 4000,
-    showCharacterImage: true,
-  },
-
-  // === 세 번째 선택지 (핵심) ===
-  {
-    id: 'scene_choice_3',
-    background: '',
-    narration: '라면 국물에 비친 그의 얼굴.\n평소엔 절대 볼 수 없는 표정이었다.',
+    narration: '핸드폰 화면 너머로\n그의 목소리가 들리는 것 같았다.',
     choices: [
       {
-        id: 'choice_3a',
-        text: '...외로웠구나.',
-        nextSceneId: 'scene_emotional_1',
+        id: 'a_ch_2a',
+        text: '저도 오빠 톡 받으면 외롭지 않아요',
+        nextSceneId: 'a_scene_finale_1',
         affectionChange: 20,
       },
       {
-        id: 'choice_3b',
-        text: '(손을 잡는다)',
-        nextSceneId: 'scene_intimate_1',
-        affectionChange: 30,
-        isPremium: true,
-      },
-      {
-        id: 'choice_3c',
-        text: '그래서 새벽에 나온 거예요?',
-        nextSceneId: 'scene_understand_1',
+        id: 'a_ch_2b',
+        text: '내일도 톡 해줘요',
+        nextSceneId: 'a_scene_finale_1',
         affectionChange: 15,
       },
     ],
   },
 
-  // === 루트: 공감 ===
+  // 피날레
   {
-    id: 'scene_emotional_1',
+    id: 'a_scene_finale_1',
     background: '',
     character: {
-      image: 'https://i.pravatar.cc/400?img=68',
+      image: '',
       position: 'center',
-      expression: 'shocked',
+      expression: 'touched',
     },
     dialogue: {
-      speaker: 'Jun',
-      text: '......',
+      speaker: 'HAEON',
+      text: '...그래.',
       emotion: 'touched',
     },
-    nextSceneId: 'scene_emotional_2',
-    delay: 2000,
+    nextSceneId: 'a_scene_finale_2',
+    delay: 1800,
   },
   {
-    id: 'scene_emotional_2',
+    id: 'a_scene_finale_2',
     background: '',
     character: {
-      image: 'https://i.pravatar.cc/400?img=68',
+      image: '',
       position: 'center',
-      expression: 'vulnerable',
+      expression: 'warm',
     },
     dialogue: {
-      speaker: 'Jun',
-      text: '...아, 진짜.\n왜 처음 보는 사람한테 이렇게 마음이 약해지지.',
-      emotion: 'flustered',
+      speaker: 'HAEON',
+      text: '내일 컴백 쇼케이스야.\n응원봉 흔들어줄 거지?',
+      emotion: 'warm',
     },
-    nextSceneId: 'scene_finale_1',
-    delay: 3000,
-  },
-
-  // === 루트: 스킨십 (프리미엄) ===
-  {
-    id: 'scene_intimate_1',
-    background: '',
-    narration: '망설임 없이 손을 잡았다.',
-    nextSceneId: 'scene_intimate_2',
-    delay: 2000,
-  },
-  {
-    id: 'scene_intimate_2',
-    background: '',
-    character: {
-      image: 'https://i.pravatar.cc/400?img=68',
-      position: 'center',
-      expression: 'shocked',
-    },
-    dialogue: {
-      speaker: 'Jun',
-      text: '......!',
-      emotion: 'flustered',
-    },
-    nextSceneId: 'scene_intimate_3',
-    delay: 1500,
-    showCharacterImage: true,
-  },
-  {
-    id: 'scene_intimate_3',
-    background: '',
-    character: {
-      image: 'https://i.pravatar.cc/400?img=68',
-      position: 'center',
-      expression: 'shy',
-    },
-    dialogue: {
-      speaker: 'Jun',
-      text: '야, 갑자기 뭐야...\n심장이 터질 것 같잖아.',
-      emotion: 'shy',
-    },
-    nextSceneId: 'scene_intimate_4',
-    delay: 3000,
-  },
-  {
-    id: 'scene_intimate_4',
-    background: '',
-    narration: '손을 뿌리치지 않았다.\n오히려 살짝 더 힘을 줬다.',
-    nextSceneId: 'scene_finale_1',
+    nextSceneId: 'a_scene_finale_3',
     delay: 2500,
   },
-
-  // === 루트: 이해 ===
   {
-    id: 'scene_understand_1',
+    id: 'a_scene_finale_3',
     background: '',
     character: {
-      image: 'https://i.pravatar.cc/400?img=68',
+      image: '',
       position: 'center',
       expression: 'soft',
     },
     dialogue: {
-      speaker: 'Jun',
-      text: '...네. 가끔 이렇게 몰래 나와요.\n아무도 나를 모르는 곳에서\n그냥... 숨 쉬고 싶어서.',
-      emotion: 'vulnerable',
-    },
-    nextSceneId: 'scene_finale_1',
-    delay: 4000,
-  },
-
-  // === 피날레 ===
-  {
-    id: 'scene_finale_1',
-    background: '',
-    narration: '시간이 얼마나 흘렀을까.\n창밖이 조금씩 밝아오고 있었다.',
-    nextSceneId: 'scene_finale_2',
-    delay: 3000,
-  },
-  {
-    id: 'scene_finale_2',
-    background: '',
-    character: {
-      image: 'https://i.pravatar.cc/400?img=68',
-      position: 'center',
-      expression: 'nervous',
-    },
-    dialogue: {
-      speaker: 'Jun',
-      text: '아... 곧 날이 밝겠다.\n가봐야 하는데...',
-      emotion: 'hesitant',
-    },
-    nextSceneId: 'scene_finale_3',
-    delay: 3000,
-  },
-  {
-    id: 'scene_finale_3',
-    background: '',
-    character: {
-      image: 'https://i.pravatar.cc/400?img=68',
-      position: 'center',
-      expression: 'serious',
-    },
-    dialogue: {
-      speaker: 'Jun',
-      text: '...있잖아.',
-      emotion: 'serious',
-    },
-    nextSceneId: 'scene_finale_4',
-    delay: 2000,
-    showCharacterImage: true,
-  },
-  {
-    id: 'scene_finale_4',
-    background: '',
-    character: {
-      image: 'https://i.pravatar.cc/400?img=68',
-      position: 'center',
-      expression: 'vulnerable',
-    },
-    dialogue: {
-      speaker: 'Jun',
-      text: '나... 원래 이런 사람 아니거든요.\n처음 본 사람한테 이렇게 말 많이 한 적 없어.',
-      emotion: 'vulnerable',
-    },
-    nextSceneId: 'scene_finale_5',
-    delay: 4000,
-  },
-  {
-    id: 'scene_finale_5',
-    background: '',
-    character: {
-      image: 'https://i.pravatar.cc/400?img=68',
-      position: 'center',
-      expression: 'shy',
-    },
-    dialogue: {
-      speaker: 'Jun',
-      text: '근데 당신은... 뭔가 달라.\n설명하기 어려운데...',
-      emotion: 'soft',
-    },
-    nextSceneId: 'scene_finale_6',
-    delay: 3000,
-  },
-  {
-    id: 'scene_finale_6',
-    background: '',
-    character: {
-      image: 'https://i.pravatar.cc/400?img=68',
-      position: 'center',
-      expression: 'serious',
-    },
-    dialogue: {
-      speaker: 'Jun',
-      text: '그냥 느낌이야.',
-      emotion: 'serious',
-    },
-    nextSceneId: 'scene_cliffhanger_1',
-    delay: 2000,
-  },
-
-  // === 클리프행어 ===
-  {
-    id: 'scene_cliffhanger_1',
-    background: '',
-    narration: 'Jun이 주머니에서 뭔가를 꺼냈다.',
-    nextSceneId: 'scene_cliffhanger_2',
-    delay: 2500,
-  },
-  {
-    id: 'scene_cliffhanger_2',
-    background: '',
-    character: {
-      image: 'https://i.pravatar.cc/400?img=68',
-      position: 'center',
-      expression: 'shy',
-    },
-    dialogue: {
-      speaker: 'Jun',
-      text: '이거... 내 개인 번호야.\n팬들한테 절대 안 주는 건데.',
-      emotion: 'shy',
-    },
-    nextSceneId: 'scene_cliffhanger_3',
-    delay: 3500,
-    showCharacterImage: true,
-  },
-  {
-    id: 'scene_cliffhanger_3',
-    background: '',
-    character: {
-      image: 'https://i.pravatar.cc/400?img=68',
-      position: 'center',
-      expression: 'vulnerable',
-    },
-    dialogue: {
-      speaker: 'Jun',
-      text: '다음에... 또 이렇게 새벽에\n잠 안 오는 밤 있으면',
-      emotion: 'vulnerable',
-    },
-    nextSceneId: 'scene_cliffhanger_final',
-    delay: 3000,
-  },
-  {
-    id: 'scene_cliffhanger_final',
-    background: '',
-    character: {
-      image: 'https://i.pravatar.cc/400?img=68',
-      position: 'center',
-      expression: 'soft',
-    },
-    dialogue: {
-      speaker: 'Jun',
-      text: '연락해. 나도... 보고 싶을 것 같아.',
+      speaker: 'HAEON',
+      text: '내가 무대에서 너 바로 찾을 수 있게 🤍',
       emotion: 'soft',
     },
     isCliffhanger: true,
@@ -1087,27 +668,675 @@ export const ONBOARDING_SPECIAL_SCENARIO: ScenarioScene[] = [
   },
 ];
 
-// 스페셜 시나리오 트리거 조건
-export const SPECIAL_SCENARIO_TRIGGER = {
-  afterMessageId: 'npc_deep_4',
-  transitionText: '[잠시 후...]',
-  transitionDelay: 2000,
-};
-
-// 가입 유도 메시지
-export const SIGNUP_PROMPT_DATA = {
-  title: '이야기가 끊겼어요',
-  subtitle: 'Jun이 연락처를 건넸어요',
-  npcMessage: '연락해. 나도... 보고 싶을 것 같아.',
+export const SIGNUP_PROMPT_VARIANT_A = {
+  title: '대화가 끊겼어요',
+  subtitle: 'HAEON이 컴백 무대에서 당신을 찾고 있어요',
+  npcMessage: '내가 무대에서 너 바로 찾을 수 있게 🤍',
   benefits: [
-    'Jun과의 비밀 연락 시작하기',
-    '새벽 통화, 숨겨진 일상 공유',
-    '팬들은 모르는 진짜 모습 발견',
-    '당신만을 위한 특별한 스토리',
+    'HAEON과 매일 안부 톡 이어가기',
+    '컴백 D-day 카운트다운 함께 보기',
+    'LUMIN 단톡방 멤버 7인 케미',
+    '당신의 생일에 LUMIN 합창 음성 편지',
   ],
   ctaText: '무료로 시작하기',
   ctaSubtext: '30초면 됩니다',
 };
+
+// ========================================
+// VARIANT B — JUN (감성 작곡)
+// 새벽 데모 트랙, "첫 청중이 돼줘"
+// ========================================
+
+export const ONBOARDING_STORY_VARIANT_B = {
+  id: 'onboarding_story_jun',
+  profileId: 'jun',
+  type: 'image' as const,
+  content: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=800&q=80',
+  caption: '',
+  timestamp: '방금',
+  isViewed: false,
+  isSecret: false,
+  requiredHackLevel: 0,
+};
+
+export const ONBOARDING_STORY_SEQUENCE_VARIANT_B = [
+  {
+    id: 'osb_1',
+    type: 'text' as const,
+    content: '데모 한 곡 만들었어 🎹',
+    delay: 1500,
+    emotion: 'soft',
+  },
+  {
+    id: 'osb_2',
+    type: 'text' as const,
+    content: '제목은 아직 못 정했고...',
+    delay: 2200,
+    emotion: 'shy',
+  },
+  {
+    id: 'osb_3',
+    type: 'text' as const,
+    content: '근데 누구한테 먼저 들려줄지 정했어',
+    delay: 2500,
+    emotion: 'warm',
+  },
+  {
+    id: 'osb_4',
+    type: 'text' as const,
+    content: '...너한테 ☁️',
+    delay: 2800,
+    emotion: 'shy',
+    isReplyTrigger: true,
+  },
+];
+
+export const ONBOARDING_DM_SCENARIO_VARIANT_B: OnboardingMessage[] = [
+  {
+    id: 'sys_1',
+    sender: 'system',
+    content: '[새벽 3:12 — JUN 님이 메시지를 보냈어요]',
+    delay: 0,
+  },
+  {
+    id: 'npc_1',
+    sender: 'npc',
+    content: '저기...',
+    delay: 1200,
+    emotion: 'shy',
+  },
+  {
+    id: 'npc_2',
+    sender: 'npc',
+    content: '내가 만든 곡\n첫 번째로 들어줄래? 너만.',
+    delay: 1800,
+    emotion: 'soft',
+    choices: [
+      {
+        id: 'b_c1',
+        text: '당연하지! 보내줘',
+        affectionChange: 15,
+        nextMessageId: 'b_npc_excited_1',
+      },
+      {
+        id: 'b_c2',
+        text: '왜 나야?',
+        affectionChange: 10,
+        nextMessageId: 'b_npc_shy_1',
+      },
+      {
+        id: 'b_c3',
+        text: '준이 곡이라면 무조건 좋아요',
+        affectionChange: 20,
+        nextMessageId: 'b_npc_touched_1',
+      },
+    ],
+  },
+
+  // Route: 신남
+  {
+    id: 'b_npc_excited_1',
+    sender: 'npc',
+    content: '진짜? 잠깐만 ㅠㅠ',
+    delay: 1500,
+    emotion: 'excited',
+  },
+  {
+    id: 'b_npc_excited_2',
+    sender: 'npc',
+    content: '심장 떨려서 손 떨고 있어 🥺',
+    delay: 1800,
+    emotion: 'shy',
+  },
+  {
+    id: 'b_npc_excited_3',
+    sender: 'npc',
+    content: '들어보고 솔직하게 말해줘\n혹시 별로면... 그래도 괜찮아',
+    delay: 2200,
+    emotion: 'vulnerable',
+    choices: [
+      {
+        id: 'b_c4',
+        text: '준이가 만든 거면 다 좋아',
+        affectionChange: 15,
+        nextMessageId: 'b_npc_deep_1',
+      },
+      {
+        id: 'b_c5',
+        text: '솔직하게 들을게',
+        affectionChange: 10,
+        nextMessageId: 'b_npc_deep_1',
+      },
+    ],
+  },
+
+  // Route: 수줍음
+  {
+    id: 'b_npc_shy_1',
+    sender: 'npc',
+    content: '...어',
+    delay: 1500,
+    emotion: 'shy',
+  },
+  {
+    id: 'b_npc_shy_2',
+    sender: 'npc',
+    content: '말하기 좀 부끄러운데',
+    delay: 1500,
+    emotion: 'shy',
+  },
+  {
+    id: 'b_npc_shy_3',
+    sender: 'npc',
+    content: '곡 쓸 때\n네 생각하면서 썼거든 🌸',
+    delay: 2200,
+    emotion: 'vulnerable',
+    choices: [
+      {
+        id: 'b_c6',
+        text: '...정말?',
+        affectionChange: 15,
+        nextMessageId: 'b_npc_deep_1',
+      },
+      {
+        id: 'b_c7',
+        text: '나도 준이 노래 들으면서 자',
+        affectionChange: 20,
+        nextMessageId: 'b_npc_deep_1',
+      },
+    ],
+  },
+
+  // Route: 감동
+  {
+    id: 'b_npc_touched_1',
+    sender: 'npc',
+    content: '...',
+    delay: 1500,
+    isTyping: true,
+    emotion: 'touched',
+  },
+  {
+    id: 'b_npc_touched_2',
+    sender: 'npc',
+    content: '왜 자꾸 울컥하게 만들어 ㅠ',
+    delay: 1800,
+    emotion: 'touched',
+  },
+  {
+    id: 'b_npc_touched_3',
+    sender: 'npc',
+    content: '진짜 너밖에 없는 것 같아',
+    delay: 1800,
+    emotion: 'soft',
+    choices: [
+      {
+        id: 'b_c8',
+        text: '나도 준이가 처음이야',
+        affectionChange: 15,
+        nextMessageId: 'b_npc_deep_1',
+      },
+    ],
+  },
+
+  // 공통 깊은 대화
+  {
+    id: 'b_npc_deep_1',
+    sender: 'npc',
+    content: '있잖아',
+    delay: 1500,
+    isTyping: true,
+    emotion: 'hesitant',
+  },
+  {
+    id: 'b_npc_deep_2',
+    sender: 'npc',
+    content: '곡 쓰다 보면 가끔 외로워져',
+    delay: 1800,
+    emotion: 'melancholy',
+  },
+  {
+    id: 'b_npc_deep_3',
+    sender: 'npc',
+    content: '내 마음이 잘 전달될까\n사람들이 좋아해 줄까',
+    delay: 2200,
+    emotion: 'vulnerable',
+  },
+  {
+    id: 'b_npc_deep_4',
+    sender: 'npc',
+    content: '근데 너한테 먼저 들려주면\n그 불안이 줄어들더라',
+    delay: 2500,
+    emotion: 'warm',
+  },
+
+  // 클리프행어
+  {
+    id: 'b_npc_cliffhanger',
+    sender: 'npc',
+    content: '있지...',
+    delay: 1500,
+    isTyping: true,
+    emotion: 'shy',
+  },
+  {
+    id: 'b_npc_cliffhanger_2',
+    sender: 'npc',
+    content: '이번 컴백 타이틀곡\n네가 처음 들어줬으면 좋겠어',
+    delay: 2500,
+    emotion: 'soft',
+  },
+  {
+    id: 'b_npc_cliffhanger_3',
+    sender: 'npc',
+    content: '계속 내 첫 청중 해줄래? 🎹',
+    delay: 2200,
+    emotion: 'vulnerable',
+  },
+];
+
+export const ONBOARDING_SPECIAL_SCENARIO_VARIANT_B: ScenarioScene[] = [
+  // 인트로
+  {
+    id: 'b_scene_1',
+    background: '',
+    narration: '새벽 세 시 십이 분.',
+    nextSceneId: 'b_scene_2',
+    delay: 2000,
+  },
+  {
+    id: 'b_scene_2',
+    background: '',
+    narration: '핸드폰 화면이 부드럽게 켜졌다.\n작업실에서 보낸 메시지.',
+    nextSceneId: 'b_scene_3',
+    delay: 3000,
+  },
+  {
+    id: 'b_scene_3',
+    background: '',
+    narration: '보낸 사람: LUMIN의 작곡 담당, JUN.',
+    nextSceneId: 'b_scene_4',
+    delay: 2500,
+  },
+
+  // 첫 등장
+  {
+    id: 'b_scene_4',
+    background: '',
+    character: {
+      image: '',
+      position: 'center',
+      expression: 'shy',
+    },
+    dialogue: {
+      speaker: 'JUN',
+      text: '저기... 안 자고 있을 줄 알았어 🌸',
+      emotion: 'shy',
+    },
+    nextSceneId: 'b_scene_5',
+    delay: 2500,
+    showCharacterImage: true,
+  },
+  {
+    id: 'b_scene_5',
+    background: '',
+    character: {
+      image: '',
+      position: 'center',
+      expression: 'soft',
+    },
+    dialogue: {
+      speaker: 'JUN',
+      text: '오늘 데모 한 곡 다 만들었거든.\n근데 이상하게...',
+      emotion: 'soft',
+    },
+    nextSceneId: 'b_scene_6',
+    delay: 2800,
+  },
+  {
+    id: 'b_scene_6',
+    background: '',
+    character: {
+      image: '',
+      position: 'center',
+      expression: 'vulnerable',
+    },
+    dialogue: {
+      speaker: 'JUN',
+      text: '너한테 가장 먼저 들려주고 싶어.',
+      emotion: 'soft',
+    },
+    nextSceneId: 'b_choice_1',
+    delay: 2800,
+  },
+
+  // 첫 선택지
+  {
+    id: 'b_choice_1',
+    background: '',
+    narration: '7명 중에 가장 섬세하다는 멤버.\n그가 만든 곡의 첫 청중이 되는 일.',
+    choices: [
+      {
+        id: 'b_ch_1a',
+        text: '나여도 괜찮아?',
+        nextSceneId: 'b_scene_shy_1',
+        affectionChange: 15,
+      },
+      {
+        id: 'b_ch_1b',
+        text: '응. 너무 영광이야',
+        nextSceneId: 'b_scene_warm_1',
+        affectionChange: 20,
+      },
+      {
+        id: 'b_ch_1c',
+        text: '이어폰 꽂고 천천히 들을게 🎧',
+        nextSceneId: 'b_scene_premium_1',
+        affectionChange: 25,
+        isPremium: true,
+      },
+    ],
+  },
+
+  // Route: 수줍
+  {
+    id: 'b_scene_shy_1',
+    background: '',
+    character: {
+      image: '',
+      position: 'center',
+      expression: 'soft',
+    },
+    dialogue: {
+      speaker: 'JUN',
+      text: '너 말고 누구한테 들려줘.',
+      emotion: 'soft',
+    },
+    nextSceneId: 'b_scene_shy_2',
+    delay: 2200,
+  },
+  {
+    id: 'b_scene_shy_2',
+    background: '',
+    character: {
+      image: '',
+      position: 'center',
+      expression: 'shy',
+    },
+    dialogue: {
+      speaker: 'JUN',
+      text: '내 곡은 너한테 가장 먼저 들리고\n그 다음에 세상에 나가는 거야.',
+      emotion: 'shy',
+    },
+    nextSceneId: 'b_scene_merge_1',
+    delay: 3000,
+  },
+
+  // Route: 따뜻
+  {
+    id: 'b_scene_warm_1',
+    background: '',
+    character: {
+      image: '',
+      position: 'center',
+      expression: 'touched',
+    },
+    dialogue: {
+      speaker: 'JUN',
+      text: '...왜 자꾸 울컥하게 해 ㅠ',
+      emotion: 'touched',
+    },
+    nextSceneId: 'b_scene_warm_2',
+    delay: 2200,
+    showCharacterImage: true,
+  },
+  {
+    id: 'b_scene_warm_2',
+    background: '',
+    character: {
+      image: '',
+      position: 'center',
+      expression: 'warm',
+    },
+    dialogue: {
+      speaker: 'JUN',
+      text: '진짜 영광은 내 거야.\n내 곡 들어주는 사람이 너라는 거.',
+      emotion: 'warm',
+    },
+    nextSceneId: 'b_scene_merge_1',
+    delay: 3000,
+  },
+
+  // Route: 프리미엄
+  {
+    id: 'b_scene_premium_1',
+    background: '',
+    character: {
+      image: '',
+      position: 'center',
+      expression: 'shy',
+    },
+    dialogue: {
+      speaker: 'JUN',
+      text: '...너 진짜.',
+      emotion: 'shy',
+    },
+    nextSceneId: 'b_scene_premium_2',
+    delay: 2000,
+  },
+  {
+    id: 'b_scene_premium_2',
+    background: '',
+    character: {
+      image: '',
+      position: 'center',
+      expression: 'soft',
+    },
+    dialogue: {
+      speaker: 'JUN',
+      text: '그 말 듣고\n다음 곡도 너 생각하며 써야겠다고 결심함 ☁️',
+      emotion: 'soft',
+    },
+    nextSceneId: 'b_scene_merge_1',
+    delay: 3200,
+  },
+
+  // 공통 머지
+  {
+    id: 'b_scene_merge_1',
+    background: '',
+    narration: '잠시 후, 짧은 음성 파일이 도착했다.\n4분짜리 데모 트랙.',
+    nextSceneId: 'b_scene_merge_2',
+    delay: 3000,
+  },
+  {
+    id: 'b_scene_merge_2',
+    background: '',
+    narration: '피아노 한 음으로 시작해서\n서서히 보컬이 얹힌다.',
+    nextSceneId: 'b_scene_merge_3',
+    delay: 3000,
+  },
+  {
+    id: 'b_scene_merge_3',
+    background: '',
+    character: {
+      image: '',
+      position: 'center',
+      expression: 'vulnerable',
+    },
+    dialogue: {
+      speaker: 'JUN',
+      text: '...어때?',
+      emotion: 'vulnerable',
+    },
+    nextSceneId: 'b_scene_merge_4',
+    delay: 2500,
+    showCharacterImage: true,
+  },
+  {
+    id: 'b_scene_merge_4',
+    background: '',
+    character: {
+      image: '',
+      position: 'center',
+      expression: 'shy',
+    },
+    dialogue: {
+      speaker: 'JUN',
+      text: '솔직하게 말해도 돼.\n괜찮아, 진짜로.',
+      emotion: 'shy',
+    },
+    nextSceneId: 'b_choice_2',
+    delay: 2800,
+  },
+
+  // 두 번째 선택지
+  {
+    id: 'b_choice_2',
+    background: '',
+    narration: '그의 목소리가 떨리는 게\n메시지 너머로도 느껴졌다.',
+    choices: [
+      {
+        id: 'b_ch_2a',
+        text: '울 것 같아. 너무 좋아',
+        nextSceneId: 'b_scene_finale_1',
+        affectionChange: 20,
+      },
+      {
+        id: 'b_ch_2b',
+        text: '내 곡인 줄 알았어. 그만큼 와닿아',
+        nextSceneId: 'b_scene_finale_1',
+        affectionChange: 15,
+      },
+    ],
+  },
+
+  // 피날레
+  {
+    id: 'b_scene_finale_1',
+    background: '',
+    character: {
+      image: '',
+      position: 'center',
+      expression: 'touched',
+    },
+    dialogue: {
+      speaker: 'JUN',
+      text: '...아.',
+      emotion: 'touched',
+    },
+    nextSceneId: 'b_scene_finale_2',
+    delay: 1800,
+  },
+  {
+    id: 'b_scene_finale_2',
+    background: '',
+    character: {
+      image: '',
+      position: 'center',
+      expression: 'soft',
+    },
+    dialogue: {
+      speaker: 'JUN',
+      text: '진짜 다행이다.\n오늘 종일 이 부분 고민했거든.',
+      emotion: 'soft',
+    },
+    nextSceneId: 'b_scene_finale_3',
+    delay: 2800,
+  },
+  {
+    id: 'b_scene_finale_3',
+    background: '',
+    character: {
+      image: '',
+      position: 'center',
+      expression: 'warm',
+    },
+    dialogue: {
+      speaker: 'JUN',
+      text: '있지. 다음 곡도\n너한테 가장 먼저 들려줄게.',
+      emotion: 'warm',
+    },
+    nextSceneId: 'b_scene_finale_4',
+    delay: 3000,
+  },
+  {
+    id: 'b_scene_finale_4',
+    background: '',
+    character: {
+      image: '',
+      position: 'center',
+      expression: 'shy',
+    },
+    dialogue: {
+      speaker: 'JUN',
+      text: '계속 내 첫 청중 해줄래? 🎹☁️',
+      emotion: 'shy',
+    },
+    isCliffhanger: true,
+    delay: 3500,
+    showCharacterImage: true,
+  },
+];
+
+export const SIGNUP_PROMPT_VARIANT_B = {
+  title: '대화가 끊겼어요',
+  subtitle: 'JUN의 데모 트랙이 당신을 기다리고 있어요',
+  npcMessage: '계속 내 첫 청중 해줄래? 🎹☁️',
+  benefits: [
+    'JUN과 매일 작업실 톡 이어가기',
+    '컴백 타이틀곡 데모 가장 먼저 듣기',
+    'LUMIN 단톡방 멤버 7인 케미',
+    '당신의 생일에 LUMIN 합창 음성 편지',
+  ],
+  ctaText: '무료로 시작하기',
+  ctaSubtext: '30초면 됩니다',
+};
+
+// ========================================
+// Default exports (Variant A 기본)
+// 기존 호출처 호환성 유지
+// ========================================
+
+// 기존 이름들 — Variant A를 기본으로 export
+export const ONBOARDING_STORY = ONBOARDING_STORY_VARIANT_A;
+export const ONBOARDING_STORY_SEQUENCE = ONBOARDING_STORY_SEQUENCE_VARIANT_A;
+export const ONBOARDING_DM_SCENARIO = ONBOARDING_DM_SCENARIO_VARIANT_A;
+export const ONBOARDING_SPECIAL_SCENARIO = ONBOARDING_SPECIAL_SCENARIO_VARIANT_A;
+export const SIGNUP_PROMPT_DATA = SIGNUP_PROMPT_VARIANT_A;
+
+// 스페셜 시나리오 트리거 조건
+export const SPECIAL_SCENARIO_TRIGGER = {
+  afterMessageId: 'a_npc_deep_4',
+  transitionText: '[잠시 후...]',
+  transitionDelay: 2000,
+};
+
+// 변형 가져오기 헬퍼
+export function getOnboardingScenario(variant: OnboardingVariant): OnboardingScenario {
+  if (variant === 'b') {
+    return {
+      variant: 'b',
+      personaId: 'jun',
+      personaName: 'JUN',
+      story: ONBOARDING_STORY_VARIANT_B,
+      storySequence: ONBOARDING_STORY_SEQUENCE_VARIANT_B as typeof ONBOARDING_STORY_SEQUENCE_VARIANT_A,
+      dmScenario: ONBOARDING_DM_SCENARIO_VARIANT_B,
+      specialScenario: ONBOARDING_SPECIAL_SCENARIO_VARIANT_B,
+      signupPrompt: SIGNUP_PROMPT_VARIANT_B,
+    };
+  }
+  return {
+    variant: 'a',
+    personaId: 'haeon',
+    personaName: 'HAEON',
+    story: ONBOARDING_STORY_VARIANT_A,
+    storySequence: ONBOARDING_STORY_SEQUENCE_VARIANT_A,
+    dmScenario: ONBOARDING_DM_SCENARIO_VARIANT_A,
+    specialScenario: ONBOARDING_SPECIAL_SCENARIO_VARIANT_A,
+    signupPrompt: SIGNUP_PROMPT_VARIANT_A,
+  };
+}
 
 // 온보딩 진행 상태 체크
 export function getOnboardingProgress(state: OnboardingState): number {

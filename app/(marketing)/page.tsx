@@ -25,6 +25,7 @@ import DMList from '@/components/dm/DMList';
 import { useHackerStore } from '@/lib/stores/hacker-store';
 import { supabase } from '@/lib/supabase';
 import { useTutorial } from '@/components/tutorial';
+import { DEFAULT_LUMIN_MEMBER_ID } from '@/lib/constants';
 
 // 해킹 레벨 정의 (XP bar에 사용)
 const HACK_LEVELS = [
@@ -132,9 +133,9 @@ export default function MainPage() {
     checkAuth();
   }, [router]);
 
-  // Initialize profile on mount
+  // Initialize profile on mount (기본 LUMIN 멤버 기준)
   useEffect(() => {
-    initProfile('jun');
+    initProfile(DEFAULT_LUMIN_MEMBER_ID);
   }, [initProfile]);
 
   // 로딩 완료 후 튜토리얼 시작 (처음 접속한 사용자만)
@@ -149,8 +150,8 @@ export default function MainPage() {
     }
   }, [isLoading, startInitialTutorial, isInitialTutorialCompleted]);
 
-  // Get profile data
-  const profile = getProfile('jun');
+  // Get profile data (기본 LUMIN 멤버 기준)
+  const profile = getProfile(DEFAULT_LUMIN_MEMBER_ID);
   const hackLevel = profile?.hackLevel ?? 1;
   const hackXP = profile?.hackXP ?? 0;
 

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthUser, unauthorized, badRequest, serverError } from '@/lib/auth';
 import { createClient } from '@/lib/supabase-server';
+import { DEFAULT_LUMIN_MEMBER_ID } from '@/lib/constants';
 
 // 페르소나별 팔로우 비용 (토큰)
 const FOLLOW_COST = 10; // 팔로우 기본 비용
@@ -31,9 +32,9 @@ export async function POST(request: NextRequest) {
       return badRequest('personaId is required');
     }
 
-    // jun은 기본 해금이므로 구매 불가
-    if (personaId === 'jun') {
-      return badRequest('Jun is already unlocked by default');
+    // 기본 LUMIN 멤버는 기본 해금이므로 구매 불가
+    if (personaId === DEFAULT_LUMIN_MEMBER_ID) {
+      return badRequest('Default LUMIN member is already unlocked');
     }
 
     // 프리미엄 페르소나는 추가 비용, 일반은 기본 비용
@@ -183,8 +184,8 @@ export async function GET(request: NextRequest) {
       throw error;
     }
 
-    // jun은 항상 포함
-    const unlockedIds = ['jun', ...(relationships?.map(r => r.persona_id) || [])];
+    // 기본 LUMIN 멤버는 항상 포함
+    const unlockedIds = [DEFAULT_LUMIN_MEMBER_ID, ...(relationships?.map(r => r.persona_id) || [])];
     const uniqueIds = [...new Set(unlockedIds)];
 
     return NextResponse.json({

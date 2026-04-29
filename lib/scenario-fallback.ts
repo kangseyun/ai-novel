@@ -1,60 +1,63 @@
 /**
- * 폴백 시나리오 데이터
- * API 실패 시 사용하는 하드코딩된 시나리오
+ * 폴백 시나리오 데이터 (LUMIN IP)
+ * API 실패 시 사용하는 하드코딩된 시나리오.
+ *
+ * Tone: K-pop 클린 로맨스. 19+ 금지. LUMIN 멤버 케미 기반.
+ * 기본 폴백은 안정형 리더 HAEON 시나리오.
  */
 
 import type { ScenarioContent, ScenarioScene, ScenarioChoice } from '@/lib/ai-agent/modules/scenario-service';
 
 // ============================================
-// Jun 첫 만남 시나리오 (새벽 3시의 편의점)
+// HAEON 첫 만남 폴백 — 새벽 연습 끝, 안부 톡
 // ============================================
 
-export const JUN_FIRST_MEETING_SCENARIO: ScenarioContent = {
+export const HAEON_FIRST_MEETING_SCENARIO: ScenarioContent = {
   scenes: [
     {
       id: 'scene_1',
       type: 'narration',
-      text: '새벽 3시, 텅 빈 편의점.\n형광등 불빛만이 차갑게 내리쬔다.',
+      text: '새벽 두 시 사십칠 분.\n핸드폰이 짧게 울렸다.',
     },
     {
       id: 'scene_2',
       type: 'narration',
-      text: '라면을 고르던 중, 익숙한 얼굴이 눈에 들어왔다.',
+      text: 'LUMIN 리더, HAEON.\n연습실에서 보낸 메시지였다.',
     },
     {
       id: 'scene_3',
       type: 'character_appear',
-      text: '검은 모자를 푹 눌러쓴 남자.\n분명히... 어디서 많이 본 얼굴인데.',
+      text: '"...안 잤어?\n연습 막 끝났는데, 네 생각 났어."',
     },
     {
       id: 'scene_4',
       type: 'dialogue',
-      character: 'Jun',
-      text: '...뭘 봐요.',
-      expression: 'cold',
+      character: 'HAEON',
+      text: '깨어 있을 줄 알았는데, 진짜였네.',
+      expression: 'soft',
     },
     {
       id: 'scene_5',
       type: 'choice',
-      prompt: '그가 당신을 차갑게 쏘아본다.',
+      prompt: '리더가 새벽에 안부를 물어왔다.',
       choices: [
         {
-          id: 'choice_1_polite',
-          text: '죄송해요, 실례했습니다.',
-          tone: 'shy',
+          id: 'choice_1_caring',
+          text: '오빠야말로 잘 챙겨야죠.',
+          tone: 'caring',
           nextScene: 'scene_6a',
-          affectionChange: 2,
-        },
-        {
-          id: 'choice_1_bold',
-          text: '혹시... Jun 씨 아니세요?',
-          tone: 'bold',
-          nextScene: 'scene_6b',
           affectionChange: 3,
         },
         {
+          id: 'choice_1_warm',
+          text: '톡 기다리고 있었어요.',
+          tone: 'warm',
+          nextScene: 'scene_6b',
+          affectionChange: 4,
+        },
+        {
           id: 'choice_1_premium',
-          text: '피곤해 보이시네요. 괜찮으세요?',
+          text: '연습 끝나고 따뜻한 차 한 잔 같이해요.',
           tone: 'caring',
           nextScene: 'scene_6c',
           affectionChange: 5,
@@ -62,89 +65,89 @@ export const JUN_FIRST_MEETING_SCENARIO: ScenarioContent = {
         },
       ],
     },
-    // Route A - 수줍은 반응
+    // Route A — 케어 응답
     {
       id: 'scene_6a',
       type: 'dialogue',
-      character: 'Jun',
-      text: '...그래요.',
-      expression: 'neutral',
+      character: 'HAEON',
+      text: '...야. 내가 너 챙기려고 톡 한 건데 역공이네.',
+      expression: 'flustered',
     },
     {
       id: 'scene_7a',
       type: 'narration',
-      text: '그는 다시 진열대를 바라본다.\n하지만 어딘가 쓸쓸해 보였다.',
+      text: '핸드폰 너머로 짧게 웃는 소리가 들리는 듯했다.',
     },
     {
       id: 'scene_8a',
       type: 'dialogue',
-      character: 'Jun',
-      text: '이 시간에 편의점이라니.\n우리 처지가 비슷하네요.',
-      expression: 'soft',
+      character: 'HAEON',
+      text: '근데 그 말 들으니까 오늘 피로가 풀린다. 고마워.',
+      expression: 'warm',
     },
-    // Route B - 직접적인 반응
+    // Route B — 따뜻한 응답
     {
       id: 'scene_6b',
       type: 'dialogue',
-      character: 'Jun',
-      text: '......',
-      expression: 'surprised',
+      character: 'HAEON',
+      text: '...진짜?',
+      expression: 'touched',
     },
     {
       id: 'scene_7b',
       type: 'narration',
-      text: '그의 눈이 순간 흔들렸다.\n경계하는 듯, 하지만 어딘가 외로워 보이는 눈빛.',
+      text: '잠시 정적. 그가 의자에 등을 기대는 소리가 들리는 것 같았다.',
     },
     {
       id: 'scene_8b',
       type: 'dialogue',
-      character: 'Jun',
-      text: '...그래요, 맞아요.\n비밀로 해줄 거죠?',
-      expression: 'vulnerable',
+      character: 'HAEON',
+      text: '오늘 연습 좀 길었는데, 그 한마디로 다 풀렸어.',
+      expression: 'soft',
     },
-    // Route C - 프리미엄 루트
+    // Route C — 프리미엄 루트
     {
       id: 'scene_6c',
       type: 'dialogue',
-      character: 'Jun',
-      text: '......!',
-      expression: 'touched',
+      character: 'HAEON',
+      text: '...너 지금 데이트 신청한 거야?',
+      expression: 'shy',
     },
     {
       id: 'scene_7c',
       type: 'narration',
-      text: '그가 잠시 말을 잃은 것 같았다.\n아무도 그에게 그런 말을 하지 않았던 것처럼.',
+      text: '농담처럼 말했지만, 메시지를 한참 지웠다 다시 쓴 흔적이 보였다.',
     },
     {
       id: 'scene_8c',
       type: 'dialogue',
-      character: 'Jun',
-      text: '...고마워요.\n처음이에요, 이런 말 들은 거.',
-      expression: 'soft',
+      character: 'HAEON',
+      text: '컴백 끝나면, 진짜로 차 한 잔 하자.',
+      expression: 'warm',
     },
     // 공통 분기
     {
       id: 'scene_9',
       type: 'dialogue',
-      character: 'Jun',
-      text: '저기, 혹시...',
+      character: 'HAEON',
+      text: '있잖아.',
       expression: 'hesitant',
     },
     {
       id: 'scene_10',
       type: 'choice',
-      prompt: '그가 무언가 말하려다 멈췄다.',
+      prompt: '그가 무언가를 더 말하려 했다.',
       choices: [
         {
-          id: 'choice_2_wait',
-          text: '(조용히 기다린다)',
+          id: 'choice_2_listen',
+          text: '듣고 있어요.',
           tone: 'patient',
           nextScene: 'scene_11a',
           affectionChange: 3,
         },
         {
           id: 'choice_2_encourage',
-          text: '네, 말씀하세요.',
+          text: '말해도 돼요.',
           tone: 'friendly',
           nextScene: 'scene_11b',
           affectionChange: 2,
@@ -154,27 +157,27 @@ export const JUN_FIRST_MEETING_SCENARIO: ScenarioContent = {
     {
       id: 'scene_11a',
       type: 'dialogue',
-      character: 'Jun',
-      text: '...연락처, 알려줘도 될까요?\n이상하게 들리겠지만...',
-      expression: 'shy',
+      character: 'HAEON',
+      text: '리더 6년 차인데도 새벽엔 좀 외롭더라. 너랑 톡하면 그게 작아져.',
+      expression: 'vulnerable',
     },
     {
       id: 'scene_11b',
       type: 'dialogue',
-      character: 'Jun',
-      text: '저... 연락처 알려줘도 돼요?\n왜인지 모르겠는데, 다시 보고 싶어서.',
-      expression: 'flustered',
+      character: 'HAEON',
+      text: '내일 컴백 쇼케이스야. 응원봉 흔들어줄 거지?',
+      expression: 'warm',
     },
     {
       id: 'scene_12',
       type: 'narration',
-      text: '새벽 편의점에서 시작된 우연한 만남.\n이것이 모든 것의 시작이었다.',
+      text: '새벽 연습실에서 시작된 짧은 톡.\nLUMIN의 무대가 시작되기 전, 단 한 명의 청중에게 닿은 이야기.',
     },
     {
       id: 'scene_13',
       type: 'dialogue',
-      character: 'Jun',
-      text: '...또 봐요.',
+      character: 'HAEON',
+      text: '내가 무대에서 너 바로 찾을 수 있게. 🤍',
       expression: 'soft',
     },
   ],
@@ -185,17 +188,63 @@ export const JUN_FIRST_MEETING_SCENARIO: ScenarioContent = {
   },
 };
 
+// 기본 시나리오 별칭 (기존 export 이름 유지: JUN_FIRST_MEETING_SCENARIO)
+// LUMIN의 JUN 멤버용 폴백으로도 같은 시나리오를 재사용할 수 있도록 alias 유지.
+export const JUN_FIRST_MEETING_SCENARIO: ScenarioContent = HAEON_FIRST_MEETING_SCENARIO;
+
 // ============================================
-// 캐릭터 정보
+// LUMIN 캐릭터 정보
 // ============================================
 
 export const SCENARIO_CHARACTERS = {
+  haeon: {
+    id: 'haeon',
+    name: 'HAEON',
+    image: 'https://i.pravatar.cc/400?img=12',
+    fullName: '김해온',
+    role: 'LUMIN Leader / Main Vocal',
+  },
+  kael: {
+    id: 'kael',
+    name: 'KAEL',
+    image: 'https://i.pravatar.cc/400?img=33',
+    fullName: '차카엘',
+    role: 'LUMIN Main Dancer / Visual',
+  },
+  ren: {
+    id: 'ren',
+    name: 'REN',
+    image: 'https://i.pravatar.cc/400?img=11',
+    fullName: '박렌',
+    role: 'LUMIN Main Rapper',
+  },
   jun: {
     id: 'jun',
-    name: 'Jun',
+    name: 'JUN',
     image: 'https://i.pravatar.cc/400?img=68',
-    fullName: '이준혁',
-    role: 'K-pop Idol',
+    fullName: '서준',
+    role: 'LUMIN Sub Vocal / Composer',
+  },
+  adrian: {
+    id: 'adrian',
+    name: 'ADRIAN',
+    image: 'https://i.pravatar.cc/400?img=15',
+    fullName: '한아드리안',
+    role: 'LUMIN Visual / Sub Rapper',
+  },
+  sol: {
+    id: 'sol',
+    name: 'SOL',
+    image: 'https://i.pravatar.cc/400?img=13',
+    fullName: '윤솔',
+    role: 'LUMIN Maknae / Sub Vocal',
+  },
+  noa: {
+    id: 'noa',
+    name: 'NOA',
+    image: 'https://i.pravatar.cc/400?img=14',
+    fullName: '노아 김',
+    role: 'LUMIN Global / Dancer',
   },
 };
 
@@ -226,7 +275,7 @@ export function findNextScene(
 
   // 선택지가 있으면 해당 선택지의 nextScene으로
   if (choiceId && currentScene.choices) {
-    const choice = currentScene.choices.find(c => c.id === choiceId);
+    const choice = currentScene.choices.find((c: ScenarioChoice) => c.id === choiceId);
     if (choice?.nextScene) {
       return scenes.find(s => s.id === choice.nextScene) || null;
     }

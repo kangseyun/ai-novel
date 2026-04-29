@@ -6,12 +6,13 @@ import { motion } from 'framer-motion';
 import { ArrowLeft, Loader2 } from 'lucide-react';
 import { EpisodeScenarioPlayer } from '@/components/scenario';
 import { SCENARIO_CHARACTERS } from '@/lib/scenario-fallback';
+import { DEFAULT_LUMIN_MEMBER_ID } from '@/lib/constants';
 
 function ScenarioContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  const personaId = searchParams.get('personaId') || 'jun';
+  const personaId = searchParams.get('personaId') || DEFAULT_LUMIN_MEMBER_ID;
   const scenarioType = searchParams.get('type') || 'first_meeting';
   const context = searchParams.get('context') || '';
   const location = searchParams.get('location') || '';

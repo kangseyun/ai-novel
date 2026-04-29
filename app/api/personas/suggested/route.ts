@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthUser, unauthorized, serverError } from '@/lib/auth';
 import { createClient } from '@/lib/supabase-server';
+import { DEFAULT_LUMIN_MEMBER_ID } from '@/lib/constants';
 
 // ============================================
 // 설정값 (쉽게 수정 가능)
@@ -27,8 +28,10 @@ export async function GET(request: NextRequest) {
       .eq('is_unlocked', true);
 
     const followedIds = following?.map(f => f.persona_id) || [];
-    // jun은 기본 팔로우로 추천 목록에서 제외
-    followedIds.push('jun');
+    // 기본 LUMIN 멤버는 항상 추천 목록에서 제외 (이미 노출됨)
+    if (!followedIds.includes(DEFAULT_LUMIN_MEMBER_ID)) {
+      followedIds.push(DEFAULT_LUMIN_MEMBER_ID);
+    }
 
     // 유저 토큰, 마지막 새로고침 시간, 선호 타입 조회
     const { data: userData } = await supabase
@@ -197,7 +200,9 @@ export async function POST(request: NextRequest) {
       .eq('is_unlocked', true);
 
     const followedIds = following?.map(f => f.persona_id) || [];
-    followedIds.push('jun');
+    if (!followedIds.includes(DEFAULT_LUMIN_MEMBER_ID)) {
+      followedIds.push(DEFAULT_LUMIN_MEMBER_ID);
+    }
 
     // 4. 새로운 추천 페르소나 (랜덤 정렬 + 유저 선호 타입 필터)
     const preferredAudience = userData?.preferred_target_audience;

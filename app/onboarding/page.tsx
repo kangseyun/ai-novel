@@ -7,6 +7,7 @@ import OnboardingB from '@/components/onboarding/variants/OnboardingB';
 import { apiClient } from '@/lib/api-client';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import analytics from '@/lib/analytics';
+import { DEFAULT_LUMIN_MEMBER_ID } from '@/lib/constants';
 
 type Variant = 'a' | 'b';
 
@@ -51,14 +52,14 @@ function OnboardingContent() {
       try {
         await apiClient.completeOnboarding({
           variant: variant!,
-          persona_id: 'jun',
+          persona_id: DEFAULT_LUMIN_MEMBER_ID,
           affection_gained: affectionGained,
           choices_made: choicesMade,
         });
         setOnboardingCompleted();
 
         // 온보딩 완료 이벤트 (variant 포함)
-        analytics.trackOnboardingComplete('jun', variant || undefined);
+        analytics.trackOnboardingComplete(DEFAULT_LUMIN_MEMBER_ID, variant || undefined);
 
         // 이미 로그인된 경우 메인으로 이동 (웰컴 오퍼 모달 트리거 파라미터 추가)
         router.push('/?from_onboarding=true');

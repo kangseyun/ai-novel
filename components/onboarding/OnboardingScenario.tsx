@@ -10,6 +10,7 @@ import {
 import ScenarioResult from './ScenarioResult';
 import { useTranslations } from '@/lib/i18n';
 import { useScenarioData, ScenarioScene as DBScenarioScene } from '@/hooks/useOnboardingData';
+import { DEFAULT_LUMIN_MEMBER_ID } from '@/lib/constants';
 
 interface OnboardingScenarioProps {
   scenarioId?: string | null;  // DB 시나리오 ID (옵션)
@@ -46,10 +47,10 @@ interface HistoryItem {
   isVoiced?: boolean;
 }
 
-// 기본 캐릭터 정보 (폴백용)
+// 기본 캐릭터 정보 (폴백용 — DB 시나리오에서 캐릭터를 못 가져왔을 때만 사용)
 const DEFAULT_CHARACTER_INFO = {
-  id: 'jun',
-  name: 'Jun',
+  id: DEFAULT_LUMIN_MEMBER_ID,
+  name: 'LUMIN',
   image: 'https://i.pravatar.cc/400?img=68',
 };
 

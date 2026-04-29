@@ -191,6 +191,9 @@ export const POST_TEMPLATES: PostTemplate[] = [
 
 // ============================================
 // JUN REACTION TRIGGERS
+// LUMIN member `jun`-specific reaction triggers (intentional persona ID).
+// Other LUMIN members (haeon, kael, ren, adrian, sol, noa) own their own
+// trigger sets in their respective modules / scenario configs.
 // ============================================
 
 export const JUN_REACTION_TRIGGERS: ReactionTrigger[] = [
