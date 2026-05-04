@@ -198,6 +198,7 @@ export async function GET(
       `)
       .eq('id', id)
       .eq('is_active', true)
+      .eq('review_status', 'approved')
       .single();
 
     if (error) {

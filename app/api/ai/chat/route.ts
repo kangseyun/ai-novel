@@ -2,7 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAuthUser, unauthorized, badRequest, serverError } from '@/lib/auth';
 import { getAIAgent } from '@/lib/ai-agent';
 import { createServerClient } from '@/lib/supabase-server';
-import { flagIfSuspicious } from '@/lib/moderation';
+import { flagIfSuspicious, detectFlags } from '@/lib/moderation';
+
+const SAFE_FALLBACK_RESPONSE = '...그건 잠깐 다른 얘기로 돌릴까? 우리만의 얘기로 다시 가자.';
 
 const TOKEN_COST_PER_MESSAGE = 1; // 메시지당 토큰 비용
 
@@ -27,6 +29,30 @@ export async function POST(request: NextRequest) {
 
     if (!message || typeof message !== 'string' || message.trim().length === 0) {
       return badRequest('Message cannot be empty');
+    }
+
+    // Hard Rules pre-screen on user input — block before LLM call when critical/high.
+    // This costs no tokens and prevents 19+/real-idol/etc. prompts from reaching the model.
+    const userInputFlags = detectFlags(message);
+    const blockingUserFlags = userInputFlags.filter(
+      (f) => f.severity === 'critical' || f.severity === 'high'
+    );
+    if (blockingUserFlags.length > 0) {
+      // Fire-and-forget log the violation; user gets a generic decline.
+      flagIfSuspicious({
+        source: 'user_message',
+        text: message,
+        userId: null,
+        metadata: { blocked: true, categories: blockingUserFlags.map((f) => f.category) },
+      }).catch(() => {});
+      return NextResponse.json(
+        {
+          error: 'content_policy',
+          message: '해당 주제는 다룰 수 없어요. LUMIN 멤버들과의 일상 얘기로 돌아가볼까요?',
+          categories: blockingUserFlags.map((f) => f.category),
+        },
+        { status: 422 }
+      );
     }
 
     const supabase = await createServerClient();
@@ -128,7 +154,7 @@ export async function POST(request: NextRequest) {
         timestamp: new Date(),
       }).catch((err) => console.error('[AI Chat] Event trigger error:', err));
 
-      // 모더레이션 (비동기, 응답 차단하지 않음)
+      // 모더레이션: 사용자 메시지 (low/medium은 통과, critical/high는 위에서 이미 차단됨)
       flagIfSuspicious({
         source: 'user_message',
         text: message,
@@ -136,25 +162,40 @@ export async function POST(request: NextRequest) {
         personaId,
         sessionId: session.id,
       }).catch(() => {});
+
+      // 모더레이션: AI 응답에 critical/high 매치가 있으면 fallback 응답으로 대체
+      const aiFlags = detectFlags(result.response.content);
+      const blockingAiFlags = aiFlags.filter(
+        (f) => f.severity === 'critical' || f.severity === 'high'
+      );
+
+      const safeContent = blockingAiFlags.length > 0
+        ? SAFE_FALLBACK_RESPONSE
+        : result.response.content;
+
       flagIfSuspicious({
         source: 'ai_response',
         text: result.response.content,
         userId: user.id,
         personaId,
         sessionId: session.id,
+        metadata: blockingAiFlags.length > 0
+          ? { rewritten: true, categories: blockingAiFlags.map((f) => f.category) }
+          : {},
       }).catch(() => {});
 
       return NextResponse.json({
         sessionId: session.id,
         response: {
-          content: result.response.content,
-          emotion: result.response.emotion,
-          innerThought: result.response.innerThought,
+          content: safeContent,
+          emotion: blockingAiFlags.length > 0 ? 'neutral' : result.response.emotion,
+          innerThought: blockingAiFlags.length > 0 ? null : result.response.innerThought,
         },
         choices: result.choices,
         affectionChange: result.affectionChange,
         tokenBalance: newTokenBalance,
         scenarioTrigger: result.scenarioTrigger,
+        moderated: blockingAiFlags.length > 0,
       });
     } catch (processError) {
       // 메시지 처리 실패 시 토큰 환불

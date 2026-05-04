@@ -448,11 +448,11 @@ class ApiClient {
     }>('/payments/checkout');
   }
 
-  async purchaseTokens(packageId: string) {
-    return this.request<{ url: string }>('/payments/checkout', {
-      method: 'POST',
-      body: JSON.stringify({ package_id: packageId }),
-    });
+  // Token / credit IAP is removed under the LUMIN PASS subscription model.
+  // Kept as a stub so callers still on this method get a clear error rather
+  // than a 404. Remove the call sites and then this method.
+  async purchaseTokens(_packageId: string): Promise<never> {
+    throw new Error('Token packs were removed — direct users to /shop for LUMIN PASS instead.');
   }
 
   // ============ Subscriptions API ============
@@ -475,7 +475,7 @@ class ApiClient {
     });
   }
 
-  async subscribeToWelcomeOffer(planId: 'monthly' | 'yearly') {
+  async subscribeToWelcomeOffer(planId: string = 'welcome_lumin_pass_monthly') {
     return this.request<{ url: string }>('/subscriptions/welcome-offer', {
       method: 'POST',
       body: JSON.stringify({ plan_id: planId }),

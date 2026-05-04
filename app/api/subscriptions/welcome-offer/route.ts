@@ -1,54 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { stripe } from '@/lib/stripe';
 import { createServerClient } from '@/lib/supabase-server';
+import { WELCOME_OFFER_PRICING } from '@/lib/pricing';
 
-// 24시간 한정 특가 가격 (70% 할인)
-const WELCOME_OFFER_PLANS = {
-  monthly: {
-    name: 'Welcome Offer - Pro Monthly',
-    originalPrice: 999,  // $9.99
-    price: 299,          // $2.99 (70% OFF)
-    interval: 'month' as const,
-    credits: 500,        // 보너스 크레딧
-    features: [
-      '500 Welcome Bonus Credits',
-      'Free Premium Episodes',
-      'Ad-free Experience',
-      'Exclusive Story Access',
-      'Priority Support',
-    ],
-  },
-  yearly: {
-    name: 'Welcome Offer - Pro Yearly',
-    originalPrice: 9999, // $99.99
-    price: 2999,         // $29.99 (70% OFF)
-    interval: 'year' as const,
-    credits: 6000,       // 보너스 크레딧
-    features: [
-      '6,000 Welcome Bonus Credits',
-      'Free Premium Episodes',
-      'Ad-free Experience',
-      'Exclusive Story Access',
-      'Priority Support',
-      'New Character Early Access',
-    ],
-  },
-};
-
-// 24시간 = 86400000ms
 const OFFER_VALIDITY_MS = 24 * 60 * 60 * 1000;
 
-// GET: 웰컴 오퍼 자격 확인
 export async function GET() {
   try {
     const supabase = await createServerClient();
     const { data: { user }, error: authError } = await supabase.auth.getUser();
-
     if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // 사용자 정보 조회
     const { data: userData, error: userError } = await supabase
       .from('users')
       .select('created_at, welcome_offer_claimed')
@@ -59,7 +23,6 @@ export async function GET() {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    // 이미 웰컴 오퍼를 구매했는지 확인
     if (userData.welcome_offer_claimed) {
       return NextResponse.json({
         eligible: false,
@@ -69,7 +32,6 @@ export async function GET() {
       });
     }
 
-    // 가입 시간 기준 24시간 확인
     const createdAt = new Date(userData.created_at).getTime();
     const expiresAt = createdAt + OFFER_VALIDITY_MS;
     const now = Date.now();
@@ -89,17 +51,14 @@ export async function GET() {
       expiresAt: new Date(expiresAt).toISOString(),
       remainingSeconds: Math.floor(remainingMs / 1000),
       alreadyPurchased: false,
+      offer: WELCOME_OFFER_PRICING.welcome_lumin_pass_monthly,
     });
   } catch (error) {
     console.error('Welcome offer eligibility check error:', error);
-    return NextResponse.json(
-      { error: 'Failed to check eligibility' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Failed to check eligibility' }, { status: 500 });
   }
 }
 
-// POST: 웰컴 오퍼 결제 세션 생성
 export async function POST(request: NextRequest) {
   try {
     if (!stripe) {
@@ -108,18 +67,17 @@ export async function POST(request: NextRequest) {
 
     const supabase = await createServerClient();
     const { data: { user }, error: authError } = await supabase.auth.getUser();
-
     if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { plan_id } = await request.json();
-
-    if (!plan_id || !WELCOME_OFFER_PLANS[plan_id as keyof typeof WELCOME_OFFER_PLANS]) {
+    const body = await request.json().catch(() => ({}));
+    const planId = (body.plan_id as string) || 'welcome_lumin_pass_monthly';
+    const plan = WELCOME_OFFER_PRICING[planId];
+    if (!plan) {
       return NextResponse.json({ error: 'Invalid plan' }, { status: 400 });
     }
 
-    // 사용자 자격 확인
     const { data: userData, error: userError } = await supabase
       .from('users')
       .select('created_at, welcome_offer_claimed')
@@ -129,41 +87,21 @@ export async function POST(request: NextRequest) {
     if (userError || !userData) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
-
-    // 이미 구매한 경우
     if (userData.welcome_offer_claimed) {
-      return NextResponse.json(
-        { error: 'Welcome offer already claimed' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Welcome offer already claimed' }, { status: 400 });
     }
 
-    // 24시간 만료 확인
     const createdAt = new Date(userData.created_at).getTime();
     const expiresAt = createdAt + OFFER_VALIDITY_MS;
-    const now = Date.now();
-
-    if (now > expiresAt) {
-      return NextResponse.json(
-        { error: 'Welcome offer has expired' },
-        { status: 400 }
-      );
+    if (Date.now() > expiresAt) {
+      return NextResponse.json({ error: 'Welcome offer has expired' }, { status: 400 });
     }
 
-    const plan = WELCOME_OFFER_PLANS[plan_id as keyof typeof WELCOME_OFFER_PLANS];
-
-    // Stripe 고객 찾기 또는 생성
     let customerId: string;
-    const customers = await stripe.customers.list({
-      email: user.email,
-      limit: 1,
-    });
-
+    const customers = await stripe.customers.list({ email: user.email, limit: 1 });
     if (customers.data.length > 0) {
       customerId = customers.data[0].id;
-      await stripe.customers.update(customerId, {
-        metadata: { user_id: user.id },
-      });
+      await stripe.customers.update(customerId, { metadata: { user_id: user.id } });
     } else {
       const customer = await stripe.customers.create({
         email: user.email,
@@ -172,40 +110,33 @@ export async function POST(request: NextRequest) {
       customerId = customer.id;
     }
 
-    // Stripe Price 찾기 또는 생성
-    const priceId = await getOrCreateWelcomeOfferPrice(plan_id, plan);
+    const priceId = await getOrCreateWelcomePrice(plan.id, plan);
 
-    // Checkout 세션 생성 (구독 모드)
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       payment_method_types: ['card'],
-      line_items: [
-        {
-          price: priceId,
-          quantity: 1,
-        },
-      ],
+      line_items: [{ price: priceId, quantity: 1 }],
       mode: 'subscription',
       success_url: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/?welcome_offer=success`,
       cancel_url: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/?welcome_offer=canceled`,
       metadata: {
         user_id: user.id,
-        plan_id: plan_id,
+        plan_id: plan.id,
+        tier: plan.tier,
         is_welcome_offer: 'true',
-        bonus_credits: plan.credits.toString(),
+        discount_percent: String(plan.discount_percent),
       },
       subscription_data: {
         metadata: {
           user_id: user.id,
-          plan_id: plan_id,
+          plan_id: plan.id,
+          tier: plan.tier,
           is_welcome_offer: 'true',
-          bonus_credits: plan.credits.toString(),
         },
       },
-      // 긴급성 강조: 만료 시간 표시
       custom_text: {
         submit: {
-          message: `🎉 70% 할인 특가! 가입 후 24시간 한정 - ${plan.credits.toLocaleString()} 보너스 크레딧 즉시 지급`,
+          message: `LUMIN PASS ${plan.discount_percent}% 할인 — 가입 후 24시간 한정. 7일 무조건 환불 보장.`,
         },
       },
     });
@@ -213,75 +144,46 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ url: session.url });
   } catch (error) {
     console.error('Welcome offer checkout error:', error);
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    return NextResponse.json({ error: errorMessage }, { status: 500 });
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
 
-// Stripe Price 찾기 또는 생성
-async function getOrCreateWelcomeOfferPrice(
+async function getOrCreateWelcomePrice(
   planId: string,
-  plan: {
-    name: string;
-    price: number;
-    interval: 'month' | 'year';
-    credits: number;
-    features: string[];
-  }
-) {
+  plan: { unit_amount_cents: number; interval: 'month' | 'year'; lookup_key: string; name: string }
+): Promise<string> {
   if (!stripe) throw new Error('Stripe not configured');
-  const lookupKey = `welcome_offer_${planId}`;
 
-  // 기존 Price 찾기
-  const prices = await stripe.prices.list({
-    lookup_keys: [lookupKey],
-    limit: 1,
-  });
+  const prices = await stripe.prices.list({ lookup_keys: [plan.lookup_key], limit: 1 });
+  if (prices.data.length > 0) return prices.data[0].id;
 
-  if (prices.data.length > 0) {
-    return prices.data[0].id;
-  }
+  const productId = await getOrCreateWelcomeProduct();
 
-  // Product 찾기 또는 생성
-  const productId = await getOrCreateWelcomeOfferProduct();
-
-  // Price 생성
   const price = await stripe.prices.create({
     product: productId,
-    unit_amount: plan.price,
+    unit_amount: plan.unit_amount_cents,
     currency: 'usd',
-    recurring: {
-      interval: plan.interval,
-    },
-    lookup_key: lookupKey,
-    nickname: `Welcome Offer - ${plan.interval === 'month' ? 'Monthly' : 'Yearly'} (70% OFF)`,
+    recurring: { interval: plan.interval },
+    lookup_key: plan.lookup_key,
+    nickname: plan.name,
   });
-
   return price.id;
 }
 
-// Stripe Product 찾기 또는 생성
-async function getOrCreateWelcomeOfferProduct(): Promise<string> {
+async function getOrCreateWelcomeProduct(): Promise<string> {
   if (!stripe) throw new Error('Stripe not configured');
 
-  // 기존 웰컴 오퍼 상품 찾기
   const products = await stripe.products.search({
-    query: 'name~"Welcome Offer" AND active:"true"',
+    query: 'name:"LUMIN PASS Welcome Offer" AND active:"true"',
     limit: 1,
   });
+  if (products.data.length > 0) return products.data[0].id;
 
-  if (products.data.length > 0) {
-    return products.data[0].id;
-  }
-
-  // 상품 생성
   const product = await stripe.products.create({
-    name: 'Welcome Offer - VIP 멤버십',
-    description: '신규 가입자 24시간 한정 70% 할인 특가',
-    metadata: {
-      is_welcome_offer: 'true',
-    },
+    name: 'LUMIN PASS Welcome Offer',
+    description: '가입 후 24시간 한정 — LUMIN PASS 50% 할인',
+    metadata: { is_welcome_offer: 'true', tier: 'lumin_pass' },
   });
-
   return product.id;
 }

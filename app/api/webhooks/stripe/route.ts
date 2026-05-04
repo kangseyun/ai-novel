@@ -3,6 +3,7 @@ import Stripe from 'stripe';
 import { stripe } from '@/lib/stripe';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { trackPurchaseServer, trackSubscribeServer } from '@/lib/analytics-server';
+import { tierFromPlanId } from '@/lib/pricing';
 
 // Supabase admin client (bypasses RLS) - lazy initialization
 let supabaseAdmin: SupabaseClient | null = null;
@@ -251,12 +252,14 @@ async function handleSubscriptionUpdate(subscription: Stripe.Subscription) {
     throw subError;
   }
 
-  // users 테이블의 프리미엄 상태 업데이트
+  // users 테이블의 프리미엄 상태 + subscription_tier 동기화
+  const tier = isActive ? tierFromPlanId(plan) : 'free';
   const { error: userError } = await getSupabaseAdmin()
     .from('users')
     .update({
       is_premium: isActive,
       premium_expires_at: isActive ? periodEndDate.toISOString() : null,
+      subscription_tier: tier,
     })
     .eq('id', userId);
 
@@ -307,12 +310,13 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
     throw subError;
   }
 
-  // users 테이블의 프리미엄 상태 해제
+  // users 테이블의 프리미엄 상태 해제 + tier 초기화
   const { error: userError } = await getSupabaseAdmin()
     .from('users')
     .update({
       is_premium: false,
       premium_expires_at: null,
+      subscription_tier: 'free',
     })
     .eq('id', userId);
 
@@ -322,13 +326,18 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
   }
 }
 
-// 구독 플랜별 크레딧 지급량
-const SUBSCRIPTION_CREDITS = {
-  pro_monthly: 660,
-  pro_yearly: 666, // 연간은 매월 분할 지급 (8000/12)
-  vip_monthly: 660,
-  vip_yearly: 666,
-} as const;
+// 구독 플랜별 토큰 지급량 (월간 메시지 한도 단위)
+const SUBSCRIPTION_CREDITS: Record<string, number> = {
+  lumin_pass_monthly: 5000,
+  lumin_pass_yearly: 5000,             // 매월 분할 지급
+  welcome_lumin_pass_monthly: 5000,
+  standard_monthly: 1500,
+  // legacy aliases
+  pro_monthly: 1500,
+  pro_yearly: 1500,
+  vip_monthly: 5000,
+  vip_yearly: 5000,
+};
 
 async function handlePaymentSucceeded(invoice: Stripe.Invoice) {
   if (!stripe) throw new Error('Stripe not configured');
@@ -349,10 +358,10 @@ async function handlePaymentSucceeded(invoice: Stripe.Invoice) {
     const subscription = await stripe.subscriptions.retrieve(subscriptionId);
     const lookupKey = subscription.items.data[0]?.price?.lookup_key;
 
-    // 플랜에 따른 크레딧 결정
-    let creditsToAdd = 660; // 기본값
-    if (lookupKey) {
-      creditsToAdd = SUBSCRIPTION_CREDITS[lookupKey as keyof typeof SUBSCRIPTION_CREDITS] || 660;
+    // 플랜에 따른 토큰 결정
+    let creditsToAdd = 1500;
+    if (lookupKey && SUBSCRIPTION_CREDITS[lookupKey] !== undefined) {
+      creditsToAdd = SUBSCRIPTION_CREDITS[lookupKey];
     }
 
     // 크레딧 지급

@@ -8,50 +8,18 @@ import { useSearchParams } from 'next/navigation';
 import { apiClient } from '@/lib/api-client';
 import { useTranslations, useLocale, t } from '@/lib/i18n';
 import analytics from '@/lib/analytics';
+import { SUBSCRIPTION_PRICING, type PlanPricing } from '@/lib/pricing';
 
-type TabType = 'subscription' | 'credits';
+type TabType = 'subscription';
 
-// 구독 플랜 정의 (USD 기준)
-const SUBSCRIPTION_PLANS = {
-  monthly: {
-    name: 'Pro',
-    price: 999, // $9.99
-    interval: 'month',
-    credits: 300,
-    popular: true,
-  },
-  yearly: {
-    name: 'Pro',
-    price: 9999, // $99.99
-    interval: 'year',
-    credits: 4000,
-    popular: false,
-    discount: 17,
-  },
+// LUMIN PASS / Standard 플랜 — pricing.ts가 단일 SoT
+const SHOP_PLANS: Record<'monthly' | 'yearly', PlanPricing> = {
+  monthly: SUBSCRIPTION_PRICING.lumin_pass_monthly,
+  yearly: SUBSCRIPTION_PRICING.lumin_pass_yearly,
 };
-
-// 타입 추가
-interface CreditPackage {
-  id: string;
-  credits: number;
-  price: number;
-  bonus: number;
-  popular?: boolean;
-  welcome?: boolean;
-}
-
-// 크레딧 패키지 정의
-const CREDIT_PACKAGES: CreditPackage[] = [
-  { id: 'welcome', credits: 100, price: 99, bonus: 50, welcome: true },        // $0.99 (80% OFF 효율)
-  { id: 'basic', credits: 280, price: 999, bonus: 30 },        // $9.99
-  { id: 'standard', credits: 600, price: 1999, bonus: 80, popular: true },  // $19.99
-  { id: 'pro', credits: 1600, price: 4999, bonus: 300 },       // $49.99
-  { id: 'premium', credits: 3500, price: 9999, bonus: 1000 },  // $99.99
-];
 
 function ShopContent() {
   const searchParams = useSearchParams();
-  const [activeTab, setActiveTab] = useState<TabType>('subscription');
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>('monthly');
   const [loading, setLoading] = useState<string | null>(null);
   const [subscription, setSubscription] = useState<{
@@ -64,56 +32,11 @@ function ShopContent() {
   const tr = useTranslations();
   const locale = useLocale();
 
-  const success = searchParams.get('success');
-  const credits = searchParams.get('credits') || searchParams.get('tokens');
   const canceled = searchParams.get('canceled');
   const subscriptionStatus = searchParams.get('subscription');
 
-  const [remainingTime, setRemainingTime] = useState<string>('');
-  const [isExpired, setIsExpired] = useState(false);
-
   // 구매/구독 완료 이벤트는 Stripe Webhook에서 서버사이드로 처리됨
   // (Meta CAPI, Mixpanel 서버사이드 전송으로 더 정확한 어트리뷰션)
-
-  // 24시간 제한 타이머 로직
-  useEffect(() => {
-    // 임시: 클라이언트 사이드에서 가입 시간을 시뮬레이션 (실제로는 user.createdAt 사용)
-    // 여기서는 로컬 스토리지에 최초 접속 시간을 저장하여 테스트
-    const FIRST_VISIT_KEY = 'shop_first_visit';
-    let firstVisit = localStorage.getItem(FIRST_VISIT_KEY);
-    
-    if (!firstVisit) {
-      firstVisit = new Date().toISOString();
-      localStorage.setItem(FIRST_VISIT_KEY, firstVisit);
-    }
-
-    const calculateTimeLeft = () => {
-      const startTime = new Date(firstVisit!).getTime();
-      const expireTime = startTime + 24 * 60 * 60 * 1000; // 24시간
-      const now = new Date().getTime();
-      const diff = expireTime - now;
-
-      if (diff <= 0) {
-        setIsExpired(true);
-        return '00:00:00';
-      }
-
-      const hours = Math.floor(diff / (1000 * 60 * 60));
-      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-      const seconds = Math.floor((diff % (1000 * 60)) / 1000);
-
-      return `${hours.toString().padStart(2, '0')}:${minutes
-        .toString()
-        .padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-    };
-
-    setRemainingTime(calculateTimeLeft());
-    const timer = setInterval(() => {
-      setRemainingTime(calculateTimeLeft());
-    }, 1000);
-
-    return () => clearInterval(timer);
-  }, []);
 
   useEffect(() => {
     const loadSubscription = async () => {
@@ -128,45 +51,17 @@ function ShopContent() {
     loadSubscription();
   }, []);
 
-  const handlePurchaseCredits = async (packageId: string) => {
+  const handleSubscribe = async (cycle: 'monthly' | 'yearly') => {
+    const plan = SHOP_PLANS[cycle];
     try {
-      setLoading(packageId);
+      setLoading(cycle);
+      analytics.trackInitiateCheckout({
+        items: [{ id: plan.id, name: plan.name, price: plan.unit_amount_cents }],
+        totalValue: plan.unit_amount_cents,
+        currency: 'USD',
+      });
 
-      // 결제 시작 이벤트
-      const pkg = CREDIT_PACKAGES.find(p => p.id === packageId);
-      if (pkg) {
-        analytics.trackInitiateCheckout({
-          items: [{ id: packageId, name: `${pkg.credits} Credits`, price: pkg.price }],
-          totalValue: pkg.price,
-          currency: 'USD',
-        });
-      }
-
-      const { url } = await apiClient.purchaseTokens(packageId);
-      if (url) window.location.href = url;
-    } catch (error) {
-      console.error('Purchase error:', error);
-      alert(tr.shop.paymentInitFailed);
-    } finally {
-      setLoading(null);
-    }
-  };
-
-  const handleSubscribe = async (planId: string) => {
-    try {
-      setLoading(planId);
-
-      // 구독 결제 시작 이벤트
-      const plan = SUBSCRIPTION_PLANS[planId as keyof typeof SUBSCRIPTION_PLANS];
-      if (plan) {
-        analytics.trackInitiateCheckout({
-          items: [{ id: planId, name: `Pro ${plan.interval}`, price: plan.price }],
-          totalValue: plan.price,
-          currency: 'USD',
-        });
-      }
-
-      const { url } = await apiClient.subscribeToVIP(planId);
+      const { url } = await apiClient.subscribeToVIP(plan.id);
       if (url) window.location.href = url;
     } catch (error) {
       console.error('Subscription error:', error);
@@ -199,7 +94,7 @@ function ShopContent() {
     }).format(price / 100);
   };
 
-  const selectedPlan = SUBSCRIPTION_PLANS[billingCycle];
+  const selectedPlan = SHOP_PLANS[billingCycle];
 
   return (
     <div className="min-h-screen bg-black text-white">
@@ -217,17 +112,6 @@ function ShopContent() {
       <div className="px-4 py-6 pb-32 max-w-lg mx-auto">
         {/* Success/Error Messages */}
         <AnimatePresence>
-          {success && credits && (
-            <motion.div
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0 }}
-              className="mb-6 p-4 bg-green-500/10 border border-green-500/20 rounded-xl flex items-center gap-3"
-            >
-              <span className="text-green-400">✓</span>
-              <p className="text-sm text-green-400">{t(tr.shop.creditsGained, { n: credits })}</p>
-            </motion.div>
-          )}
           {subscriptionStatus === 'success' && (
             <motion.div
               initial={{ opacity: 0, y: -10 }}
@@ -251,39 +135,8 @@ function ShopContent() {
           )}
         </AnimatePresence>
 
-        {/* Tab Navigation */}
-        <div className="flex bg-white/5 rounded-xl p-1 mb-6">
-          <button
-            onClick={() => setActiveTab('subscription')}
-            className={`flex-1 py-2.5 text-sm font-medium rounded-lg transition ${
-              activeTab === 'subscription'
-                ? 'bg-white text-black'
-                : 'text-white/60 hover:text-white'
-            }`}
-          >
-            {tr.shop.subscriptionPlan}
-          </button>
-          <button
-            onClick={() => setActiveTab('credits')}
-            className={`flex-1 py-2.5 text-sm font-medium rounded-lg transition ${
-              activeTab === 'credits'
-                ? 'bg-white text-black'
-                : 'text-white/60 hover:text-white'
-            }`}
-          >
-            {tr.shop.creditRecharge}
-          </button>
-        </div>
-
-        <AnimatePresence mode="wait">
-          {activeTab === 'subscription' ? (
-            <motion.div
-              key="subscription"
-              initial={{ opacity: 0, x: -10 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: 10 }}
-              transition={{ duration: 0.2 }}
-            >
+        <div>
+          <div>
               {/* Current Subscription Status */}
               {isVIP && subscription && (
                 <motion.div
@@ -358,62 +211,27 @@ function ShopContent() {
                   <div className="flex items-start justify-between mb-6">
                     <div>
                       <div className="flex items-center gap-2 mb-1">
-                          <span className="text-xs font-bold px-2 py-1 bg-violet-500/20 text-violet-400 rounded">PRO</span>
+                          <span className="text-xs font-bold px-2 py-1 bg-violet-500/20 text-violet-400 rounded">PASS</span>
                         <h3 className="text-xl font-bold">{selectedPlan.name}</h3>
                       </div>
-                      <p className="text-sm text-white/50">
-                        {billingCycle === 'monthly' ? tr.shop.monthlySubscription : tr.shop.yearlySubscription}
-                      </p>
+                      <p className="text-sm text-white/50">{selectedPlan.tagline}</p>
                     </div>
                     <div className="text-right">
                       <div className="flex items-baseline gap-1">
-                        <span className="text-3xl font-bold">{formatPrice(selectedPlan.price)}</span>
+                        <span className="text-3xl font-bold">{formatPrice(selectedPlan.unit_amount_cents)}</span>
                       </div>
                       <p className="text-xs text-white/40">
                         {billingCycle === 'monthly' ? tr.shop.perMonth : tr.shop.perYear}
                       </p>
                       {billingCycle === 'yearly' && (
-                        <p className="text-xs text-green-400 mt-1">{t(tr.shop.monthlyPrice, { n: '$8.33' })}</p>
+                        <p className="text-xs text-green-400 mt-1">월 ${selectedPlan.monthly_usd.toFixed(2)}</p>
                       )}
-                    </div>
-                  </div>
-
-                  {/* Credits Badge */}
-                  <div className="flex items-center gap-2 p-3 bg-white/5 rounded-xl mb-5">
-                    <span className="text-yellow-400 text-lg">◆</span>
-                    <div>
-                      <p className="text-sm font-medium">
-                        {billingCycle === 'monthly'
-                          ? t(tr.shop.monthlyCredits, { n: selectedPlan.credits.toLocaleString() })
-                          : t(tr.shop.yearlyCredits, { n: selectedPlan.credits.toLocaleString() })}
-                      </p>
-                      <p className="text-xs text-white/40">
-                        {billingCycle === 'monthly'
-                          ? tr.shop.creditImmediately
-                          : tr.shop.creditMonthlyDivided}
-                      </p>
                     </div>
                   </div>
 
                   {/* Features */}
                   <ul className="space-y-3 mb-6">
-                    {(billingCycle === 'monthly'
-                      ? [
-                          tr.shop.monthlyCreditsFeature,
-                          tr.shop.premiumEpisodesFree,
-                          tr.shop.noAds,
-                          tr.shop.exclusiveStories,
-                          tr.shop.prioritySupport,
-                        ]
-                      : [
-                          tr.shop.yearlyCreditsFeature,
-                          tr.shop.premiumEpisodesFree,
-                          tr.shop.noAds,
-                          tr.shop.exclusiveStories,
-                          tr.shop.prioritySupport,
-                          tr.shop.newCharacterPreview,
-                        ]
-                    ).map((feature, i) => (
+                    {selectedPlan.features.map((feature, i) => (
                       <li key={i} className="flex items-center gap-3 text-sm text-white/70">
                         <Check className="w-4 h-4 text-violet-400 flex-shrink-0" />
                         {feature}
@@ -430,7 +248,7 @@ function ShopContent() {
                   ) : (
                     <button
                       onClick={() => handleSubscribe(billingCycle)}
-                      disabled={!!loading}
+                      disabled={loading !== null}
                       className="w-full py-3.5 bg-gradient-to-r from-violet-500 to-purple-500 text-white rounded-xl text-sm font-semibold hover:from-violet-600 hover:to-purple-600 transition disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       {loading === billingCycle ? tr.shop.processing : tr.shop.startSubscription}
@@ -453,116 +271,8 @@ function ShopContent() {
                   </li>
                 </ul>
               </div>
-            </motion.div>
-          ) : (
-            <motion.div
-              key="credits"
-              initial={{ opacity: 0, x: 10 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -10 }}
-              transition={{ duration: 0.2 }}
-            >
-              {/* Credits Header */}
-              <div className="text-center mb-6">
-                <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-yellow-500/10 rounded-full mb-3">
-                  <span className="text-yellow-400">◆</span>
-                  <span className="text-sm text-yellow-400">{tr.shop.credits}</span>
-                </div>
-                <p className="text-sm text-white/50">
-                  {tr.shop.creditsUsage}
-                </p>
-              </div>
-
-              {/* Credit Packages Grid */}
-              <div className="space-y-3">
-                {CREDIT_PACKAGES.map((pkg, index) => {
-                  // 만료된 웰컴 패키지는 숨김
-                  if (pkg.welcome && isExpired) return null;
-
-                  return (
-                  <motion.button
-                    key={pkg.id}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: index * 0.05 }}
-                    onClick={() => handlePurchaseCredits(pkg.id)}
-                    disabled={!!loading}
-                    className={`w-full p-4 rounded-2xl text-left transition relative overflow-hidden ${
-                      pkg.welcome
-                        ? 'bg-gradient-to-r from-pink-500/20 to-rose-500/20 border border-pink-500/40 ring-1 ring-pink-500/20'
-                        : pkg.popular
-                        ? 'bg-gradient-to-r from-yellow-500/10 to-orange-500/10 border border-yellow-500/20'
-                        : 'bg-white/[0.03] border border-white/10 hover:border-white/20'
-                    } disabled:opacity-50`}
-                  >
-                    {pkg.welcome && (
-                      <div className="absolute top-3 right-3 flex items-center gap-2">
-                        <span className="text-[10px] font-medium text-pink-300 bg-pink-500/10 px-1.5 py-0.5 rounded border border-pink-500/20">
-                          {remainingTime} 남음
-                        </span>
-                        <span className="text-[10px] font-bold px-2 py-0.5 bg-gradient-to-r from-pink-500 to-rose-500 text-white rounded-full shadow-lg shadow-pink-500/20 animate-pulse">
-                          80% OFF • 1회 한정
-                        </span>
-                      </div>
-                    )}
-                    {pkg.popular && !pkg.welcome && (
-                      <span className="absolute top-3 right-3 text-[10px] font-medium px-2 py-0.5 bg-yellow-500 text-black rounded-full">
-                        {tr.shop.popular}
-                      </span>
-                    )}
-
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
-                          pkg.welcome ? 'bg-pink-500/20' : pkg.popular ? 'bg-yellow-500/20' : 'bg-white/5'
-                        }`}>
-                          <span className={`text-lg ${pkg.welcome ? 'text-pink-400' : pkg.popular ? 'text-yellow-400' : 'text-white/40'}`}>◆</span>
-                        </div>
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <span className="font-bold text-lg">
-                              {pkg.credits.toLocaleString()}
-                            </span>
-                            {pkg.bonus > 0 && (
-                              <span className="text-xs text-green-400 bg-green-500/10 px-1.5 py-0.5 rounded">
-                                +{pkg.bonus}
-                              </span>
-                            )}
-                          </div>
-                          <p className="text-xs text-white/40">
-                            {pkg.bonus > 0
-                              ? t(tr.shop.totalCredits, { n: (pkg.credits + pkg.bonus).toLocaleString() })
-                              : tr.shop.credits}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <span className="font-bold">
-                          {loading === pkg.id ? tr.shop.processing : formatPrice(pkg.price)}
-                        </span>
-                        <p className="text-[10px] text-white/30">
-                          {t(tr.shop.pricePerCredit, { n: ((pkg.price / 100) / (pkg.credits + pkg.bonus)).toFixed(3) })}
-                        </p>
-                      </div>
-                    </div>
-                  </motion.button>
-                  );
-                })}
-              </div>
-
-              {/* Pro Member Bonus */}
-              <div className="mt-6 p-4 bg-gradient-to-r from-violet-500/5 to-purple-500/5 border border-violet-500/10 rounded-xl">
-                <div className="flex items-center gap-2 mb-2">
-                  <span className="text-xs font-bold px-1.5 py-0.5 bg-violet-500/20 text-violet-400 rounded">PRO</span>
-                  <span className="text-sm font-medium text-violet-300">{tr.shop.proMemberBenefit}</span>
-                </div>
-                <p className="text-xs text-white/40">
-                  {tr.shop.proMemberBenefitDesc}
-                </p>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+          </div>
+        </div>
 
         {/* Security Notice */}
         <p className="mt-8 text-center text-xs text-white/30">

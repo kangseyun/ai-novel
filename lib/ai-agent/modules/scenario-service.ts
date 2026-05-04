@@ -206,6 +206,7 @@ export class ScenarioService {
       .eq('persona_id', personaId)
       .eq('scenario_type', 'first_meeting')
       .eq('is_active', true)
+      .eq('review_status', 'approved')
       .order('sort_order', { ascending: true })
       .limit(1)
       .single();
@@ -253,12 +254,13 @@ export class ScenarioService {
 
     const completedScenarioIds = (progressData || []).map(p => p.scenario_id);
 
-    // 조건에 맞는 시나리오 조회
+    // 조건에 맞는 시나리오 조회 (승인된 시나리오만)
     const { data, error } = await this.supabase
       .from('scenario_templates')
       .select('*')
       .eq('persona_id', personaId)
       .eq('is_active', true)
+      .eq('review_status', 'approved')
       .lte('min_affection', currentAffection)
       .order('sort_order', { ascending: true });
 

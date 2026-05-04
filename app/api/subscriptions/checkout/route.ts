@@ -1,37 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { stripe } from '@/lib/stripe';
 import { createServerClient } from '@/lib/supabase-server';
-
-// 구독 플랜 정의 (USD 기준)
-const SUBSCRIPTION_PLANS = {
-  monthly: {
-    name: 'Pro Membership (Monthly)',
-    price: 999,          // $9.99/month
-    interval: 'month' as const,
-    credits: 300,        // 매월 지급 크레딧 (약 $10 가치)
-    features: [
-      '300 Monthly Credits',
-      'Free Premium Episodes',
-      'Ad-free Experience',
-      'Exclusive Story Access',
-      'Priority Support',
-    ],
-  },
-  yearly: {
-    name: 'Pro Membership (Yearly)',
-    price: 9999,         // $99.99/year (~17% OFF)
-    interval: 'year' as const,
-    credits: 4000,       // 연간 총 크레딧
-    features: [
-      '4,000 Yearly Credits',
-      'Free Premium Episodes',
-      'Ad-free Experience',
-      'Exclusive Story Access',
-      'Priority Support',
-      'New Character Early Access',
-    ],
-  },
-};
+import { SUBSCRIPTION_PRICING, type PlanPricing } from '@/lib/pricing';
 
 export async function POST(request: NextRequest) {
   try {
@@ -47,25 +17,17 @@ export async function POST(request: NextRequest) {
     }
 
     const { plan_id } = await request.json();
+    const plan = SUBSCRIPTION_PRICING[plan_id as keyof typeof SUBSCRIPTION_PRICING];
 
-    if (!plan_id || !SUBSCRIPTION_PLANS[plan_id as keyof typeof SUBSCRIPTION_PLANS]) {
+    if (!plan) {
       return NextResponse.json({ error: 'Invalid plan' }, { status: 400 });
     }
 
-    const plan = SUBSCRIPTION_PLANS[plan_id as keyof typeof SUBSCRIPTION_PLANS];
-
-    // Stripe 고객 찾기 또는 생성
     let customerId: string;
-    const customers = await stripe.customers.list({
-      email: user.email,
-      limit: 1,
-    });
-
+    const customers = await stripe.customers.list({ email: user.email, limit: 1 });
     if (customers.data.length > 0) {
       customerId = customers.data[0].id;
-      await stripe.customers.update(customerId, {
-        metadata: { user_id: user.id },
-      });
+      await stripe.customers.update(customerId, { metadata: { user_id: user.id } });
     } else {
       const customer = await stripe.customers.create({
         email: user.email,
@@ -74,30 +36,25 @@ export async function POST(request: NextRequest) {
       customerId = customer.id;
     }
 
-    // Stripe에서 Price 찾기 또는 생성
-    const priceId = await getOrCreatePrice(plan_id, plan);
+    const priceId = await getOrCreatePrice(plan);
 
-    // Checkout 세션 생성 (구독 모드)
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       payment_method_types: ['card'],
-      line_items: [
-        {
-          price: priceId,
-          quantity: 1,
-        },
-      ],
+      line_items: [{ price: priceId, quantity: 1 }],
       mode: 'subscription',
       success_url: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/shop?subscription=success`,
       cancel_url: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/shop?subscription=canceled`,
       metadata: {
         user_id: user.id,
-        plan_id: plan_id,
+        plan_id: plan.id,
+        tier: plan.tier,
       },
       subscription_data: {
         metadata: {
           user_id: user.id,
-          plan_id: plan_id,
+          plan_id: plan.id,
+          tier: plan.tier,
         },
       },
     });
@@ -105,87 +62,51 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ url: session.url });
   } catch (error) {
     console.error('Subscription checkout error:', error);
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    // 임시: 디버깅을 위해 production에서도 에러 메시지 노출 (나중에 제거)
-    const errorDetails = {
-      error: errorMessage,
-      code: (error as { code?: string })?.code,
-      type: (error as { type?: string })?.type,
-    };
-
-    // Production에서도 상세 로그는 서버에 남김
-    console.error('Stripe error details:', {
-      message: errorMessage,
-      stripeError: (error as { type?: string; code?: string; param?: string })?.type,
-      code: (error as { code?: string })?.code,
-      param: (error as { param?: string })?.param,
-    });
-
-    return NextResponse.json(errorDetails, { status: 500 });
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
 
-// 구독 플랜 목록 조회
 export async function GET() {
-  const plans = Object.entries(SUBSCRIPTION_PLANS).map(([id, plan]) => ({
-    id,
-    ...plan,
-  }));
-
+  const plans = Object.values(SUBSCRIPTION_PRICING);
   return NextResponse.json({ plans });
 }
 
-// Stripe Price 찾기 또는 생성
-async function getOrCreatePrice(planId: string, plan: { name: string; price: number; interval: 'month' | 'year'; credits: number; features: string[] }) {
+async function getOrCreatePrice(plan: PlanPricing): Promise<string> {
   if (!stripe) throw new Error('Stripe not configured');
-  const lookupKey = `pro_${planId}`;
 
-  // 기존 Price 찾기
-  const prices = await stripe.prices.list({
-    lookup_keys: [lookupKey],
-    limit: 1,
-  });
+  const prices = await stripe.prices.list({ lookup_keys: [plan.lookup_key], limit: 1 });
+  if (prices.data.length > 0) return prices.data[0].id;
 
-  if (prices.data.length > 0) {
-    return prices.data[0].id;
-  }
+  const productId = await getOrCreateProduct(plan);
 
-  // Product 찾기 또는 생성
-  const productId = await getOrCreateProduct();
-
-  // Price 생성
   const price = await stripe.prices.create({
     product: productId,
-    unit_amount: plan.price,
+    unit_amount: plan.unit_amount_cents,
     currency: 'usd',
-    recurring: {
-      interval: plan.interval,
-    },
-    lookup_key: lookupKey,
+    recurring: { interval: plan.interval },
+    lookup_key: plan.lookup_key,
+    nickname: plan.name,
   });
 
   return price.id;
 }
 
-// Stripe Product 찾기 또는 생성
-async function getOrCreateProduct(): Promise<string> {
+async function getOrCreateProduct(plan: PlanPricing): Promise<string> {
   if (!stripe) throw new Error('Stripe not configured');
 
-  // 기존 VIP 멤버십 상품 찾기
+  const productName = plan.tier === 'lumin_pass' ? 'LUMIN PASS' : 'Standard';
   const products = await stripe.products.search({
-    query: 'name~"VIP" AND active:"true"',
+    query: `name:"${productName}" AND active:"true"`,
     limit: 1,
   });
 
-  if (products.data.length > 0) {
-    return products.data[0].id;
-  }
+  if (products.data.length > 0) return products.data[0].id;
 
-  // 상품 생성
   const product = await stripe.products.create({
-    name: 'VIP 멤버십',
-    description: '프리미엄 혜택을 누리세요',
+    name: productName,
+    description: plan.tagline,
+    metadata: { tier: plan.tier },
   });
-
   return product.id;
 }

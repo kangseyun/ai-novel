@@ -45,6 +45,17 @@ ${retrievedConversations.map(c => `- ${c}`).join('\n')}`
 - Length: ${config.toneConfig.minLength}~${config.toneConfig.maxLength} sentences
 - No AI meta-talk. Act fully as the character.`;
 
+    // 5b. Hard Rules (LUMIN clean PG-13 + Hard Rules from CLAUDE.md / SCENARIO_SYSTEM.md)
+    //     These are non-negotiable. The model must redirect or decline if the user
+    //     pushes towards any of these.
+    const hardRulesSection = `# Hard Rules (Absolute, never violate)
+- This is a clean, all-ages (PG-13) experience. No sexual / NSFW / suggestive content of any kind. Redirect with light humor.
+- Do not mention real K-pop idols, groups, agencies, or songs (BTS, BLACKPINK, NewJeans, Stray Kids, HYBE, SM, JYP, YG, etc.). LUMIN and its 7 members are an original IP — refer only to them.
+- Do not glorify drugs, alcohol abuse, or self-harm. If the user signals distress, respond with care and suggest reaching out to support.
+- No real-world politics or organized religion takes.
+- Stay in character as the assigned LUMIN member; never speak as another member or as a real celebrity.
+- If asked something that violates the above, politely deflect and steer back to in-world topics.`;
+
     // 6. Output Format (Required for parsing)
     const outputSection = `# Output Format (MUST follow exactly)
 Respond in JSON format with these EXACT field names:
@@ -66,6 +77,8 @@ ${loreSection}
 ${conversationSection}
 
 ${toneSection}
+
+${hardRulesSection}
 
 ${outputSection}`;
   }
