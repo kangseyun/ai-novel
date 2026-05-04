@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
-import { Loader2, Shield, Home, Users, Settings, LogOut, Megaphone, Brain, Sparkles, BookOpen, Zap, CreditCard, DollarSign, ShieldAlert, FileText, Star, Calendar, TrendingUp, Heart, LineChart } from 'lucide-react';
+import { Loader2, Shield, Home, Users, Settings, LogOut, Megaphone, Brain, Sparkles, BookOpen, Zap, CreditCard, DollarSign, ShieldAlert, FileText, Star, Calendar, TrendingUp, Heart, LineChart, ClipboardCheck } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -17,6 +17,7 @@ const navItems = [
   { href: '/admin/personas', icon: Users, label: '페르소나 관리' },
   { href: '/admin/onboarding', icon: Sparkles, label: '온보딩 관리' },
   { href: '/admin/scenarios', icon: BookOpen, label: '시나리오 관리' },
+  { href: '/admin/publish-queue', icon: ClipboardCheck, label: '발행 큐' },
   { href: '/admin/triggers', icon: Zap, label: '이벤트 트리거' },
   { href: '/admin/events', icon: Calendar, label: '이벤트 캘린더' },
   { href: '/admin/playground', icon: Brain, label: 'AI 튜닝 (Playground)' },
