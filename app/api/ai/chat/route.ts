@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAuthUser, unauthorized, badRequest, serverError } from '@/lib/auth';
 import { getAIAgent } from '@/lib/ai-agent';
 import { createServerClient } from '@/lib/supabase-server';
+import { flagIfSuspicious } from '@/lib/moderation';
 
 const TOKEN_COST_PER_MESSAGE = 1; // 메시지당 토큰 비용
 
@@ -126,6 +127,22 @@ export async function POST(request: NextRequest) {
         actionData: { message, sessionId: session.id },
         timestamp: new Date(),
       }).catch((err) => console.error('[AI Chat] Event trigger error:', err));
+
+      // 모더레이션 (비동기, 응답 차단하지 않음)
+      flagIfSuspicious({
+        source: 'user_message',
+        text: message,
+        userId: user.id,
+        personaId,
+        sessionId: session.id,
+      }).catch(() => {});
+      flagIfSuspicious({
+        source: 'ai_response',
+        text: result.response.content,
+        userId: user.id,
+        personaId,
+        sessionId: session.id,
+      }).catch(() => {});
 
       return NextResponse.json({
         sessionId: session.id,
