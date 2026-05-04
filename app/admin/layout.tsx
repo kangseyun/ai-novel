@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
-import { Loader2, Shield, Home, Users, Settings, LogOut, Megaphone, Brain, Sparkles, BookOpen, Zap, CreditCard, DollarSign, ShieldAlert, FileText, Star, Calendar, TrendingUp } from 'lucide-react';
+import { Loader2, Shield, Home, Users, Settings, LogOut, Megaphone, Brain, Sparkles, BookOpen, Zap, CreditCard, DollarSign, ShieldAlert, FileText, Star, Calendar, TrendingUp, Heart } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -27,6 +27,7 @@ const navItems = [
   { href: '/admin/logs', icon: FileText, label: '로그' },
   { href: '/admin/marketing', icon: Megaphone, label: '마케팅 컨텐츠' },
   { href: '/admin/marketing-insights', icon: TrendingUp, label: '마케팅 어트리뷰션' },
+  { href: '/admin/influencers', icon: Heart, label: '인플루언서' },
 ];
 
 export default function AdminLayout({
