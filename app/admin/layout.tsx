@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
-import { Loader2, Shield, Home, Users, Settings, LogOut, Megaphone, Brain, Sparkles, BookOpen, Zap, CreditCard, DollarSign, ShieldAlert } from 'lucide-react';
+import { Loader2, Shield, Home, Users, Settings, LogOut, Megaphone, Brain, Sparkles, BookOpen, Zap, CreditCard, DollarSign, ShieldAlert, FileText } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -22,6 +22,7 @@ const navItems = [
   { href: '/admin/subscriptions', icon: CreditCard, label: '구독 관리' },
   { href: '/admin/llm-usage', icon: DollarSign, label: 'LLM 비용' },
   { href: '/admin/moderation', icon: ShieldAlert, label: '모더레이션' },
+  { href: '/admin/logs', icon: FileText, label: '로그' },
   { href: '/admin/marketing', icon: Megaphone, label: '마케팅 컨텐츠' },
 ];
 
