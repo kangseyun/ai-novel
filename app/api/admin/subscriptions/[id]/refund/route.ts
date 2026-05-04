@@ -3,6 +3,7 @@ import { requireAdmin } from '@/lib/auth';
 import { createClient } from '@/lib/supabase-server';
 import { createClient as createServiceClient } from '@supabase/supabase-js';
 import { stripe } from '@/lib/stripe';
+import { recordAdminAction } from '@/lib/admin-audit';
 
 export async function POST(
   request: NextRequest,
@@ -116,6 +117,23 @@ export async function POST(
         .eq('id', sub.user_id);
     }
   }
+
+  await recordAdminAction({
+    adminUserId: guard.userId,
+    adminEmail: guard.email,
+    action: 'refund',
+    targetType: 'subscription',
+    targetId: sub.id,
+    reason,
+    before: { status: sub.status, plan_id: sub.plan_id },
+    after: { status: cancelImmediately ? 'canceled' : sub.status, cancel_at_period_end: !cancelImmediately },
+    metadata: {
+      stripe_refund_ids: refundIds,
+      refunded_amount_cents: refundedAmount,
+      stripe_subscription_id: sub.stripe_subscription_id,
+      target_user_id: sub.user_id,
+    },
+  });
 
   return NextResponse.json({
     refundedAmountCents: refundedAmount,

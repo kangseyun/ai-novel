@@ -39,6 +39,9 @@ type UserDetail = {
   streak_count: number;
   bio: string;
   profile_image: string;
+  is_banned: boolean;
+  banned_at: string | null;
+  banned_reason: string | null;
 };
 
 type ConversationSession = {
@@ -290,6 +293,9 @@ export default function UserDetailPage() {
           <Badge variant="outline" className="border-primary text-primary font-bold">
             {user.tokens.toLocaleString()} Tokens
           </Badge>
+          {user.is_banned && (
+            <Badge className="bg-rose-600 hover:bg-rose-700">정지됨</Badge>
+          )}
           <a
             href={`https://supabase.com/dashboard/project/olpnuagrhidopfjjliih/editor?filter=id%3Aeq%3A${user.id}&schema=public&table=users`}
             target="_blank"
@@ -302,6 +308,22 @@ export default function UserDetailPage() {
           </a>
         </div>
       </div>
+
+      {user.is_banned && (
+        <Card className="border-rose-200 bg-rose-50">
+          <CardContent className="p-4 text-sm">
+            <div className="font-semibold text-rose-700 mb-1">계정 정지됨</div>
+            <div className="text-rose-700/80">{user.banned_reason || '사유 미입력'}</div>
+            {user.banned_at && (
+              <div className="text-xs text-rose-600/70 mt-1">
+                정지 시각: {format(new Date(user.banned_at), 'yyyy-MM-dd HH:mm')}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      <AdminActionsPanel user={user} onChange={() => window.location.reload()} />
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Left Column: User Profile & Quick Stats */}
@@ -781,5 +803,146 @@ export default function UserDetailPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+function AdminActionsPanel({ user, onChange }: { user: UserDetail; onChange: () => void }) {
+  const [delta, setDelta] = useState('');
+  const [tokenReason, setTokenReason] = useState('');
+  const [tokenBusy, setTokenBusy] = useState(false);
+  const [tokenMsg, setTokenMsg] = useState<string | null>(null);
+
+  const [banReason, setBanReason] = useState('');
+  const [banBusy, setBanBusy] = useState(false);
+  const [banMsg, setBanMsg] = useState<string | null>(null);
+
+  async function handleAdjustTokens() {
+    const n = parseInt(delta, 10);
+    if (!Number.isFinite(n) || n === 0) {
+      setTokenMsg('숫자를 입력하세요 (음수 가능, 0 불가)');
+      return;
+    }
+    if (tokenReason.trim().length < 3) {
+      setTokenMsg('사유는 3자 이상 입력하세요');
+      return;
+    }
+    setTokenBusy(true);
+    setTokenMsg(null);
+    try {
+      const res = await adminFetch(`/api/admin/users/${user.id}/tokens`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ delta: n, reason: tokenReason.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setTokenMsg(`실패: ${data.error}`);
+      } else {
+        setTokenMsg(`완료: ${data.before.toLocaleString()} → ${data.after.toLocaleString()} (Δ ${data.appliedDelta >= 0 ? '+' : ''}${data.appliedDelta.toLocaleString()})`);
+        setDelta('');
+        setTokenReason('');
+        setTimeout(onChange, 1000);
+      }
+    } finally {
+      setTokenBusy(false);
+    }
+  }
+
+  async function handleBanToggle(ban: boolean) {
+    if (ban && banReason.trim().length < 3) {
+      setBanMsg('정지 사유는 3자 이상 입력하세요');
+      return;
+    }
+    setBanBusy(true);
+    setBanMsg(null);
+    try {
+      const res = await adminFetch(`/api/admin/users/${user.id}/ban`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ban, reason: banReason.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setBanMsg(`실패: ${data.error}`);
+      } else {
+        setBanMsg(ban ? '정지 완료' : '정지 해제 완료');
+        setBanReason('');
+        setTimeout(onChange, 800);
+      }
+    } finally {
+      setBanBusy(false);
+    }
+  }
+
+  return (
+    <Card className="border-amber-200">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2 text-base text-amber-800">
+          🛠 운영 액션 (Audit log 기록됨)
+        </CardTitle>
+        <CardDescription className="text-xs">
+          모든 조정은 admin_audit_log에 기록됩니다. 사유는 분쟁 방어에 사용됩니다.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="space-y-2">
+          <div className="text-sm font-medium">토큰 조정</div>
+          <div className="flex gap-2">
+            <Input
+              type="number"
+              placeholder="±N (예: 100, -50)"
+              value={delta}
+              onChange={(e) => setDelta(e.target.value)}
+              className="w-40"
+            />
+            <Input
+              placeholder="사유 (필수, 3자 이상)"
+              value={tokenReason}
+              onChange={(e) => setTokenReason(e.target.value)}
+              className="flex-1"
+            />
+            <Button onClick={handleAdjustTokens} disabled={tokenBusy}>
+              {tokenBusy ? <Loader2 className="w-4 h-4 animate-spin" /> : '적용'}
+            </Button>
+          </div>
+          {tokenMsg && <div className="text-xs text-muted-foreground">{tokenMsg}</div>}
+        </div>
+
+        <div className="space-y-2">
+          <div className="text-sm font-medium">계정 정지</div>
+          {user.is_banned ? (
+            <div className="flex gap-2 items-center">
+              <span className="text-sm text-rose-600">현재 정지 상태</span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleBanToggle(false)}
+                disabled={banBusy}
+              >
+                {banBusy ? <Loader2 className="w-4 h-4 animate-spin" /> : '정지 해제'}
+              </Button>
+            </div>
+          ) : (
+            <div className="flex gap-2">
+              <Input
+                placeholder="정지 사유 (3자 이상)"
+                value={banReason}
+                onChange={(e) => setBanReason(e.target.value)}
+                className="flex-1"
+              />
+              <Button
+                variant="destructive"
+                onClick={() => handleBanToggle(true)}
+                disabled={banBusy || user.role === 'admin'}
+                title={user.role === 'admin' ? 'admin은 정지할 수 없습니다' : ''}
+              >
+                {banBusy ? <Loader2 className="w-4 h-4 animate-spin" /> : '정지'}
+              </Button>
+            </div>
+          )}
+          {banMsg && <div className="text-xs text-muted-foreground">{banMsg}</div>}
+        </div>
+      </CardContent>
+    </Card>
   );
 }
