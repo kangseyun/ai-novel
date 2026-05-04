@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
-import { Plus, Users, MessageSquare, DollarSign, Activity, AlertCircle, ArrowUpRight } from 'lucide-react';
+import { adminFetch } from '@/lib/admin-fetch';
+import { Plus, Users, MessageSquare, DollarSign, Activity, AlertCircle, ArrowUpRight, CreditCard, Target } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -34,6 +35,14 @@ interface ChartData {
   revenue: number;
 }
 
+interface MrrSnapshot {
+  mrrUsd: number;
+  annualizedUsd: number;
+  tierCounts: { free: number; standard: number; lumin_pass: number };
+  passMilestone: { current: number; target: number; percent: number };
+  unknownPlans: string[];
+}
+
 export default function AdminDashboard() {
   const [stats, setStats] = useState<DashboardStats>({
     totalUsers: 0,
@@ -46,6 +55,7 @@ export default function AdminDashboard() {
   const [chartData, setChartData] = useState<ChartData[]>([]);
   const [recentUsers, setRecentUsers] = useState<any[]>([]);
   const [recentErrors, setRecentErrors] = useState<any[]>([]);
+  const [mrr, setMrr] = useState<MrrSnapshot | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -137,6 +147,16 @@ export default function AdminDashboard() {
         });
 
         setChartData(Array.from(daysMap.values()));
+
+        // 5. MRR / Tier counts (admin API)
+        try {
+          const mrrRes = await adminFetch('/api/admin/metrics/mrr');
+          if (mrrRes.ok) {
+            setMrr(await mrrRes.json());
+          }
+        } catch {
+          /* MRR 위젯은 부가 정보이므로 실패해도 대시보드 자체는 표시 */
+        }
 
       } catch (error) {
         console.error('Failed to load dashboard:', error);
@@ -233,6 +253,77 @@ export default function AdminDashboard() {
           </CardContent>
         </Card>
       </div>
+
+      {/* MRR / Subscription Mix (LUMIN PASS milestone) */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">MRR (USD)</CardTitle>
+            <CreditCard className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">${(mrr?.mrrUsd ?? 0).toLocaleString(undefined, { maximumFractionDigits: 2 })}</div>
+            <p className="text-xs text-muted-foreground mt-1">
+              연 환산 ${(mrr?.annualizedUsd ?? 0).toLocaleString(undefined, { maximumFractionDigits: 0 })}
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">LUMIN PASS</CardTitle>
+            <Target className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {mrr?.passMilestone.current ?? 0}
+              <span className="text-sm font-normal text-muted-foreground"> / {mrr?.passMilestone.target ?? 10}</span>
+            </div>
+            <div className="mt-2 h-1.5 rounded bg-slate-100 overflow-hidden">
+              <div
+                className="h-full bg-purple-500 transition-all"
+                style={{ width: `${mrr?.passMilestone.percent ?? 0}%` }}
+              />
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              M3 마일스톤 ($990 MRR)
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Standard 구독</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{mrr?.tierCounts.standard ?? 0}</div>
+            <p className="text-xs text-muted-foreground mt-1">
+              활성 Standard 가입자
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Free 유저</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{mrr?.tierCounts.free ?? 0}</div>
+            <p className="text-xs text-muted-foreground mt-1">
+              비구독 유저
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {mrr?.unknownPlans && mrr.unknownPlans.length > 0 && (
+        <Card className="border-amber-200 bg-amber-50">
+          <CardContent className="p-3 text-xs text-amber-800">
+            ⚠️ MRR 계산에 포함되지 않은 plan_id: <code>{mrr.unknownPlans.join(', ')}</code>
+            {' '}— <code>lib/pricing.ts</code>에 추가하세요.
+          </CardContent>
+        </Card>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-7 gap-6">
         {/* Main Chart Area */}
