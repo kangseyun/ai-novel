@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
-import { Loader2, Shield, Home, Users, Settings, LogOut, Megaphone, Brain, Sparkles, BookOpen, Zap, CreditCard } from 'lucide-react';
+import { Loader2, Shield, Home, Users, Settings, LogOut, Megaphone, Brain, Sparkles, BookOpen, Zap, CreditCard, DollarSign } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -20,6 +20,7 @@ const navItems = [
   { href: '/admin/playground', icon: Brain, label: 'AI 튜닝 (Playground)' },
   { href: '/admin/users', icon: Settings, label: '유저 관리' },
   { href: '/admin/subscriptions', icon: CreditCard, label: '구독 관리' },
+  { href: '/admin/llm-usage', icon: DollarSign, label: 'LLM 비용' },
   { href: '/admin/marketing', icon: Megaphone, label: '마케팅 컨텐츠' },
 ];
 
