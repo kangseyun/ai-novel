@@ -290,7 +290,7 @@ export default function UserDetailPage() {
             {user.tokens.toLocaleString()} Tokens
           </Badge>
           <a
-            href={`https://supabase.com/dashboard/project/zwoyfqsavcghftbmijdc/editor?filter=id%3Aeq%3A${user.id}&schema=public&table=users`}
+            href={`https://supabase.com/dashboard/project/olpnuagrhidopfjjliih/editor?filter=id%3Aeq%3A${user.id}&schema=public&table=users`}
             target="_blank"
             rel="noopener noreferrer"
           >

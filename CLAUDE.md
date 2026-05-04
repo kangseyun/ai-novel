@@ -21,7 +21,7 @@ K-pop 가상 아이돌 그룹 **LUMIN** (7인조, 자체 IP)과의 클린(전연
 DB:
 - `npx supabase db push` 금지 → MCP Supabase 도구 사용
 - `personas` (view) 사용. `persona_core` 직접 조회 금지 (사용자 노출 화면)
-- 마이그레이션 신규 번호는 **062부터** (018·019에 중복 있음)
+- 마이그레이션은 `supabase/migrations/` 의 마지막 번호 다음 순번을 사용 (현재 017 → 다음은 018)
 
 ---
 
@@ -82,7 +82,7 @@ DB:
 
 ## 📌 Quick reference
 
-- **Supabase Project ID:** `zwoyfqsavcghftbmijdc`
+- **Supabase Project ID:** `olpnuagrhidopfjjliih`
 - **OAuth:** Google + Discord (Apple ❌)
 - **LLM:** OpenRouter (멀티모델, `lib/ai-agent/core/model-selector.ts`)
 - **결제 티어:** `free` / `standard` / `lumin_pass` (in `users.subscription_tier`)
