@@ -474,10 +474,15 @@ export default function OnboardingManagementPage() {
           <h1 className="text-2xl font-bold text-slate-900">온보딩 관리</h1>
           <p className="text-slate-500 mt-1">온보딩 페르소나 목록과 설정을 관리합니다</p>
         </div>
-        <Button onClick={fetchData} variant="outline" size="sm">
-          <RefreshCw className="w-4 h-4 mr-2" />
-          새로고침
-        </Button>
+        <div className="flex items-center gap-2">
+          <a href="/admin/onboarding/analytics">
+            <Button variant="outline" size="sm">📊 퍼널 분석</Button>
+          </a>
+          <Button onClick={fetchData} variant="outline" size="sm">
+            <RefreshCw className="w-4 h-4 mr-2" />
+            새로고침
+          </Button>
+        </div>
       </div>
 
       {/* A/B Testing Settings */}
