@@ -1,20 +1,41 @@
 /**
- * Scenario Service
- * 시나리오 관리 - 첫 만남부터 스토리 에피소드까지
+ * Scenario Service — Unified router (v1 + v2)
+ *
+ * Single entry point for every scenario interaction. Templates live in
+ * scenario_templates and are routed by their `generation_mode` column:
+ *   - 'static'  → pre-defined scenes (this file's own logic, the legacy v1 path)
+ *   - 'guided'  → ScenarioSessionManager + GuidedScenarioEngine
+ *   - 'dynamic' → ScenarioSessionManager + DynamicScenarioEngine
+ *
+ * Callers should use this service for everything; the engines below are
+ * implementation details. Sessions for static play are persisted in
+ * `user_scenario_progress` + `scenario_sessions`; guided/dynamic use
+ * `guided_scenario_sessions` / `dynamic_scenario_sessions`.
  */
 
 import { SupabaseClient } from '@supabase/supabase-js';
+import {
+  ScenarioSessionManager,
+  ScenarioMode,
+  ScenarioStartResult,
+  ScenarioMessageResult,
+  UnifiedScenarioSession,
+  getScenarioSessionManager,
+} from './scenario-session-manager';
 
 // ============================================
 // 타입 정의
 // ============================================
+
+export type ScenarioGenerationMode = ScenarioMode;
 
 export interface ScenarioTemplate {
   id: string;
   personaId: string;
   title: string;
   description: string | null;
-  scenarioType: 'first_meeting' | 'story_episode' | 'dm_triggered' | 'scheduled_event' | 'milestone';
+  scenarioType: 'first_meeting' | 'story_episode' | 'dm_triggered' | 'scheduled_event' | 'milestone' | 'onboarding';
+  generationMode: ScenarioGenerationMode;
   triggerConditions: Record<string, unknown>;
   content: ScenarioContent;
   sortOrder: number;
@@ -164,9 +185,11 @@ export interface ScenarioSession {
 
 export class ScenarioService {
   private supabase: SupabaseClient;
+  private sessionManager: ScenarioSessionManager;
 
   constructor(supabase: SupabaseClient) {
     this.supabase = supabase;
+    this.sessionManager = getScenarioSessionManager(supabase);
   }
 
   // ============================================
@@ -295,7 +318,8 @@ export class ScenarioService {
   }
 
   /**
-   * 시나리오 시작
+   * Static 시나리오 시작 (사전 정의된 씬 진행 모드)
+   * Generic 진입점은 startScenarioByMode를 사용하세요.
    */
   async startScenario(
     userId: string,
@@ -313,13 +337,92 @@ export class ScenarioService {
         choices_made: [],
         started_at: new Date().toISOString(),
       }, {
-        onConflict: 'user_id,persona_id,scenario_id'
+        onConflict: 'user_id,scenario_id'
       })
       .select()
       .single();
 
     if (error) throw error;
     return this.mapProgress(data);
+  }
+
+  // ============================================
+  // 통합 라우터 (generation_mode 기반)
+  // ============================================
+
+  /**
+   * generation_mode를 자동으로 인식해 알맞은 엔진으로 시나리오를 시작한다.
+   *
+   * - static  → user_scenario_progress 레코드 생성 후 스크립트 시퀀스 반환
+   * - guided  → guided_scenario_sessions + GuidedScenarioEngine
+   * - dynamic → dynamic_scenario_sessions + DynamicScenarioEngine
+   */
+  async startScenarioByMode(
+    userId: string,
+    personaId: string,
+    scenarioId: string,
+    triggerContext?: {
+      affection: number;
+      relationshipStage: string;
+      triggeredBy?: string;
+    }
+  ): Promise<ScenarioStartResult> {
+    const template = await this.getScenario(scenarioId);
+    if (!template) {
+      return { success: false, error: 'Scenario not found' };
+    }
+
+    return this.sessionManager.startScenario(
+      template.generationMode,
+      scenarioId,
+      userId,
+      personaId,
+      triggerContext
+    );
+  }
+
+  /**
+   * 활성화된 세션에서 다음 메시지를 처리한다 (guided/dynamic 전용).
+   * static 시나리오는 advanceScene/makeChoice를 사용하세요.
+   */
+  async processScenarioMessage(
+    sessionId: string,
+    mode: ScenarioMode,
+    userMessage: string
+  ): Promise<ScenarioMessageResult> {
+    return this.sessionManager.processMessage(sessionId, mode, userMessage);
+  }
+
+  /**
+   * 페르소나-유저 쌍의 활성 시나리오 세션 조회 (mode 무관)
+   */
+  async getActiveScenarioSession(
+    userId: string,
+    personaId: string
+  ): Promise<UnifiedScenarioSession | null> {
+    return this.sessionManager.getActiveSession(userId, personaId);
+  }
+
+  /**
+   * 세션 완료/일시정지/재개를 mode에 맞게 위임
+   */
+  async pauseScenarioSession(sessionId: string, mode: ScenarioMode): Promise<void> {
+    return this.sessionManager.pauseSession(sessionId, mode);
+  }
+
+  async resumeScenarioSession(
+    sessionId: string,
+    mode: ScenarioMode
+  ): Promise<UnifiedScenarioSession | null> {
+    return this.sessionManager.resumeSession(sessionId, mode);
+  }
+
+  async completeScenarioSession(
+    sessionId: string,
+    mode: ScenarioMode,
+    reason?: string
+  ): Promise<void> {
+    return this.sessionManager.completeSession(sessionId, mode, reason);
   }
 
   /**

@@ -13,10 +13,6 @@ export const onboarding = {
   aiInteractiveStory: 'AI 인터랙티브 스토리',
   someoneMessaged: '누군가 메시지를 보냈어요',
   enterTheirStory: '대화를 통해 그들의 이야기 속으로',
-  // LockScreen preview messages
-  junPreview: '...잠이 안 와. 너도?',
-  minhoPreview: '귀찮게 왜 자꾸 신경 쓰이는 건데...',
-  hanaPreview: '오늘도 좋은 하루! ...거짓말이야',
   // Follow personas page
   whichCharacterToChat: '어떤 캐릭터와 대화하고 싶으세요?',
   recommendByPreference: '취향에 맞는 캐릭터를 추천해드릴게요',

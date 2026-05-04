@@ -13,10 +13,6 @@ export const onboarding = {
   aiInteractiveStory: 'AI Interactive Story',
   someoneMessaged: 'Someone sent you a message',
   enterTheirStory: 'Enter their story through conversation',
-  // LockScreen preview messages
-  junPreview: "...Can't sleep. You too?",
-  minhoPreview: "Why do you keep crossing my mind...",
-  hanaPreview: "Have a great day! ...just kidding",
   // Follow personas page
   whichCharacterToChat: 'Which character would you like to chat with?',
   recommendByPreference: "We'll recommend characters based on your preference",
