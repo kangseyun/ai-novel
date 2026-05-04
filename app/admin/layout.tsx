@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
-import { Loader2, Shield, Home, Users, Settings, LogOut, Megaphone, Brain, Sparkles, BookOpen, Zap, CreditCard, DollarSign, ShieldAlert, FileText } from 'lucide-react';
+import { Loader2, Shield, Home, Users, Settings, LogOut, Megaphone, Brain, Sparkles, BookOpen, Zap, CreditCard, DollarSign, ShieldAlert, FileText, Star } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -13,6 +13,7 @@ import { FloatingImageQueue } from '@/components/admin/FloatingImageQueue';
 
 const navItems = [
   { href: '/admin', icon: Home, label: '대시보드' },
+  { href: '/admin/lumin', icon: Star, label: 'LUMIN 멤버' },
   { href: '/admin/personas', icon: Users, label: '페르소나 관리' },
   { href: '/admin/onboarding', icon: Sparkles, label: '온보딩 관리' },
   { href: '/admin/scenarios', icon: BookOpen, label: '시나리오 관리' },
