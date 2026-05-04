@@ -1,4 +1,5 @@
 'use client';
+import { adminFetch } from '@/lib/admin-fetch';
 
 import { useEffect, useState, useMemo, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
@@ -505,7 +506,7 @@ export default function PersonasListPage() {
 
   // Generate random diverse prompts for auto-generation
   async function generateAutoPrompts(count: number): Promise<string[]> {
-    const res = await fetch('/api/admin/persona/generate-auto-prompts', {
+    const res = await adminFetch('/api/admin/persona/generate-auto-prompts', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ count }),
@@ -590,7 +591,7 @@ export default function PersonasListPage() {
         try {
           // Generate persona text
           const isAutoMode = p.templateId.startsWith('auto');
-          const res = await fetch('/api/admin/persona/generate', {
+          const res = await adminFetch('/api/admin/persona/generate', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -639,7 +640,7 @@ export default function PersonasListPage() {
               );
 
               try {
-                const imageRes = await fetch('/api/admin/persona/generate-image', {
+                const imageRes = await adminFetch('/api/admin/persona/generate-image', {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({

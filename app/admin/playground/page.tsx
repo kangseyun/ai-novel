@@ -1,4 +1,5 @@
 'use client';
+import { adminFetch } from '@/lib/admin-fetch';
 
 import { useEffect, useState, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
@@ -137,7 +138,7 @@ export default function AIPlaygroundPage() {
     async function loadModels() {
       setModelsLoading(true);
       try {
-        const response = await fetch('/api/admin/playground/models');
+        const response = await adminFetch('/api/admin/playground/models');
         if (!response.ok) throw new Error('Failed to fetch models');
         const data = await response.json();
         setModels(data.models || []);
@@ -225,7 +226,7 @@ export default function AIPlaygroundPage() {
     setSending(true);
 
     try {
-      const response = await fetch('/api/admin/playground/chat', {
+      const response = await adminFetch('/api/admin/playground/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

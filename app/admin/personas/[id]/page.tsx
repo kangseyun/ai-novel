@@ -1,4 +1,5 @@
 'use client';
+import { adminFetch } from '@/lib/admin-fetch';
 
 import { useEffect, useState, use } from 'react';
 import { useRouter } from 'next/navigation';
@@ -294,7 +295,7 @@ export default function PersonaEditPage({ params }: { params: Promise<{ id: stri
 
     setIsGenerating(true);
     try {
-      const res = await fetch('/api/admin/persona/generate', {
+      const res = await adminFetch('/api/admin/persona/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ prompt: conceptPrompt }),
@@ -345,7 +346,7 @@ export default function PersonaEditPage({ params }: { params: Promise<{ id: stri
 
     setGeneratingField(field);
     try {
-      const res = await fetch('/api/admin/persona/generate', {
+      const res = await adminFetch('/api/admin/persona/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -372,7 +373,7 @@ export default function PersonaEditPage({ params }: { params: Promise<{ id: stri
   // Image generation - preview prompt
   async function handlePreviewImagePrompt() {
     try {
-      const res = await fetch('/api/admin/persona/generate-image', {
+      const res = await adminFetch('/api/admin/persona/generate-image', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -406,7 +407,7 @@ export default function PersonaEditPage({ params }: { params: Promise<{ id: stri
     setGeneratedImages([]);
 
     try {
-      const res = await fetch('/api/admin/persona/generate-image', {
+      const res = await adminFetch('/api/admin/persona/generate-image', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

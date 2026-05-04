@@ -1,4 +1,5 @@
 'use client';
+import { adminFetch } from '@/lib/admin-fetch';
 
 import { useEffect, useState, useCallback, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
@@ -238,7 +239,7 @@ export default function ProjectDetailPage() {
       // Find matching copy if available (optional)
       const approvedCopy = marketingCopies.find(c => c.status === 'approved');
       
-      const res = await fetch('/api/admin/marketing/upload/meta', {
+      const res = await adminFetch('/api/admin/marketing/upload/meta', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -267,7 +268,7 @@ export default function ProjectDetailPage() {
 
   const loadProject = useCallback(async () => {
     try {
-      const res = await fetch(`/api/admin/marketing/projects/${projectId}`);
+      const res = await adminFetch(`/api/admin/marketing/projects/${projectId}`);
       const data = await res.json();
       setProject(data.project);
       setImages(data.images || []);
@@ -316,7 +317,7 @@ export default function ProjectDetailPage() {
 
   const loadTemplates = useCallback(async () => {
     try {
-      const res = await fetch('/api/admin/marketing/generate-ad');
+      const res = await adminFetch('/api/admin/marketing/generate-ad');
       const data = await res.json();
       setTemplates(data.templates || {});
       setSizes(data.sizes || {});
@@ -327,7 +328,7 @@ export default function ProjectDetailPage() {
 
   const loadTasks = useCallback(async () => {
     try {
-      const res = await fetch(`/api/admin/marketing/tasks?project_id=${projectId}`);
+      const res = await adminFetch(`/api/admin/marketing/tasks?project_id=${projectId}`);
       const data = await res.json();
       setTasks(data.tasks || []);
     } catch (error) {
@@ -407,7 +408,7 @@ export default function ProjectDetailPage() {
 
     const pollTask = async () => {
       try {
-        const res = await fetch(`/api/admin/marketing/tasks/${currentTaskId}`);
+        const res = await adminFetch(`/api/admin/marketing/tasks/${currentTaskId}`);
         const data = await res.json();
         const task = data.task as GenerationTask;
 
@@ -490,7 +491,7 @@ export default function ProjectDetailPage() {
     setGenerationStep('generate-base');
 
     try {
-      const res = await fetch('/api/admin/marketing/tasks', {
+      const res = await adminFetch('/api/admin/marketing/tasks', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -539,7 +540,7 @@ export default function ProjectDetailPage() {
     setGenerationStep('generate-base');
 
     try {
-      const res = await fetch('/api/admin/marketing/generate-ad', {
+      const res = await adminFetch('/api/admin/marketing/generate-ad', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -567,7 +568,7 @@ export default function ProjectDetailPage() {
         await new Promise((resolve) => setTimeout(resolve, 3000));
         attempts++;
 
-        const statusRes = await fetch(`/api/admin/marketing/generate-ad?taskId=${taskId}`);
+        const statusRes = await adminFetch(`/api/admin/marketing/generate-ad?taskId=${taskId}`);
         const statusData = await statusRes.json();
 
         if (statusData.status === 'succeed') {
@@ -625,7 +626,7 @@ export default function ProjectDetailPage() {
     if (!persona) return null;
 
     try {
-      const res = await fetch('/api/admin/marketing/images', {
+      const res = await adminFetch('/api/admin/marketing/images', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -657,7 +658,7 @@ export default function ProjectDetailPage() {
   // 베이스 이미지를 프로젝트에 저장
   const saveBaseImageToProject = async (imageUrl: string) => {
     try {
-      const res = await fetch(`/api/admin/marketing/projects/${projectId}`, {
+      const res = await adminFetch(`/api/admin/marketing/projects/${projectId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -686,7 +687,7 @@ export default function ProjectDetailPage() {
 
     setIsGeneratingPrompt(true);
     try {
-      const res = await fetch('/api/admin/marketing/generate-copy', {
+      const res = await adminFetch('/api/admin/marketing/generate-copy', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -717,7 +718,7 @@ export default function ProjectDetailPage() {
 
     setIsGeneratingConcept(true);
     try {
-      const res = await fetch('/api/admin/marketing/generate-copy', {
+      const res = await adminFetch('/api/admin/marketing/generate-copy', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -751,7 +752,7 @@ export default function ProjectDetailPage() {
 
     setIsGeneratingCopy(true);
     try {
-      const res = await fetch('/api/admin/marketing/generate-copy', {
+      const res = await adminFetch('/api/admin/marketing/generate-copy', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -780,7 +781,7 @@ export default function ProjectDetailPage() {
 
   const saveMarketingCopies = async (copies: Array<{ headline: string; body: string; cta: string }>) => {
     try {
-      const res = await fetch('/api/admin/marketing/copies', {
+      const res = await adminFetch('/api/admin/marketing/copies', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -800,7 +801,7 @@ export default function ProjectDetailPage() {
 
   const saveMarketingConcept = async () => {
     try {
-      await fetch(`/api/admin/marketing/projects/${projectId}`, {
+      await adminFetch(`/api/admin/marketing/projects/${projectId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -820,7 +821,7 @@ export default function ProjectDetailPage() {
 
   const handleUpdateCopyStatus = async (copyId: string, status: string) => {
     try {
-      await fetch(`/api/admin/marketing/copies/${copyId}`, {
+      await adminFetch(`/api/admin/marketing/copies/${copyId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status }),
@@ -837,7 +838,7 @@ export default function ProjectDetailPage() {
     if (!confirm('이 문구를 삭제하시겠습니까?')) return;
 
     try {
-      await fetch(`/api/admin/marketing/copies/${copyId}`, { method: 'DELETE' });
+      await adminFetch(`/api/admin/marketing/copies/${copyId}`, { method: 'DELETE' });
       setMarketingCopies(prev => prev.filter(c => c.id !== copyId));
     } catch (error) {
       console.error('Failed to delete copy:', error);
@@ -846,7 +847,7 @@ export default function ProjectDetailPage() {
 
   const handleUpdateImageStatus = async (imageId: string, status: string) => {
     try {
-      await fetch(`/api/admin/marketing/images/${imageId}`, {
+      await adminFetch(`/api/admin/marketing/images/${imageId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status }),
@@ -865,7 +866,7 @@ export default function ProjectDetailPage() {
     if (!confirm('이 이미지를 삭제하시겠습니까?')) return;
 
     try {
-      await fetch(`/api/admin/marketing/images/${imageId}`, { method: 'DELETE' });
+      await adminFetch(`/api/admin/marketing/images/${imageId}`, { method: 'DELETE' });
       setImages((prev) => prev.filter((img) => img.id !== imageId));
     } catch (error) {
       console.error('Failed to delete image:', error);
@@ -875,7 +876,7 @@ export default function ProjectDetailPage() {
   // 이미지를 베이스 이미지로 설정
   const handleSetAsBaseImage = async (imageUrl: string) => {
     try {
-      const res = await fetch(`/api/admin/marketing/projects/${projectId}`, {
+      const res = await adminFetch(`/api/admin/marketing/projects/${projectId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -901,7 +902,7 @@ export default function ProjectDetailPage() {
     }
 
     try {
-      const res = await fetch('/api/admin/marketing/tasks', {
+      const res = await adminFetch('/api/admin/marketing/tasks', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -935,7 +936,7 @@ export default function ProjectDetailPage() {
 
   const handleCancelTask = async (taskId: string) => {
     try {
-      await fetch(`/api/admin/marketing/tasks/${taskId}`, { method: 'DELETE' });
+      await adminFetch(`/api/admin/marketing/tasks/${taskId}`, { method: 'DELETE' });
       loadTasks();
     } catch (error) {
       console.error('Failed to cancel task:', error);

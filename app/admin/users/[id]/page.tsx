@@ -1,4 +1,5 @@
 'use client';
+import { adminFetch } from '@/lib/admin-fetch';
 
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
@@ -231,7 +232,7 @@ export default function UserDetailPage() {
 
     setIsSearching(true);
     try {
-      const response = await fetch(`/api/admin/users/${userId}/memory-search`, {
+      const response = await adminFetch(`/api/admin/users/${userId}/memory-search`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

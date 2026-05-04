@@ -1,4 +1,5 @@
 'use client';
+import { adminFetch } from '@/lib/admin-fetch';
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
@@ -184,7 +185,7 @@ export default function ScenarioGeneratePage() {
     setGeneratedScenario(null);
 
     try {
-      const response = await fetch('/api/admin/scenarios/generate', {
+      const response = await adminFetch('/api/admin/scenarios/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -222,7 +223,7 @@ export default function ScenarioGeneratePage() {
 
     setIsSaving(true);
     try {
-      const response = await fetch('/api/admin/scenarios/save', {
+      const response = await adminFetch('/api/admin/scenarios/save', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

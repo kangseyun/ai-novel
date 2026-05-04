@@ -1,4 +1,5 @@
 'use client';
+import { adminFetch } from '@/lib/admin-fetch';
 
 import { useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
@@ -125,7 +126,7 @@ export default function MarketingPage() {
 
   async function loadProjects() {
     try {
-      const res = await fetch('/api/admin/marketing/projects');
+      const res = await adminFetch('/api/admin/marketing/projects');
       const data = await res.json();
       setProjects(data.projects || []);
     } catch (error) {
@@ -164,7 +165,7 @@ export default function MarketingPage() {
 
     setIsCreating(true);
     try {
-      const res = await fetch('/api/admin/marketing/projects', {
+      const res = await adminFetch('/api/admin/marketing/projects', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newProject),
@@ -195,7 +196,7 @@ export default function MarketingPage() {
     if (!confirm('이 프로젝트를 삭제하시겠습니까? 모든 이미지도 함께 삭제됩니다.')) return;
 
     try {
-      await fetch(`/api/admin/marketing/projects/${id}`, { method: 'DELETE' });
+      await adminFetch(`/api/admin/marketing/projects/${id}`, { method: 'DELETE' });
       setProjects(prev => prev.filter(p => p.id !== id));
     } catch (error) {
       console.error('Failed to delete project:', error);
@@ -204,7 +205,7 @@ export default function MarketingPage() {
 
   async function handleUpdateStatus(id: string, status: string) {
     try {
-      await fetch(`/api/admin/marketing/projects/${id}`, {
+      await adminFetch(`/api/admin/marketing/projects/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status }),
