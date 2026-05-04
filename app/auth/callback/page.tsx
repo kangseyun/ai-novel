@@ -7,6 +7,7 @@ import { apiClient } from '@/lib/api-client';
 import { useAuthStore } from '@/lib/stores/auth-store';
 import analytics from '@/lib/analytics';
 import { useTranslations } from '@/lib/i18n';
+import { readStored as readStoredUtm, clearStored as clearStoredUtm } from '@/lib/utm-capture';
 
 export default function AuthCallbackPage() {
   const router = useRouter();
@@ -56,6 +57,7 @@ export default function AuthCallbackPage() {
           if (!existingUser) {
             isNewUser = true;
             needsFollowSetup = true;
+            const utm = readStoredUtm();
             // 신규 가입자 - 온보딩은 회원가입 전에 이미 완료됨
             await supabase.from('users').insert({
               id: user.id,
@@ -65,7 +67,15 @@ export default function AuthCallbackPage() {
               tokens: 100,
               onboarding_completed: true,
               initial_follows_completed: false,
+              utm_source: utm?.utm_source ?? null,
+              utm_medium: utm?.utm_medium ?? null,
+              utm_campaign: utm?.utm_campaign ?? null,
+              utm_content: utm?.utm_content ?? null,
+              utm_term: utm?.utm_term ?? null,
+              landing_path: utm?.landing_path ?? null,
+              first_referrer: utm?.first_referrer ?? null,
             });
+            if (utm) clearStoredUtm();
 
             // 유저 식별 후 회원가입 이벤트 (순서 중요: identify → track)
             analytics.identify(user.id, { email: user.email });
@@ -122,6 +132,7 @@ export default function AuthCallbackPage() {
 
             if (!existingUser) {
               needsFollowSetup = true;
+              const utm = readStoredUtm();
               // 신규 가입자 - 온보딩은 회원가입 전에 이미 완료됨
               await supabase.from('users').insert({
                 id: data.user.id,
@@ -131,7 +142,15 @@ export default function AuthCallbackPage() {
                 tokens: 100,
                 onboarding_completed: true,
                 initial_follows_completed: false,
+                utm_source: utm?.utm_source ?? null,
+                utm_medium: utm?.utm_medium ?? null,
+                utm_campaign: utm?.utm_campaign ?? null,
+                utm_content: utm?.utm_content ?? null,
+                utm_term: utm?.utm_term ?? null,
+                landing_path: utm?.landing_path ?? null,
+                first_referrer: utm?.first_referrer ?? null,
               });
+              if (utm) clearStoredUtm();
 
               // 유저 식별 후 회원가입 이벤트 (순서 중요: identify → track)
               analytics.identify(data.user.id, { email: data.user.email });

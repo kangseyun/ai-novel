@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import AnalyticsProvider from "@/components/AnalyticsProvider";
+import { UtmCapture } from "@/components/UtmCapture";
 import { FirebaseProvider } from "@/components/providers/FirebaseProvider";
 import { TutorialProvider } from "@/components/tutorial";
 import { WelcomeOfferProvider } from "@/components/providers/WelcomeOfferProvider";
@@ -167,6 +168,7 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-black text-white`}
       >
         <AnalyticsProvider />
+        <UtmCapture />
         <FirebaseProvider>
           <TutorialProvider>
             <WelcomeOfferProvider>
