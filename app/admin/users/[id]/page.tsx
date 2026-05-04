@@ -421,14 +421,20 @@ export default function UserDetailPage() {
         <div className="md:col-span-2 space-y-6">
           <Tabs defaultValue="overview" className="w-full">
             <TabsList className="w-full justify-start border-b rounded-none h-auto p-0 bg-transparent gap-6">
-              <TabsTrigger 
-                value="overview" 
+              <TabsTrigger
+                value="overview"
                 className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-2"
               >
                 활동 통계
               </TabsTrigger>
-              <TabsTrigger 
-                value="chat" 
+              <TabsTrigger
+                value="members"
+                className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-2"
+              >
+                멤버 진행
+              </TabsTrigger>
+              <TabsTrigger
+                value="chat"
                 className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-2"
               >
                 대화 모니터링
@@ -507,6 +513,10 @@ export default function UserDetailPage() {
                   </Table>
                 </CardContent>
               </Card>
+            </TabsContent>
+
+            <TabsContent value="members" className="mt-6">
+              <PersonaProgressPanel userId={userId as string} />
             </TabsContent>
 
             <TabsContent value="chat" className="mt-6 flex gap-4 h-[600px]">
@@ -802,6 +812,173 @@ export default function UserDetailPage() {
           </Tabs>
         </div>
       </div>
+    </div>
+  );
+}
+
+interface PersonaProgressCard {
+  persona: {
+    id: string;
+    name: string;
+    fullName: string | null;
+    profileImageUrl: string | null;
+    role: string | null;
+    status: string | null;
+  };
+  relationship: {
+    affection: number;
+    stage: string;
+    trust: number;
+    intimacy: number;
+    totalMessages: number;
+    firstInteractionAt: string | null;
+    lastInteractionAt: string | null;
+    isUnlocked: boolean;
+  } | null;
+  milestones: {
+    total: number;
+    recent: { id: string; type: string; description: string; achieved_at: string }[];
+  };
+  scenarios: { completed: number; inProgress: number };
+  memoriesActive: number;
+}
+
+const STAGE_LABEL: Record<string, string> = {
+  stranger: 'Stranger',
+  fan: 'Fan',
+  friend: 'Friend',
+  close: 'Close',
+  heart: '💗 Heart',
+};
+
+const STAGE_COLOR: Record<string, string> = {
+  stranger: 'bg-slate-100 text-slate-700',
+  fan: 'bg-sky-100 text-sky-700',
+  friend: 'bg-emerald-100 text-emerald-700',
+  close: 'bg-violet-100 text-violet-700',
+  heart: 'bg-pink-100 text-pink-700',
+};
+
+function PersonaProgressPanel({ userId }: { userId: string }) {
+  const [cards, setCards] = useState<PersonaProgressCard[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function load() {
+      const res = await adminFetch(`/api/admin/users/${userId}/persona-progress`);
+      if (res.ok) {
+        const data = await res.json();
+        setCards(data.cards ?? []);
+      }
+      setLoading(false);
+    }
+    load();
+  }, [userId]);
+
+  if (loading) {
+    return <div className="p-12 flex justify-center"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div>;
+  }
+  if (cards.length === 0) {
+    return <div className="p-12 text-center text-muted-foreground text-sm">페르소나 데이터 없음</div>;
+  }
+
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+      {cards.map((c) => {
+        const rel = c.relationship;
+        const stageLabel = rel ? (STAGE_LABEL[rel.stage] ?? rel.stage) : '미접촉';
+        const stageClass = rel ? (STAGE_COLOR[rel.stage] ?? '') : 'bg-slate-100 text-slate-500';
+        const affectionPct = rel ? Math.min(100, Math.max(0, rel.affection)) : 0;
+
+        return (
+          <Card key={c.persona.id} className={!rel?.isUnlocked ? 'opacity-70' : ''}>
+            <CardHeader className="pb-3">
+              <div className="flex items-center gap-3">
+                {c.persona.profileImageUrl ? (
+                  <img
+                    src={c.persona.profileImageUrl}
+                    alt={c.persona.name}
+                    className="w-12 h-12 rounded-full object-cover"
+                  />
+                ) : (
+                  <div className="w-12 h-12 rounded-full bg-slate-200 flex items-center justify-center text-sm font-bold">
+                    {c.persona.name.slice(0, 1)}
+                  </div>
+                )}
+                <div className="flex-1 min-w-0">
+                  <div className="font-semibold truncate">{c.persona.name}</div>
+                  <div className="text-xs text-muted-foreground truncate">
+                    {c.persona.role || c.persona.id}
+                  </div>
+                </div>
+                <Badge className={stageClass} variant="secondary">{stageLabel}</Badge>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-3 text-sm">
+              {rel ? (
+                <>
+                  <div>
+                    <div className="flex justify-between text-xs mb-1">
+                      <span className="text-muted-foreground">호감도</span>
+                      <span className="font-medium">{rel.affection}</span>
+                    </div>
+                    <div className="h-1.5 bg-slate-100 rounded overflow-hidden">
+                      <div
+                        className="h-full bg-pink-500 transition-all"
+                        style={{ width: `${affectionPct}%` }}
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-3 gap-2 text-xs">
+                    <Metric label="신뢰" value={rel.trust} />
+                    <Metric label="친밀" value={rel.intimacy} />
+                    <Metric label="메시지" value={rel.totalMessages} />
+                  </div>
+                  <div className="grid grid-cols-3 gap-2 text-xs">
+                    <Metric label="시나리오 완료" value={c.scenarios.completed} />
+                    <Metric label="진행 중" value={c.scenarios.inProgress} />
+                    <Metric label="메모리" value={c.memoriesActive} />
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    마지막 대화: {rel.lastInteractionAt
+                      ? format(new Date(rel.lastInteractionAt), 'yyyy-MM-dd HH:mm')
+                      : '—'}
+                  </div>
+                  {c.milestones.total > 0 && (
+                    <details className="text-xs">
+                      <summary className="cursor-pointer text-muted-foreground">
+                        마일스톤 {c.milestones.total}건
+                      </summary>
+                      <ul className="mt-2 space-y-1">
+                        {c.milestones.recent.map((m) => (
+                          <li key={m.id} className="border-l-2 border-pink-300 pl-2">
+                            <div className="font-medium">{m.type}</div>
+                            <div className="text-muted-foreground">{m.description}</div>
+                            <div className="text-[10px] text-muted-foreground">
+                              {format(new Date(m.achieved_at), 'yyyy-MM-dd')}
+                            </div>
+                          </li>
+                        ))}
+                      </ul>
+                    </details>
+                  )}
+                </>
+              ) : (
+                <div className="text-xs text-muted-foreground">아직 대화 시작 전</div>
+              )}
+            </CardContent>
+          </Card>
+        );
+      })}
+    </div>
+  );
+}
+
+function Metric({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="bg-slate-50 rounded p-2">
+      <div className="text-muted-foreground">{label}</div>
+      <div className="font-semibold">{value.toLocaleString()}</div>
     </div>
   );
 }
