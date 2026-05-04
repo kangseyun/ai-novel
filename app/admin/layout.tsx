@@ -20,7 +20,6 @@ const navItems = [
   { href: '/admin/playground', icon: Brain, label: 'AI 튜닝 (Playground)' },
   { href: '/admin/users', icon: Settings, label: '유저 관리' },
   { href: '/admin/marketing', icon: Megaphone, label: '마케팅 컨텐츠' },
-  { href: '/admin/settings', icon: Settings, label: '설정' },
 ];
 
 export default function AdminLayout({
