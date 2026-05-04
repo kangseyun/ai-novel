@@ -5,24 +5,21 @@ import { recordAdminAction } from '@/lib/admin-audit';
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ userId: string }> }
 ) {
   const guard = await requireAdmin();
   if (!guard.ok) return guard.response;
 
-  const { id: userId } = await params;
+  const { userId } = await params;
   const body = await request.json().catch(() => ({}));
-  const delta = Number(body.delta);
+  const ban = body.ban === true;
   const reason = typeof body.reason === 'string' ? body.reason.trim() : '';
 
-  if (!Number.isFinite(delta) || delta === 0) {
-    return NextResponse.json({ error: 'delta must be a non-zero number' }, { status: 400 });
+  if (ban && (!reason || reason.length < 3)) {
+    return NextResponse.json({ error: 'reason is required when banning (min 3 chars)' }, { status: 400 });
   }
-  if (Math.abs(delta) > 1_000_000) {
-    return NextResponse.json({ error: 'delta out of safe range (|delta| <= 1,000,000)' }, { status: 400 });
-  }
-  if (!reason || reason.length < 3) {
-    return NextResponse.json({ error: 'reason is required (min 3 chars)' }, { status: 400 });
+  if (userId === guard.userId) {
+    return NextResponse.json({ error: 'You cannot ban yourself' }, { status: 400 });
   }
 
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -34,7 +31,7 @@ export async function POST(
 
   const { data: before, error: beforeErr } = await admin
     .from('users')
-    .select('id, email, tokens')
+    .select('id, email, role, is_banned, banned_at, banned_reason')
     .eq('id', userId)
     .single();
 
@@ -42,12 +39,17 @@ export async function POST(
     return NextResponse.json({ error: 'User not found' }, { status: 404 });
   }
 
-  const beforeTokens = (before as { tokens: number }).tokens ?? 0;
-  const newTokens = Math.max(0, beforeTokens + delta);
+  if ((before as { role: string }).role === 'admin') {
+    return NextResponse.json({ error: 'Cannot ban an admin user; demote first' }, { status: 400 });
+  }
+
+  const update = ban
+    ? { is_banned: true, banned_at: new Date().toISOString(), banned_reason: reason }
+    : { is_banned: false, banned_at: null, banned_reason: null };
 
   const { error: updateErr } = await admin
     .from('users')
-    .update({ tokens: newTokens })
+    .update(update)
     .eq('id', userId);
 
   if (updateErr) {
@@ -57,19 +59,16 @@ export async function POST(
   await recordAdminAction({
     adminUserId: guard.userId,
     adminEmail: guard.email,
-    action: 'token_adjust',
+    action: ban ? 'ban' : 'unban',
     targetType: 'user',
     targetId: userId,
-    reason,
-    before: { tokens: beforeTokens },
-    after: { tokens: newTokens },
-    metadata: { delta, requested_delta: delta, applied_delta: newTokens - beforeTokens },
+    reason: reason || null,
+    before: {
+      is_banned: (before as { is_banned?: boolean }).is_banned ?? false,
+      banned_reason: (before as { banned_reason?: string | null }).banned_reason ?? null,
+    },
+    after: { is_banned: ban, banned_reason: ban ? reason : null },
   });
 
-  return NextResponse.json({
-    userId,
-    before: beforeTokens,
-    after: newTokens,
-    appliedDelta: newTokens - beforeTokens,
-  });
+  return NextResponse.json({ userId, banned: ban });
 }
