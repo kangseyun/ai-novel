@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { requireAdmin } from '@/lib/auth';
 
 // 다양성을 위한 옵션들 (더 풍부하게)
 const NATIONALITIES = [
@@ -246,6 +247,9 @@ ${specialTwist ? `\n## 특별 설정\n- ${specialTwist}` : ''}
 
 export async function POST(request: NextRequest) {
   try {
+    const guard = await requireAdmin();
+    if (!guard.ok) return guard.response;
+
     const body = await request.json();
     const { count = 3 } = body;
 

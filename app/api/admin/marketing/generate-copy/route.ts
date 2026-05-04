@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { requireAdmin } from '@/lib/auth';
 
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY || process.env.NEXT_PUBLIC_OPENROUTER_API_KEY;
 
@@ -258,6 +259,9 @@ All text should be in Korean.`;
 
 export async function POST(request: NextRequest): Promise<NextResponse<GenerateCopyResponse>> {
   try {
+    const guard = await requireAdmin();
+    if (!guard.ok) return guard.response as NextResponse<GenerateCopyResponse>;
+
     const body: GeneratePromptRequest = await request.json();
     const {
       type,

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { requireAdmin } from '@/lib/auth';
 import { getKlingAIClient } from '@/lib/kling-ai';
 
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY || process.env.NEXT_PUBLIC_OPENROUTER_API_KEY;
@@ -158,6 +159,9 @@ function buildPersonaPrompt(data: GenerateImageRequest['personaData'], conceptPr
 
 export async function POST(request: NextRequest) {
   try {
+    const guard = await requireAdmin();
+    if (!guard.ok) return guard.response;
+
     const body: GenerateImageRequest = await request.json();
     const { personaData, conceptPrompt, imageType, sceneContext, customPrompt, previewOnly } = body;
 

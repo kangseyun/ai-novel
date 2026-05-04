@@ -1,10 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { requireAdmin } from '@/lib/auth';
 import { adManager } from '@/lib/marketing/core/ad-manager';
 import { AdPlatform } from '@/lib/marketing/core/types';
 
 export async function POST(req: NextRequest) {
   try {
+    const guard = await requireAdmin();
+    if (!guard.ok) return guard.response;
+
     const body = await req.json();
     const { platform, adId } = body;
 

@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { requireAdmin } from '@/lib/auth';
 import { getKlingAIClient } from '@/lib/kling-ai';
 
 export async function GET(request: NextRequest) {
   try {
+    const guard = await requireAdmin();
+    if (!guard.ok) return guard.response;
+
     const { searchParams } = new URL(request.url);
     const taskId = searchParams.get('taskId');
 

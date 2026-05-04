@@ -1147,6 +1147,7 @@ export class ScenarioService {
       title: data.title as string,
       description: data.description as string | null,
       scenarioType: data.scenario_type as ScenarioTemplate['scenarioType'],
+      generationMode: (data.generation_mode as ScenarioGenerationMode) ?? 'static',
       triggerConditions: data.trigger_conditions as Record<string, unknown>,
       content: data.content as ScenarioContent,
       sortOrder: data.sort_order as number,

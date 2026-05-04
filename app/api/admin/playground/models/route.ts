@@ -1,7 +1,11 @@
 import { NextResponse } from 'next/server';
+import { requireAdmin } from '@/lib/auth';
 
 export async function GET() {
   try {
+    const guard = await requireAdmin();
+    if (!guard.ok) return guard.response;
+
     const response = await fetch('https://openrouter.ai/api/v1/models', {
       headers: {
         'Content-Type': 'application/json',

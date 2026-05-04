@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getAuthUser, unauthorized, badRequest, serverError } from '@/lib/auth';
+import { requireAdmin, badRequest, serverError } from '@/lib/auth';
 import { getKlingAIClient, PERSONA_IMAGE_PROMPTS, SCENE_PROMPTS } from '@/lib/kling-ai';
-import { createClient } from '@/lib/supabase-server';
 
 /**
  * POST /api/admin/generate-images
@@ -9,20 +8,8 @@ import { createClient } from '@/lib/supabase-server';
  */
 export async function POST(request: NextRequest) {
   try {
-    const user = await getAuthUser(request);
-    if (!user) return unauthorized();
-
-    // 관리자 권한 체크
-    const supabase = await createClient();
-    const { data: userData } = await supabase
-      .from('users')
-      .select('role')
-      .eq('id', user.id)
-      .single();
-
-    if (userData?.role !== 'admin') {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
+    const guard = await requireAdmin();
+    if (!guard.ok) return guard.response;
 
     const { personaId, sceneKey, additionalPrompt, batchGenerate } = await request.json();
 
@@ -66,10 +53,10 @@ export async function POST(request: NextRequest) {
  * GET /api/admin/generate-images
  * 사용 가능한 프롬프트 목록 조회
  */
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   try {
-    const user = await getAuthUser(request);
-    if (!user) return unauthorized();
+    const guard = await requireAdmin();
+    if (!guard.ok) return guard.response;
 
     return NextResponse.json({
       personas: Object.keys(PERSONA_IMAGE_PROMPTS).map(id => ({

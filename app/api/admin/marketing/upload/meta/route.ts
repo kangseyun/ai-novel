@@ -1,9 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { requireAdmin } from '@/lib/auth';
 import { MetaAdsClient } from '@/lib/marketing/clients/meta-client';
 
 export async function POST(req: NextRequest) {
   try {
+    const guard = await requireAdmin();
+    if (!guard.ok) return guard.response;
+
     const body = await req.json();
     const { imageId, campaignId, adSetId, headline, message, linkUrl } = body;
 

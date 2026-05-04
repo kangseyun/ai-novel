@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { requireAdmin } from '@/lib/auth';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
@@ -11,6 +12,9 @@ function getSupabaseAdmin() {
 // 마케팅 문구 목록 조회
 export async function GET(request: NextRequest) {
   try {
+    const guard = await requireAdmin();
+    if (!guard.ok) return guard.response;
+
     const supabase = getSupabaseAdmin();
     const { searchParams } = new URL(request.url);
     const projectId = searchParams.get('project_id');
@@ -40,6 +44,9 @@ export async function GET(request: NextRequest) {
 // 마케팅 문구 생성 (여러 버전)
 export async function POST(request: NextRequest) {
   try {
+    const guard = await requireAdmin();
+    if (!guard.ok) return guard.response;
+
     const supabase = getSupabaseAdmin();
     const body = await request.json();
     const { project_id, copies } = body;

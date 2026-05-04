@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { requireAdmin } from '@/lib/auth';
 import { getKlingAIClient } from '@/lib/kling-ai';
 
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY || process.env.NEXT_PUBLIC_OPENROUTER_API_KEY;
@@ -114,6 +115,9 @@ NO text, NO watermark, NO logo.`;
 
 export async function POST(request: NextRequest) {
   try {
+    const guard = await requireAdmin();
+    if (!guard.ok) return guard.response;
+
     const body: GenerateAdRequest = await request.json();
     const { personaData, adSize, template, customPrompt, referenceImageUrl, imageCount } = body;
 
@@ -236,6 +240,9 @@ Return ONLY a comma-separated list of English visual descriptors suitable for im
 
 // 템플릿 목록 반환 (GET)
 export async function GET(request: NextRequest) {
+  const guard = await requireAdmin();
+  if (!guard.ok) return guard.response;
+
   const { searchParams } = new URL(request.url);
   const taskId = searchParams.get('taskId');
 

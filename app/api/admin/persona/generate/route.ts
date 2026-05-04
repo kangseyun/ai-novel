@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { requireAdmin } from '@/lib/auth';
 
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY || process.env.NEXT_PUBLIC_OPENROUTER_API_KEY;
 const MODEL = 'google/gemini-3-pro-preview';
@@ -313,6 +314,9 @@ const FIELD_DESCRIPTIONS: Record<string, string> = {
 
 export async function POST(request: NextRequest) {
   try {
+    const guard = await requireAdmin();
+    if (!guard.ok) return guard.response;
+
     const body: GenerateRequest = await request.json();
     const { prompt, field, existingData, autoMode = false, targetAudience = 'female' } = body;
 
