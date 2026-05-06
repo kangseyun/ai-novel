@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 import { requireAdmin } from '@/lib/auth';
 import { recordAdminAction } from '@/lib/admin-audit';
 import { detectFlags } from '@/lib/moderation';
+import { llmLintScenario, type LintFinding } from '@/lib/lint-scenarios/llm-lint';
 
 interface ScenarioRow {
   id: string;
@@ -11,6 +12,9 @@ interface ScenarioRow {
   content: unknown;
   review_status: string;
   is_active: boolean;
+  persona_id: string | null;
+  scenario_type: string;
+  generation_mode: 'static' | 'guided' | 'dynamic';
 }
 
 const ALLOWED_ACTIONS = ['submit', 'approve', 'reject'] as const;
@@ -40,12 +44,12 @@ function extractText(value: unknown, path: string, out: { path: string; text: st
   }
 }
 
-function lintScenario(s: ScenarioRow) {
+function lintScenario(s: ScenarioRow): LintFinding[] {
   const fragments: { path: string; text: string }[] = [];
   if (s.title) fragments.push({ path: 'title', text: s.title });
   if (s.description) fragments.push({ path: 'description', text: s.description });
   extractText(s.content, 'content', fragments);
-  const findings: Array<{ path: string; category: string; severity: string; matched: string[]; preview: string }> = [];
+  const findings: LintFinding[] = [];
   for (const f of fragments) {
     for (const m of detectFlags(f.text)) {
       findings.push({
@@ -54,6 +58,7 @@ function lintScenario(s: ScenarioRow) {
         severity: m.severity,
         matched: m.matched,
         preview: f.text.slice(0, 120) + (f.text.length > 120 ? '…' : ''),
+        source: 'rule',
       });
     }
   }
@@ -82,7 +87,7 @@ export async function POST(
 
   const { data: before, error: beforeErr } = await admin
     .from('scenario_templates')
-    .select('id, title, description, content, review_status, is_active')
+    .select('id, title, description, content, review_status, is_active, persona_id, scenario_type, generation_mode')
     .eq('id', id)
     .single();
 
@@ -94,21 +99,40 @@ export async function POST(
   const update: Record<string, unknown> = {};
 
   if (action === 'submit') {
-    const findings = lintScenario(scenario);
-    const blocking = findings.filter((f) => f.severity === 'critical' || f.severity === 'high');
+    const ruleFindings = lintScenario(scenario);
+    const blocking = ruleFindings.filter((f) => f.severity === 'critical' || f.severity === 'high');
     if (blocking.length > 0 && !force) {
       return NextResponse.json(
         {
           error: 'lint_blocked',
           message: `${blocking.length}건의 high/critical 위반이 감지됨. force:true로 무시 가능.`,
-          findings,
+          findings: ruleFindings,
         },
         { status: 422 }
       );
     }
+
+    // Phase 1 — LLM lint 는 advisory. 실패해도 submit 흐름은 통과시킴.
+    const llmResult = await llmLintScenario({
+      scenarioId: scenario.id,
+      personaId: scenario.persona_id,
+      title: scenario.title,
+      description: scenario.description,
+      content: scenario.content,
+      scenarioType: scenario.scenario_type,
+      generationMode: scenario.generation_mode,
+    }).catch((err) => {
+      console.warn('[lint] LLM lint threw (non-blocking):', err);
+      return null;
+    });
+
     update.review_status = 'in_review';
     update.submitted_at = new Date().toISOString();
-    update.lint_findings = findings;
+    update.lint_findings = [...ruleFindings, ...(llmResult?.findings ?? [])];
+    update.lint_llm_version = llmResult?.version ?? null;
+    update.lint_llm_model = llmResult?.model ?? null;
+    update.lint_llm_at = llmResult && !llmResult.error ? new Date().toISOString() : null;
+    update.lint_llm_cost = llmResult?.cost ?? null;
     update.is_active = false;
   } else if (action === 'approve') {
     if (scenario.review_status !== 'in_review' && !force) {
@@ -145,7 +169,19 @@ export async function POST(
     reason: note,
     before: { review_status: scenario.review_status, is_active: scenario.is_active },
     after: { review_status: update.review_status, is_active: update.is_active },
-    metadata: { findings_count: action === 'submit' ? (update.lint_findings as unknown[]).length : undefined },
+    metadata: {
+      findings_count: action === 'submit' ? (update.lint_findings as unknown[]).length : undefined,
+      llm_lint:
+        action === 'submit'
+          ? {
+              version: update.lint_llm_version ?? null,
+              model: update.lint_llm_model ?? null,
+              cost: update.lint_llm_cost ?? null,
+              llm_findings_count:
+                (update.lint_findings as LintFinding[] | undefined)?.filter((f) => f.source === 'llm').length ?? 0,
+            }
+          : undefined,
+    },
   });
 
   return NextResponse.json(data);

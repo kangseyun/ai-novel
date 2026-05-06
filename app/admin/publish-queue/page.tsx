@@ -21,7 +21,23 @@ interface ScenarioReview {
   submitted_at: string | null;
   reviewed_at: string | null;
   review_notes: string | null;
-  lint_findings: Array<{ path: string; category: string; severity: string; matched: string[]; preview: string }>;
+  lint_findings: Array<{
+    path: string;
+    category: string;
+    severity: string;
+    matched: string[];
+    preview: string;
+    source?: 'rule' | 'llm';
+    reason?: string;
+    evidence?: string;
+    suggestion?: string;
+    confidence?: number;
+    model?: string;
+  }>;
+  lint_llm_version?: string | null;
+  lint_llm_model?: string | null;
+  lint_llm_at?: string | null;
+  lint_llm_cost?: number | null;
   is_active: boolean;
   created_at: string;
 }
@@ -43,6 +59,11 @@ const SEVERITY_COLOR: Record<string, string> = {
   high: 'bg-rose-100 text-rose-700',
   medium: 'bg-amber-100 text-amber-700',
   low: 'bg-slate-100 text-slate-700',
+};
+
+const SOURCE_BADGE: Record<string, string> = {
+  rule: 'bg-slate-200 text-slate-700',
+  llm: 'bg-violet-100 text-violet-700',
 };
 
 export default function AdminPublishQueuePage() {
@@ -152,16 +173,51 @@ export default function AdminPublishQueuePage() {
                       <details className="text-xs">
                         <summary className="cursor-pointer text-muted-foreground">
                           Lint 결과 {findings.length}건
+                          {s.lint_llm_version && (
+                            <span className="ml-2 text-violet-600">
+                              · LLM {s.lint_llm_version}{s.lint_llm_cost != null ? ` ($${s.lint_llm_cost.toFixed(5)})` : ''}
+                            </span>
+                          )}
                         </summary>
-                        <ul className="mt-2 space-y-1 pl-4">
-                          {findings.map((f, i) => (
-                            <li key={i} className="border-l-2 border-rose-300 pl-2">
-                              <Badge className={SEVERITY_COLOR[f.severity] ?? ''} variant="secondary">{f.severity}</Badge>
-                              <span className="ml-2"><code>{f.category}</code> @ <code>{f.path}</code></span>
-                              <div className="text-muted-foreground">매치: {f.matched.join(', ')}</div>
-                              <div className="text-muted-foreground italic">{f.preview}</div>
-                            </li>
-                          ))}
+                        <ul className="mt-2 space-y-2 pl-4">
+                          {findings.map((f, i) => {
+                            const source = f.source ?? 'rule';
+                            return (
+                              <li
+                                key={i}
+                                className={`border-l-2 pl-2 ${source === 'llm' ? 'border-violet-300' : 'border-rose-300'}`}
+                              >
+                                <div className="flex flex-wrap items-center gap-1">
+                                  <Badge className={SEVERITY_COLOR[f.severity] ?? ''} variant="secondary">{f.severity}</Badge>
+                                  <Badge className={SOURCE_BADGE[source] ?? ''} variant="secondary">{source}</Badge>
+                                  <code>{f.category}</code>
+                                  <span className="text-muted-foreground">@</span>
+                                  <code>{f.path}</code>
+                                  {source === 'llm' && f.confidence != null && (
+                                    <span className="text-muted-foreground">conf {Math.round(f.confidence * 100)}%</span>
+                                  )}
+                                </div>
+                                {source === 'llm' ? (
+                                  <div className="mt-1 space-y-0.5">
+                                    {f.evidence && (
+                                      <div className="text-muted-foreground italic">증거: {f.evidence}</div>
+                                    )}
+                                    {f.reason && <div>사유: {f.reason}</div>}
+                                    {f.suggestion && (
+                                      <div className="text-emerald-700">제안: {f.suggestion}</div>
+                                    )}
+                                  </div>
+                                ) : (
+                                  <>
+                                    {f.matched.length > 0 && (
+                                      <div className="text-muted-foreground">매치: {f.matched.join(', ')}</div>
+                                    )}
+                                    <div className="text-muted-foreground italic">{f.preview}</div>
+                                  </>
+                                )}
+                              </li>
+                            );
+                          })}
                         </ul>
                       </details>
                     )}

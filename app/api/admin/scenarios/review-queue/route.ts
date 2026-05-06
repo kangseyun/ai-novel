@@ -22,6 +22,7 @@ export async function GET(request: NextRequest) {
     .select(
       'id, title, description, persona_id, scenario_type, generation_mode, ' +
       'review_status, submitted_at, reviewed_at, reviewer_id, review_notes, lint_findings, ' +
+      'lint_llm_version, lint_llm_model, lint_llm_at, lint_llm_cost, ' +
       'is_active, created_at, updated_at'
     )
     .order('submitted_at', { ascending: false, nullsFirst: false })
