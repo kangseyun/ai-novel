@@ -566,33 +566,34 @@ export default function PersonaEditPage({ params }: { params: Promise<{ id: stri
     });
   }
 
-  function addArrayItem(path: string, defaultValue: string = '') {
+  // 중간 경로가 undefined여도 빈 배열로 시작할 수 있도록 nullish-safe traversal
+  function readPath(path: string): unknown {
     const keys = path.split('.');
     let current: any = formData;
     for (const key of keys) {
+      if (current == null) return undefined;
       current = current[key];
     }
-    updateFormData(path, [...(current || []), defaultValue]);
+    return current;
+  }
+
+  function addArrayItem(path: string, defaultValue: string = '') {
+    const current = readPath(path);
+    const arr = Array.isArray(current) ? current : [];
+    updateFormData(path, [...arr, defaultValue]);
   }
 
   function removeArrayItem(path: string, index: number) {
-    const keys = path.split('.');
-    let current: any = formData;
-    for (const key of keys) {
-      current = current[key];
-    }
-    updateFormData(path, current.filter((_: any, i: number) => i !== index));
+    const current = readPath(path);
+    const arr = Array.isArray(current) ? current : [];
+    updateFormData(path, arr.filter((_: unknown, i: number) => i !== index));
   }
 
   function updateArrayItem(path: string, index: number, value: string) {
-    const keys = path.split('.');
-    let current: any = formData;
-    for (const key of keys) {
-      current = current[key];
-    }
-    const newArray = [...current];
-    newArray[index] = value;
-    updateFormData(path, newArray);
+    const current = readPath(path);
+    const arr = Array.isArray(current) ? [...current] : [];
+    arr[index] = value;
+    updateFormData(path, arr);
   }
 
   if (isLoading) {
@@ -1608,15 +1609,16 @@ function ArrayEditor({
   onUpdate,
   placeholder,
 }: {
-  items: string[];
+  items: string[] | undefined | null;
   onAdd: () => void;
   onRemove: (index: number) => void;
   onUpdate: (index: number, value: string) => void;
   placeholder?: string;
 }) {
+  const list = Array.isArray(items) ? items : [];
   return (
     <div className="space-y-2">
-      {items.map((item, idx) => (
+      {list.map((item, idx) => (
         <div key={idx} className="flex items-center gap-2">
           <Input
             value={item}
