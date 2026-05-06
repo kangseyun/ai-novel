@@ -18,6 +18,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 interface PersonaFormData {
   id: string;
@@ -167,17 +168,19 @@ export default function PersonaEditPage({ params }: { params: Promise<{ id: stri
   const [exampleDialogues, setExampleDialogues] = useState<ExampleDialogue[]>([]);
   const [isLoading, setIsLoading] = useState(!isNew);
   const [isSaving, setIsSaving] = useState(false);
+  const [activeTab, setActiveTab] = useState<string>(isNew ? 'ai' : 'basic');
+  // 카드 내부 expand/collapse 토글은 유지하되, 탭이 활성화될 때 자동 expanded.
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
     ai: true,
     basic: true,
-    appearance: false,
-    personality: false,
-    speech: false,
-    worldview: false,
-    system: false,
-    situations: false,
-    dialogues: false,
-    image: false,
+    appearance: true,
+    personality: true,
+    speech: true,
+    worldview: true,
+    system: true,
+    situations: true,
+    dialogues: true,
+    image: true,
   });
 
   // Image generation queue (Supabase Realtime)
@@ -656,13 +659,29 @@ export default function PersonaEditPage({ params }: { params: Promise<{ id: stri
             </Button>
           </div>
         </div>
+
+        {/* Tabs strip — 한 번에 하나의 섹션만 표시 */}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-3">
+          <TabsList className="w-full justify-start overflow-x-auto flex-wrap gap-1 h-auto bg-transparent p-0 border-t pt-3">
+            {isNew && <TabsTrigger value="ai" className="data-[state=active]:bg-slate-900 data-[state=active]:text-white">AI 자동 생성</TabsTrigger>}
+            <TabsTrigger value="basic" className="data-[state=active]:bg-slate-900 data-[state=active]:text-white">기본</TabsTrigger>
+            <TabsTrigger value="image" className="data-[state=active]:bg-slate-900 data-[state=active]:text-white">이미지</TabsTrigger>
+            <TabsTrigger value="appearance" className="data-[state=active]:bg-slate-900 data-[state=active]:text-white">외모</TabsTrigger>
+            <TabsTrigger value="personality" className="data-[state=active]:bg-slate-900 data-[state=active]:text-white">성격</TabsTrigger>
+            <TabsTrigger value="speech" className="data-[state=active]:bg-slate-900 data-[state=active]:text-white">말투</TabsTrigger>
+            <TabsTrigger value="worldview" className="data-[state=active]:bg-slate-900 data-[state=active]:text-white">세계관</TabsTrigger>
+            <TabsTrigger value="system" className="data-[state=active]:bg-slate-900 data-[state=active]:text-white">시스템</TabsTrigger>
+            <TabsTrigger value="situations" className="data-[state=active]:bg-slate-900 data-[state=active]:text-white">상황</TabsTrigger>
+            <TabsTrigger value="dialogues" className="data-[state=active]:bg-slate-900 data-[state=active]:text-white">예시 대화</TabsTrigger>
+          </TabsList>
+        </Tabs>
       </div>
 
       {/* Content */}
       <div className="p-6">
         <div className="max-w-6xl mx-auto">
-          {/* AI Generation Section - Full Width */}
-          {isNew && (
+          {/* AI Generation Section */}
+          {isNew && activeTab === 'ai' && (
             <div className="mb-4">
               <SectionCard
                 title="AI 자동 생성"
@@ -705,10 +724,9 @@ export default function PersonaEditPage({ params }: { params: Promise<{ id: stri
             </div>
           )}
 
-          {/* Two Column Layout: Image Left, Form Right */}
-          <div className="flex gap-6">
-            {/* Left Column - Image */}
-            <div className="w-80 flex-shrink-0 space-y-4">
+          {/* 탭 기반 단일-섹션 표시 — 한 번에 하나의 영역만 보임 */}
+          {activeTab === 'image' && (
+            <div className="space-y-4">
               <SectionCard
                 title="캐릭터 이미지"
                 isExpanded={expandedSections.image}
@@ -918,10 +936,9 @@ export default function PersonaEditPage({ params }: { params: Promise<{ id: stri
                 </div>
               </SectionCard>
             </div>
+          )}
 
-            {/* Right Column - Form Fields */}
-            <div className="flex-1 space-y-4">
-          {/* Basic Info Section */}
+          {activeTab === 'basic' && (
           <SectionCard
             title="기본 정보"
             isExpanded={expandedSections.basic}
@@ -1029,8 +1046,9 @@ export default function PersonaEditPage({ params }: { params: Promise<{ id: stri
               </FieldWithRegenerate>
             </div>
           </SectionCard>
+          )}
 
-          {/* Appearance Section */}
+          {activeTab === 'appearance' && (
           <SectionCard
             title="외모"
             isExpanded={expandedSections.appearance}
@@ -1083,8 +1101,9 @@ export default function PersonaEditPage({ params }: { params: Promise<{ id: stri
               />
             </div>
           </SectionCard>
+          )}
 
-          {/* Personality Section */}
+          {activeTab === 'personality' && (
           <SectionCard
             title="성격"
             isExpanded={expandedSections.personality}
@@ -1143,8 +1162,9 @@ export default function PersonaEditPage({ params }: { params: Promise<{ id: stri
               </div>
             </div>
           </SectionCard>
+          )}
 
-          {/* Speech Patterns Section */}
+          {activeTab === 'speech' && (
           <SectionCard
             title="말투 패턴"
             isExpanded={expandedSections.speech}
@@ -1209,8 +1229,9 @@ export default function PersonaEditPage({ params }: { params: Promise<{ id: stri
               </div>
             </div>
           </SectionCard>
+          )}
 
-          {/* Worldview Section */}
+          {activeTab === 'worldview' && (
           <SectionCard
             title="세계관"
             isExpanded={expandedSections.worldview}
@@ -1286,8 +1307,9 @@ export default function PersonaEditPage({ params }: { params: Promise<{ id: stri
               </div>
             </div>
           </SectionCard>
+          )}
 
-          {/* System Prompt Section */}
+          {activeTab === 'system' && (
           <SectionCard
             title="시스템 프롬프트"
             isExpanded={expandedSections.system}
@@ -1346,8 +1368,9 @@ export default function PersonaEditPage({ params }: { params: Promise<{ id: stri
               </div>
             </div>
           </SectionCard>
+          )}
 
-          {/* Situation Presets Section */}
+          {activeTab === 'situations' && (
           <SectionCard
             title="상황 프리셋"
             isExpanded={expandedSections.situations}
@@ -1376,8 +1399,9 @@ export default function PersonaEditPage({ params }: { params: Promise<{ id: stri
               ))}
             </div>
           </SectionCard>
+          )}
 
-          {/* Example Dialogues Section */}
+          {activeTab === 'dialogues' && (
           <SectionCard
             title="예시 대화"
             isExpanded={expandedSections.dialogues}
@@ -1498,10 +1522,7 @@ export default function PersonaEditPage({ params }: { params: Promise<{ id: stri
               </Button>
             </div>
           </SectionCard>
-            </div>
-            {/* End of Right Column */}
-          </div>
-          {/* End of Two Column Layout */}
+          )}
         </div>
       </div>
     </div>
