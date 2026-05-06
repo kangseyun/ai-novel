@@ -205,7 +205,7 @@ export default function AdminLayout({
                 <div className="space-y-0.5">
                   {group.items.map((item) => {
                     const isActive = pathname === item.href ||
-                      (item.href !== '/admin' && pathname?.startsWith(item.href));
+                      (item.href !== '/admin' && pathname?.startsWith(item.href + '/'));
                     const Icon = item.icon;
 
                     return (
