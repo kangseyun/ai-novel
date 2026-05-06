@@ -33,20 +33,12 @@ interface SuggestedFriendsProps {
   onStartChat?: (personaId: string) => void;
 }
 
-// 팔로우 비용 계산
+// 팔로우 비용 — LUMIN 7명 균일. PASS 사용자는 webhook에서 토큰을 별도 지급받으므로
+// UI 단에서 멤버별 차등을 두지 않는다. 옛 다크 로맨스 시대 캐릭터별 가격(daniel/etc.)은 폐기.
 const FOLLOW_COST = 10;
-const PREMIUM_FOLLOW_COSTS: Record<string, number> = {
-  daniel: 100,
-  kael: 100,
-  adrian: 150,
-  ren: 200,
-};
 const REFRESH_COST = 5;
 
-const getFollowCost = (personaId: string, isPremium: boolean): number => {
-  if (isPremium && PREMIUM_FOLLOW_COSTS[personaId]) {
-    return PREMIUM_FOLLOW_COSTS[personaId];
-  }
+const getFollowCost = (_personaId: string, _isPremium: boolean): number => {
   return FOLLOW_COST;
 };
 
