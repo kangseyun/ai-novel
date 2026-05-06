@@ -1,6 +1,6 @@
 # Luminovel
 
-K-pop 가상 아이돌 그룹 **LUMIN** (7인조, 자체 IP)과의 클린(전연령) 연애 시뮬레이터. Next.js 16 + Supabase + OpenRouter. 목표 $99 PASS 10명 = $990 MRR.
+K-pop 가상 아이돌 그룹 **LUMIN** (7인조, 자체 IP)과의 클린(전연령) 연애 시뮬레이터. Next.js 16 + Supabase + OpenRouter. **목표 (2026-05-06 3차 피벗 — All-Digital Hybrid): $20K+ ARR / $1,700 MRR equiv.** **풀 디지털** — PASS $49/mo + Founders Edition $499 one-time + 디지털 포카 가챠 ($9–99) + 음성 편지/맞춤 시나리오/AI 영상 메시지. 실물 굿즈·배송·NFT 일체 ❌ (DB-backed 한정 번호로 충분). **mig 031 적용됨 (founders_edition tier + claim_founders_number RPC) ✅, lib/pricing.ts v2 catalog 적용됨 ✅, Founders 결제 라우트 + webhook handler 구현됨 ✅.** 카드/음성 편지 등 추가 디지털 상품 마이그·UI 작업은 별도 단계.
 
 ---
 
@@ -21,7 +21,7 @@ K-pop 가상 아이돌 그룹 **LUMIN** (7인조, 자체 IP)과의 클린(전연
 DB:
 - `npx supabase db push` 금지 → MCP Supabase 도구 사용
 - `personas` (view) 사용. `persona_core` 직접 조회 금지 (사용자 노출 화면)
-- 마이그레이션은 `supabase/migrations/` 의 마지막 번호 다음 순번을 사용 (현재 030 → 다음은 031)
+- 마이그레이션은 `supabase/migrations/` 의 마지막 번호 다음 순번을 사용 (현재 031 → 다음은 032)
 
 ---
 
@@ -41,7 +41,7 @@ DB:
 
 **DB 변경 시:**
 1. `mcp__supabase__list_tables` 로 현재 스키마 확인
-2. 마이그레이션 작성 (`supabase/migrations/NNN_name.sql`, NNN ≥ 031 — 현재 030까지 적용됨)
+2. 마이그레이션 작성 (`supabase/migrations/NNN_name.sql`, NNN ≥ 032 — 현재 031까지 적용됨)
 3. `mcp__supabase__apply_migration` 으로 적용
 4. RLS 정책 추가 필수 (`auth.uid() = user_id` 패턴)
 
@@ -85,7 +85,11 @@ DB:
 - **Supabase Project ID:** `olpnuagrhidopfjjliih`
 - **OAuth:** Google + Discord (Apple ❌)
 - **LLM:** OpenRouter (멀티모델, `lib/ai-agent/core/model-selector.ts`)
-- **결제 티어:** `free` / `standard` / `lumin_pass` (in `users.subscription_tier`)
+- **결제 티어:** `free` / `standard` / `lumin_pass` / `founders_edition` (in `users.subscription_tier`, mig 031 적용 ✅). `users.founders_number` 1–100 (mig 031 ✅). PASS 신가 lookup_keys: `lumin_pass_monthly_v2` ($49) / `lumin_pass_yearly_v2` ($490). 옛 `lumin_pass_monthly` ($99) / `lumin_pass_yearly` ($990) 키는 grandfathered 구독자만 (`legacy: true`).
+- **Founders Edition 결제 라우트:** `app/api/subscriptions/founders/route.ts` (POST checkout / GET 잔여석). webhook이 `claim_founders_number` RPC로 atomic 번호 부여. 100석 한정.
+- **One-time 디지털 상품 (모두 디지털, 추가 예정 — Stripe Live 등록 + 마이그 032+ 후 활성):** `card_pack_common` $9 / `card_pack_rare` $19 / `card_epic` $39 / `card_legendary` $99 / `voice_letter` $29 / `custom_scenario` $49 / `demo_track` $19 / `ai_video_message` $49 — `digital_cards`, `card_seasons`, `voice_letters`, `custom_scenarios` 등 테이블이 각 기능 구현 시 마이그 추가 예정
+- **Welcome Offer ($49.50 PASS 50% off) 폐기됨** (PASS 신가 $49면 무의미). `WELCOME_OFFER_DEPRECATED=true`. 라우트는 410 Gone. 옛 `welcome_offer_claimed=true` row는 결제 이력으로 보존.
+- **실물 굿즈·배송 일체 ❌** — 솔로 운영 부담·글로벌 배송 분쟁 회피. **NFT/블록체인 ❌** — DB-backed 한정 번호로 충분 (HYBE DOSI 학습)
 - **관계 단계:** `stranger` → `fan` → `friend` → `close` → `heart` (💗)
 - **화폐 단위:** `tokens` (초기 100)
 - **LUMIN 멤버 ID:** `haeon` / `kael` / `ren` / `jun` / `adrian` / `sol` / `noa`

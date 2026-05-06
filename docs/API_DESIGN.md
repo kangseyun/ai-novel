@@ -2,7 +2,7 @@
 
 > **2026-05-06 갱신.** 이 문서는 현재 코드(`app/api/**`)와 1:1 정합 상태.
 > 옛 모델(코인/IAP, 다크 로맨스, ECLIPSE, hack/XP)은 모두 코드에서 제거됨.
-> 결제 SoT는 [`lib/pricing.ts`](../lib/pricing.ts), DB 스키마는 [`supabase/migrations/`](../supabase/migrations/) 001~030.
+> 결제 SoT는 [`lib/pricing.ts`](../lib/pricing.ts), DB 스키마는 [`supabase/migrations/`](../supabase/migrations/) 001~031.
 
 ## 기술 스택
 
@@ -300,9 +300,11 @@ PUT /api/feed/events/[eventId]/read   → 읽음 처리
 ## 9. 결제 / 구독 (Stripe)
 
 옛 `/api/checkout`, `/api/payments/checkout` (토큰 IAP) 모두 폐기.
-SoT는 [`lib/pricing.ts`](../lib/pricing.ts) — LUMIN PASS $99/$990, Standard $19, Welcome Offer $49.50 (50% off PASS).
+SoT는 [`lib/pricing.ts`](../lib/pricing.ts) — **LUMIN PASS $49 (v2) / $490 연간**, Standard $19/$190, **Founders Edition $499 one-time (100석)**.
+옛 PASS $99 / $990 키 (`lumin_pass_monthly`, `lumin_pass_yearly`)는 grandfathered 구독자 전용 (`legacy: true`).
+Welcome Offer ($49.50)는 **폐기됨** — 신가 PASS $49 도입으로 무의미.
 
-### 9.1 구독 플랜 목록
+### 9.1 구독 플랜 목록 (공개 카탈로그)
 ```
 GET /api/subscriptions/checkout
 Authorization: Bearer <token>
@@ -310,56 +312,83 @@ Authorization: Bearer <token>
 Response 200:
 {
   "plans": [
-    { "id": "lumin_pass_monthly", "name": "LUMIN PASS", "tier": "lumin_pass",
-      "interval": "month", "monthly_usd": 99, "unit_amount_cents": 9900,
-      "features": [...], "lookup_key": "lumin_pass_monthly" },
-    { "id": "lumin_pass_yearly", ... },
-    { "id": "standard_monthly", ... }
+    { "id": "lumin_pass_monthly_v2", "tier": "lumin_pass",
+      "interval": "month", "monthly_usd": 49, "unit_amount_cents": 4900, ... },
+    { "id": "lumin_pass_yearly_v2", "interval": "year",
+      "monthly_usd": 40.83, "unit_amount_cents": 49000, ... },
+    { "id": "standard_monthly", "interval": "month", "monthly_usd": 19, ... },
+    { "id": "standard_yearly", "interval": "year", "monthly_usd": 15.83, ... }
   ]
 }
 ```
+`legacy: true` 플랜은 `publicSubscriptionCatalog()` 필터로 응답에서 제외.
 
 ### 9.2 구독 결제 세션 생성
 ```
 POST /api/subscriptions/checkout
-{ "plan_id": "lumin_pass_monthly" | "lumin_pass_yearly" | "standard_monthly" }
+{ "plan_id": "lumin_pass_monthly_v2" | "lumin_pass_yearly_v2" | "standard_monthly" | "standard_yearly" }
 
 Response 200: { "url": "https://checkout.stripe.com/..." }
+Response 410 (legacy plan 거부):
+{ "error": "Legacy plan is no longer available", "alternativePlanId": "lumin_pass_monthly_v2" }
 ```
 
-### 9.3 Welcome Offer
+### 9.3 Founders Edition (one-time, 100석 한정) ✨ NEW
 ```
-GET  /api/subscriptions/welcome-offer
-  → { "eligible": boolean, "expiresAt": "ISO", "remainingSeconds": number,
-      "alreadyPurchased": boolean, "offer"?: PlanPricing }
+GET /api/subscriptions/founders
+Response 200:
+{
+  "product": { "id": "founders_edition", "unit_amount_cents": 49900, ... },
+  "claimed": number,
+  "total_supply": 100,
+  "remaining": number,
+  "available": boolean
+}
 
-POST /api/subscriptions/welcome-offer
-  body: { "plan_id"?: "welcome_lumin_pass_monthly" }  // 기본값 사용 가능
-  → { "url": "https://checkout.stripe.com/..." }
+POST /api/subscriptions/founders
+Authorization: Bearer <token>
+Response 200: { "url": "https://checkout.stripe.com/..." }
+Response 400: { "error": "You already own Founders Edition", "founders_number": int }
+Response 410: { "error": "All Founders Edition slots claimed" }
 ```
-가입 후 24시간 한정. PASS 50% off ($49.50). STRATEGY.md 7일 환불 정책.
+모드 `payment` (구독 ❌). webhook이 `claim_founders_number` RPC로 atomic 번호 부여 (1–100).
 
-### 9.4 구독 관리
+### 9.4 Welcome Offer (DEPRECATED)
+```
+GET /api/subscriptions/welcome-offer
+  → { "eligible": false, "deprecated": true, "alternativePlanId": "lumin_pass_monthly_v2" }
+POST → 410 Gone
+```
+2026-05-06 폐기. 옛 `welcome_offer_claimed=true` row는 결제 이력으로 보존.
+
+### 9.5 구독 관리
 ```
 GET    /api/subscriptions/manage    → 현재 구독 상태
 POST   /api/subscriptions/manage    → cancel_at_period_end 토글
 ```
 
-### 9.5 Stripe Webhook
+### 9.6 Stripe Webhook
 ```
 POST /api/webhooks/stripe
 Stripe-Signature: ...
 
 처리 이벤트:
-- checkout.session.completed       (Welcome Offer 보너스 크레딧 지급)
-- customer.subscription.created    → users.subscription_tier + is_premium 동기화
-- customer.subscription.updated    → 동일
-- customer.subscription.deleted    → tier='free', is_premium=false
-- invoice.payment_succeeded        → 구독 토큰 부여 (PASS 5000, Standard 1500)
-- invoice.payment_failed           → notifications insert
+- checkout.session.completed
+  ├ metadata.product_type='founders_edition' → claim_founders_number RPC (atomic 1–100 부여) +
+  │  subscription_tier='founders_edition', is_premium=true, premium_expires_at=NOW+365d,
+  │  purchases insert (upsert on stripe_session_id), 분석/실험 fan-out
+  ├ metadata.is_welcome_offer (legacy) → 보너스 크레딧 + welcome_offer_claimed=true
+  └ metadata.token_amount (legacy IAP) → add_tokens
+- customer.subscription.created/updated → tier 동기화 (단, founders_number IS NOT NULL이면
+  founders_edition tier 영구 유지)
+- customer.subscription.deleted → tier='free' (단, founders는 유지)
+- invoice.payment_succeeded → 구독 토큰 부여 (PASS 5000, Standard 1500)
+- invoice.payment_failed → notifications insert
 
-활성 구독 시 모든 active 실험에 conversion_event 자동 fan-out
-(pass_purchased / standard_purchased / subscription_started).
+실험 fan-out 이벤트:
+- founders_purchased (Founders Edition only)
+- pass_purchased / standard_purchased
+- subscription_started (모든 결제)
 ```
 
 ---
@@ -473,7 +502,7 @@ POST       /api/admin/marketing/insights                 → Meta/Google 광고 
 
 | 테이블 | 마이그 | 핵심 컬럼 |
 |---|---|---|
-| `users` | 001 + 026 + 030 | id / email / role / tokens / subscription_tier / is_premium / utm_* / onboarding_variant / is_banned |
+| `users` | 001 + 026 + 030 + 031 | id / email / role / tokens / subscription_tier (free/standard/lumin_pass/founders_edition) / is_premium / utm_* / onboarding_variant / is_banned / founders_number (1–100) |
 | `persona_core` | 002 + 013 | id / name / group_id / member_role / mbti / birthday / signature_color / project_id |
 | `persona_projects` | 024 | 페르소나 폴더 분류 |
 | `user_persona_relationships` | 003 | affection / relationship_stage / trust / intimacy / total_messages |
@@ -492,7 +521,7 @@ POST       /api/admin/marketing/insights                 → Meta/Google 광고 
 | `experiments` / `experiment_assignments` / `experiment_events` | 029 | A/B 실험 |
 
 화이트리스트 view: `personas` (사용자 노출용).
-신규 마이그레이션은 031부터 시작.
+신규 마이그레이션은 032부터 시작 (031은 Founders Edition 적용 ✅).
 
 ---
 

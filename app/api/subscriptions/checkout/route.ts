@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { stripe } from '@/lib/stripe';
 import { createServerClient } from '@/lib/supabase-server';
-import { SUBSCRIPTION_PRICING, type PlanPricing } from '@/lib/pricing';
+import { SUBSCRIPTION_PRICING, publicSubscriptionCatalog, type PlanPricing } from '@/lib/pricing';
 
 export async function POST(request: NextRequest) {
   try {
@@ -21,6 +21,13 @@ export async function POST(request: NextRequest) {
 
     if (!plan) {
       return NextResponse.json({ error: 'Invalid plan' }, { status: 400 });
+    }
+
+    if (plan.legacy) {
+      return NextResponse.json({
+        error: 'Legacy plan is no longer available for new subscriptions',
+        alternativePlanId: plan.interval === 'year' ? 'lumin_pass_yearly_v2' : 'lumin_pass_monthly_v2',
+      }, { status: 410 });
     }
 
     let customerId: string;
@@ -68,8 +75,8 @@ export async function POST(request: NextRequest) {
 }
 
 export async function GET() {
-  const plans = Object.values(SUBSCRIPTION_PRICING);
-  return NextResponse.json({ plans });
+  // Public catalog only — legacy ($99 PASS) plans are filtered out per docs/STRATEGY.md (3rd Pivot).
+  return NextResponse.json({ plans: publicSubscriptionCatalog() });
 }
 
 async function getOrCreatePrice(plan: PlanPricing): Promise<string> {

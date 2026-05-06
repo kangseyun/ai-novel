@@ -211,7 +211,7 @@ LUMIN 7명 seed는 014_lumin_seed.sql.
 + `group_chat_messages` (room_id, sender_type, sender_persona_id,
 content, sequence_number) 모두 존재.
 
-### 4.6 운영/측정 인프라 (마이그 022~030)
+### 4.6 운영/측정 인프라 (마이그 022~031)
 
 P0/P1/P2 + Sync 작업으로 추가됨:
 
@@ -231,6 +231,7 @@ P0/P1/P2 + Sync 작업으로 추가됨:
   `experiment_events`. SDK는 `lib/experiments.ts`. webhook이 PASS 결제 시
   active 실험에 자동 fan-out.
 - **030 onboarding_variant**: `users.onboarding_variant` (A/B 코호트 추적).
+- **031 founders_edition**: `subscription_tier` CHECK에 `founders_edition` 추가 + `users.founders_number` (1–100, unique sparse) + `claim_founders_number(p_user_id)` SECURITY DEFINER RPC (advisory lock으로 동시 클레임 직렬화, service_role only). webhook이 Founders Edition 결제 시 호출. 카드/음성 편지/맞춤 시나리오 테이블은 각 기능 구현 시 별도 마이그.
 
 ---
 

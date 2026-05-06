@@ -24,7 +24,7 @@
 
 Vercel 사용 중이라면 `.env.production` 파일이 아니라 Vercel Project → Settings → Environment Variables에서 동일하게 갱신.
 
-### 2. 새 Supabase 프로젝트에 022~030 마이그레이션 적용 확인
+### 2. 새 Supabase 프로젝트에 022~031 마이그레이션 적용 확인
 
 이번 세션에 추가한 마이그레이션:
 | # | 파일 | 내용 |
@@ -38,23 +38,30 @@ Vercel 사용 중이라면 `.env.production` 파일이 아니라 Vercel Project 
 | 028 | `scenario_review.sql` | review_status 게이트 |
 | 029 | `experiments.sql` | A/B 실험 |
 | 030 | `onboarding_variant.sql` | 온보딩 variant 컬럼 |
+| 031 | `founders_edition.sql` | founders_edition tier + founders_number(1–100) + claim_founders_number RPC |
 
 확인:
 ```sql
 SELECT version FROM supabase_migrations.schema_migrations
  WHERE version >= '022' ORDER BY version;
--- 022..030 9개 row가 보여야 함
+-- 022..031 10개 row가 보여야 함
 ```
 
 ### 3. Stripe 상품/가격 객체 (Live 모드)
 
 `getOrCreatePrice` 함수가 첫 호출에 lazy-create 하긴 하지만, **첫 사용자가 결제 페이지에 들어간 순간 Live Stripe API에 진짜 product/price가 만들어진다**. 의도한 게 아니면 미리 수동 생성 권장.
 
-확인할 lookup_key:
-- [ ] `lumin_pass_monthly` ($99/mo, recurring monthly)
-- [ ] `lumin_pass_yearly` ($990/yr, recurring yearly)
+확인할 lookup_key (3rd Pivot 후 v2 catalog):
+- [ ] `lumin_pass_monthly_v2` ($49/mo, recurring monthly) — 신가 PASS
+- [ ] `lumin_pass_yearly_v2` ($490/yr, recurring yearly) — 신가 PASS Annual
 - [ ] `standard_monthly` ($19/mo, recurring monthly)
-- [ ] `welcome_lumin_pass_monthly` ($49.50/mo, recurring monthly — 50% off PASS)
+- [ ] `standard_yearly` ($190/yr, recurring yearly)
+- [ ] **`founders_edition` ($499 one-time, mode=payment) — 100석 한정 NEW**
+
+Legacy keys (grandfathered 구독자만, 신규 결제 차단됨):
+- `lumin_pass_monthly` ($99/mo) — 기존 구독자 자동 갱신만
+- `lumin_pass_yearly` ($990/yr) — 동일
+- `welcome_lumin_pass_monthly` ($49.50/mo) — Welcome Offer 폐기됨, 라우트 410 Gone
 
 Stripe 대시보드 Products → Prices에서 lookup_key 검색으로 확인. 없으면 첫 결제 시 자동 생성됨.
 
@@ -81,17 +88,33 @@ npm run build
 
 ### 5. End-to-end 결제 플로우 (Stripe Test Mode)
 
+#### 5a. PASS v2 ($49) 구독
 1. [ ] 새 계정으로 가입 (Google OAuth)
-2. [ ] `welcome_offer_claimed=false` 상태에서 `/api/subscriptions/welcome-offer` GET → `eligible:true`
-3. [ ] Welcome Offer 50% off PASS로 결제 (Stripe test card `4242 4242 4242 4242`)
+2. [ ] `/api/subscriptions/checkout` GET → plans 목록에 `lumin_pass_monthly_v2` 포함, legacy keys 미포함
+3. [ ] PASS v2 결제 (Stripe test card `4242 4242 4242 4242`)
 4. [ ] webhook 수신 후:
    - [ ] `users.subscription_tier='lumin_pass'`
    - [ ] `users.is_premium=true`
-   - [ ] `users.welcome_offer_claimed=true`
-   - [ ] `subscriptions` 테이블에 row 생성 (`status='active'`, `plan_id='welcome_lumin_pass_monthly'`)
-   - [ ] `welcome_offer_purchases` 테이블에 row
-5. [ ] `/admin/subscriptions` 에 새 구독 표시
-6. [ ] `/admin` 대시보드 MRR 카드 갱신 ($49.50)
+   - [ ] `subscriptions` 테이블에 row (`plan_id='lumin_pass_monthly_v2'`)
+5. [ ] `/admin/subscriptions` 에 새 구독 표시 ($49)
+
+#### 5b. Founders Edition ($499 one-time) ✨ NEW
+1. [ ] `/api/subscriptions/founders` GET → `available:true, remaining:100`
+2. [ ] POST → checkout URL 받음
+3. [ ] 결제 완료 (Stripe test card)
+4. [ ] webhook 수신 후:
+   - [ ] `users.subscription_tier='founders_edition'`
+   - [ ] `users.founders_number` ∈ [1, 100] (가장 작은 미점유 번호)
+   - [ ] `users.is_premium=true`
+   - [ ] `users.premium_expires_at ≈ NOW() + 365 days`
+   - [ ] `purchases` 테이블에 row (`type='founders_edition'`, `stripe_session_id`)
+5. [ ] 같은 유저로 재시도 → 400 ("You already own Founders Edition")
+6. [ ] 100명 채운 후 101번째 시도 → 410 Gone
+7. [ ] **동시성 테스트:** 동일 유저로 webhook 재발사 → `founders_number` 변경 안 됨 (idempotent)
+
+#### 5c. Welcome Offer 폐기 확인
+1. [ ] `/api/subscriptions/welcome-offer` GET → `{ eligible: false, deprecated: true }`
+2. [ ] POST → 410 Gone
 
 ### 6. 모더레이션 차단
 
@@ -253,7 +276,7 @@ vercel --prod
 배포 후 critical 버그 발견 시:
 
 1. Vercel: 이전 deployment를 promote
-2. DB: 마이그 022~030은 idempotent. ROLLBACK이 필요한 마이그는 028(review_status), 030(onboarding_variant) 정도이며 DROP COLUMN으로 되돌릴 수 있음
+2. DB: 마이그 022~031은 idempotent. ROLLBACK이 필요한 마이그는 028(review_status), 030(onboarding_variant), 031(founders_edition) 정도이며 DROP COLUMN/CONSTRAINT/FUNCTION으로 되돌릴 수 있음
 3. Stripe: 이미 결제된 건은 환불로만 처리 — DB 변경으로 무효화 금지
 4. webhook: `STRIPE_WEBHOOK_SECRET`은 그대로 유지 (secret 회전은 별개 작업)
 

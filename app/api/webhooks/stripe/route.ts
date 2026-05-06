@@ -95,9 +95,16 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
   const tokenAmount = session.metadata?.token_amount;
   const isWelcomeOffer = session.metadata?.is_welcome_offer === 'true';
   const bonusCredits = session.metadata?.bonus_credits;
+  const productType = session.metadata?.product_type;
 
   if (!userId) {
     console.error('No user_id in session metadata');
+    return;
+  }
+
+  // Founders Edition (one-time payment, mode='payment')
+  if (productType === 'founders_edition') {
+    await handleFoundersEditionCompleted(userId, session);
     return;
   }
 
@@ -209,6 +216,70 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
   // 구독인 경우 subscription 이벤트에서 처리
 }
 
+async function handleFoundersEditionCompleted(userId: string, session: Stripe.Checkout.Session) {
+  // Atomically claim the next available founders_number (1-100).
+  // RPC is idempotent — returns existing number on webhook retries.
+  const { data: foundersNumber, error: claimError } = await getSupabaseAdmin()
+    .rpc('claim_founders_number', { p_user_id: userId });
+
+  if (claimError || foundersNumber == null) {
+    console.error('[Stripe Webhook] Failed to claim founders_number:', claimError);
+    throw claimError ?? new Error('claim_founders_number returned null');
+  }
+
+  // Idempotent purchase record — composite key on stripe_session_id.
+  const { error: purchaseError } = await getSupabaseAdmin()
+    .from('purchases')
+    .upsert({
+      user_id: userId,
+      type: 'founders_edition',
+      amount: foundersNumber, // store the number for audit; price is separate
+      price: session.amount_total ? session.amount_total / 100 : 499,
+      currency: session.currency || 'usd',
+      stripe_session_id: session.id,
+    }, { onConflict: 'stripe_session_id' });
+
+  if (purchaseError) {
+    console.error('[Stripe Webhook] Failed to insert founders purchase:', purchaseError);
+  }
+
+  // Server-side analytics
+  const price = session.amount_total ? session.amount_total / 100 : 499;
+  await trackPurchaseServer({
+    userId,
+    email: session.customer_email || undefined,
+    value: price,
+    currency: (session.currency || 'usd').toUpperCase(),
+    transactionId: session.id,
+    items: [{
+      id: 'founders_edition',
+      name: `LUMIN Founders #${String(foundersNumber).padStart(3, '0')}`,
+      price,
+    }],
+  });
+
+  // Experiment fan-out — founders_purchased + subscription_started events.
+  try {
+    const { data: experiments } = await getSupabaseAdmin()
+      .from('experiments')
+      .select('key, conversion_events')
+      .eq('status', 'running');
+
+    for (const exp of (experiments ?? []) as Array<{ key: string; conversion_events: string[] }>) {
+      for (const ev of ['founders_purchased', 'subscription_started']) {
+        if ((exp.conversion_events ?? []).includes(ev)) {
+          await recordExperimentEvent(userId, exp.key, ev, price, {
+            product_id: 'founders_edition',
+            founders_number: foundersNumber,
+          });
+        }
+      }
+    }
+  } catch (err) {
+    console.error('[Stripe Webhook] Experiment fan-out failed (founders):', err);
+  }
+}
+
 async function handleSubscriptionUpdate(subscription: Stripe.Subscription) {
   if (!stripe) throw new Error('Stripe not configured');
   const customerId = subscription.customer as string;
@@ -254,11 +325,19 @@ async function handleSubscriptionUpdate(subscription: Stripe.Subscription) {
   }
 
   // users 테이블의 프리미엄 상태 + subscription_tier 동기화
-  const tier = isActive ? tierFromPlanId(plan) : 'free';
+  // Founders Edition 사용자는 별도 구독 추가 시에도 founders_edition tier를 영구 유지.
+  const { data: currentUser } = await getSupabaseAdmin()
+    .from('users')
+    .select('founders_number')
+    .eq('id', userId)
+    .single();
+  const isFoundersUser = currentUser?.founders_number != null;
+
+  const tier = isFoundersUser ? 'founders_edition' : (isActive ? tierFromPlanId(plan) : 'free');
   const { error: userError } = await getSupabaseAdmin()
     .from('users')
     .update({
-      is_premium: isActive,
+      is_premium: isActive || isFoundersUser,
       premium_expires_at: isActive ? periodEndDate.toISOString() : null,
       subscription_tier: tier,
     })
@@ -338,12 +417,20 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
   }
 
   // users 테이블의 프리미엄 상태 해제 + tier 초기화
+  // Founders Edition 사용자는 별도 구독이 취소돼도 founders_edition tier 유지.
+  const { data: currentUser } = await getSupabaseAdmin()
+    .from('users')
+    .select('founders_number, premium_expires_at')
+    .eq('id', userId)
+    .single();
+  const isFoundersUser = currentUser?.founders_number != null;
+
   const { error: userError } = await getSupabaseAdmin()
     .from('users')
     .update({
-      is_premium: false,
-      premium_expires_at: null,
-      subscription_tier: 'free',
+      is_premium: isFoundersUser,
+      premium_expires_at: isFoundersUser ? currentUser?.premium_expires_at : null,
+      subscription_tier: isFoundersUser ? 'founders_edition' : 'free',
     })
     .eq('id', userId);
 
