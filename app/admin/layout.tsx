@@ -9,10 +9,23 @@ import {
   LineChart, ClipboardCheck, FlaskConical, UserCog, type LucideIcon,
 } from 'lucide-react';
 import Link from 'next/link';
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarFooter,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarGroupLabel,
+  SidebarHeader,
+  SidebarInset,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  SidebarProvider,
+  SidebarTrigger,
+} from '@/components/ui/sidebar';
+import { TooltipProvider } from '@/components/ui/tooltip';
 import { Button } from '@/components/ui/button';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Separator } from '@/components/ui/separator';
-import { cn } from '@/lib/utils';
 import { FloatingImageQueue } from '@/components/admin/FloatingImageQueue';
 
 interface NavItem {
@@ -93,9 +106,7 @@ export default function AdminLayout({
   useEffect(() => {
     async function checkAdmin() {
       try {
-        // 로그인과 동일한 supabase 클라이언트 사용
         const { data: { session } } = await supabase.auth.getSession();
-
         if (!session?.user) {
           router.push('/login');
           return;
@@ -112,12 +123,10 @@ export default function AdminLayout({
           router.push('/');
           return;
         }
-
         if (userData?.role !== 'admin') {
           router.push('/');
           return;
         }
-
         setIsAdmin(true);
       } catch (error) {
         console.error('[Admin] Check failed:', error);
@@ -126,7 +135,6 @@ export default function AdminLayout({
         setIsLoading(false);
       }
     }
-
     checkAdmin();
   }, [router]);
 
@@ -137,138 +145,98 @@ export default function AdminLayout({
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
+      <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
-          <Loader2 className="w-8 h-8 animate-spin text-slate-900 mx-auto mb-4" />
-          <p className="text-slate-500">권한 확인 중...</p>
+          <Loader2 className="w-8 h-8 animate-spin text-foreground mx-auto mb-4" />
+          <p className="text-muted-foreground text-sm">권한 확인 중...</p>
         </div>
       </div>
     );
   }
-
-  if (!isAdmin) {
-    return null;
-  }
+  if (!isAdmin) return null;
 
   return (
-    <div
-      className="min-h-screen flex"
-      style={{
-        '--background': 'oklch(1 0 0)',
-        '--foreground': 'oklch(0.145 0 0)',
-        '--card': 'oklch(1 0 0)',
-        '--card-foreground': 'oklch(0.145 0 0)',
-        '--primary': 'oklch(0.205 0 0)',
-        '--primary-foreground': 'oklch(0.985 0 0)',
-        '--secondary': 'oklch(0.97 0 0)',
-        '--secondary-foreground': 'oklch(0.205 0 0)',
-        '--muted': 'oklch(0.97 0 0)',
-        '--muted-foreground': 'oklch(0.556 0 0)',
-        '--accent': 'oklch(0.97 0 0)',
-        '--accent-foreground': 'oklch(0.205 0 0)',
-        '--border': 'oklch(0.922 0 0)',
-        '--input': 'oklch(0.922 0 0)',
-        backgroundColor: 'white',
-        color: '#0f172a',
-      } as React.CSSProperties}
-    >
-      {/* Sidebar */}
-      <aside className="w-72 border-r border-slate-200 flex flex-col" style={{ backgroundColor: 'white' }}>
-        {/* Logo */}
-        <div className="p-5">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-slate-900 rounded-lg">
-              <Shield className="w-5 h-5 text-white" />
-            </div>
-            <div>
-              <h1 className="text-base font-bold text-slate-900 leading-tight">Admin Panel</h1>
-              <p className="text-xs text-slate-500">Luminovel · LUMIN</p>
-            </div>
-          </div>
-        </div>
-
-        <Separator />
-
-        {/* Navigation — grouped by responsibility */}
-        <ScrollArea className="flex-1 px-3 py-3">
-          <nav className="space-y-5">
-            {NAV_GROUPS.map((group) => (
-              <div key={group.id}>
-                <div className="px-2 mb-1.5">
-                  <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">
-                    {group.label}
-                  </div>
-                  <div className="text-[10px] text-slate-400 leading-tight mt-0.5">
-                    {group.description}
-                  </div>
-                </div>
-                <div className="space-y-0.5">
-                  {group.items.map((item) => {
-                    const isActive = pathname === item.href ||
-                      (item.href !== '/admin' && pathname?.startsWith(item.href + '/'));
-                    const Icon = item.icon;
-
-                    return (
-                      <Link key={item.href} href={item.href} title={item.purpose}>
-                        <button
-                          className={cn(
-                            'w-full text-left px-2 py-1.5 rounded-md transition flex items-start gap-2.5 group',
-                            isActive
-                              ? 'bg-slate-900 text-white'
-                              : 'text-slate-700 hover:bg-slate-100'
-                          )}
-                        >
-                          <Icon
-                            className={cn(
-                              'w-4 h-4 mt-0.5 flex-shrink-0',
-                              isActive ? 'text-white' : 'text-slate-500 group-hover:text-slate-700'
-                            )}
-                          />
-                          <div className="flex-1 min-w-0">
-                            <div className="text-sm font-medium leading-tight">{item.label}</div>
-                            <div
-                              className={cn(
-                                'text-[10px] leading-tight mt-0.5 truncate',
-                                isActive ? 'text-white/70' : 'text-slate-400'
-                              )}
-                            >
-                              {item.purpose}
-                            </div>
-                          </div>
-                        </button>
-                      </Link>
-                    );
-                  })}
-                </div>
+    <TooltipProvider delayDuration={0}>
+      <SidebarProvider className="bg-background text-foreground">
+        <Sidebar collapsible="icon" className="border-r">
+          <SidebarHeader>
+            <div className="flex items-center gap-3 px-2 py-1.5 group-data-[collapsible=icon]:justify-center">
+              <div className="p-2 bg-sidebar-primary rounded-lg flex-shrink-0">
+                <Shield className="size-5 text-sidebar-primary-foreground" />
               </div>
+              <div className="flex-1 min-w-0 group-data-[collapsible=icon]:hidden">
+                <div className="text-base font-bold leading-tight truncate">Admin Panel</div>
+                <div className="text-xs text-muted-foreground truncate">Luminovel · LUMIN</div>
+              </div>
+            </div>
+          </SidebarHeader>
+
+          <SidebarContent>
+            {NAV_GROUPS.map((group) => (
+              <SidebarGroup key={group.id}>
+                <SidebarGroupLabel className="flex flex-col items-start h-auto py-1.5">
+                  <span className="text-[10px] font-semibold uppercase tracking-wider">
+                    {group.label}
+                  </span>
+                  <span className="text-[10px] text-muted-foreground leading-tight font-normal normal-case">
+                    {group.description}
+                  </span>
+                </SidebarGroupLabel>
+                <SidebarGroupContent>
+                  <SidebarMenu>
+                    {group.items.map((item) => {
+                      const isActive =
+                        pathname === item.href ||
+                        (item.href !== '/admin' && pathname?.startsWith(item.href + '/'));
+                      const Icon = item.icon;
+                      return (
+                        <SidebarMenuItem key={item.href}>
+                          <SidebarMenuButton
+                            asChild
+                            isActive={isActive}
+                            tooltip={item.purpose}
+                            className="h-auto py-1.5"
+                          >
+                            <Link href={item.href}>
+                              <Icon className="size-4 flex-shrink-0" />
+                              <div className="flex-1 min-w-0">
+                                <div className="text-sm font-medium leading-tight">{item.label}</div>
+                                <div className="text-[10px] leading-tight mt-0.5 truncate text-muted-foreground group-data-[active=true]/menu-button:text-sidebar-accent-foreground/70">
+                                  {item.purpose}
+                                </div>
+                              </div>
+                            </Link>
+                          </SidebarMenuButton>
+                        </SidebarMenuItem>
+                      );
+                    })}
+                  </SidebarMenu>
+                </SidebarGroupContent>
+              </SidebarGroup>
             ))}
-          </nav>
-        </ScrollArea>
+          </SidebarContent>
 
-        <Separator />
+          <SidebarFooter>
+            <Button
+              variant="ghost"
+              className="w-full justify-start gap-3 text-muted-foreground hover:text-foreground"
+              onClick={handleLogout}
+            >
+              <LogOut className="size-4" />
+              <span className="group-data-[collapsible=icon]:hidden">로그아웃</span>
+            </Button>
+          </SidebarFooter>
+        </Sidebar>
 
-        {/* User Actions */}
-        <div className="p-3">
-          <Button
-            variant="ghost"
-            className="w-full justify-start gap-3 text-slate-500 hover:text-slate-900 hover:bg-slate-100"
-            onClick={handleLogout}
-          >
-            <LogOut className="w-5 h-5" />
-            로그아웃
-          </Button>
-        </div>
-      </aside>
-
-      {/* Main Content */}
-      <main className="flex-1 overflow-auto bg-slate-50">
-        <ScrollArea className="h-screen">
-          {children}
-        </ScrollArea>
-      </main>
-
-      {/* Floating Image Queue Indicator */}
-      <FloatingImageQueue />
-    </div>
+        <SidebarInset className="bg-muted/30">
+          <header className="sticky top-0 z-10 flex h-12 items-center gap-2 border-b bg-background px-4">
+            <SidebarTrigger />
+            <div className="flex-1" />
+          </header>
+          <div className="flex-1 overflow-auto">{children}</div>
+          <FloatingImageQueue />
+        </SidebarInset>
+      </SidebarProvider>
+    </TooltipProvider>
   );
 }
