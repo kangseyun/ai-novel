@@ -4,10 +4,8 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Terminal,
   Wifi,
   Shield,
-  ShieldAlert,
   Eye,
   MessageCircle,
   Home,
@@ -66,9 +64,6 @@ export default function MainPage() {
       }, 100);
     }
   }, []);
-  const [showBootSequence, setShowBootSequence] = useState(false);
-  const [bootStep, setBootStep] = useState(0);
-  const [connectionStatus, setConnectionStatus] = useState<'connecting' | 'connected' | 'intercepted'>('connecting');
   const [isLoading, setIsLoading] = useState(true);
 
   // Create post modal
@@ -155,91 +150,9 @@ export default function MainPage() {
   const hackLevel = profile?.hackLevel ?? 1;
   const hackXP = profile?.hackXP ?? 0;
 
-  // Boot sequence messages
-  const bootMessages = [
-    '> Initializing PHANTOM.exe...',
-    '> Bypassing firewall... [OK]',
-    '> Injecting packet sniffer... [OK]',
-    '> Intercepting SSL handshake... [OK]',
-    '> Target acquired: @jun.lumin',
-    '> Establishing covert connection...',
-    '> ACCESS GRANTED',
-  ];
-
-  // Boot sequence effect
-  useEffect(() => {
-    if (showBootSequence && bootStep < bootMessages.length) {
-      const timer = setTimeout(() => {
-        setBootStep(bootStep + 1);
-        if (bootStep === 4) {
-          setConnectionStatus('connected');
-        }
-        if (bootStep === 5) {
-          setConnectionStatus('intercepted');
-        }
-      }, 600);
-      return () => clearTimeout(timer);
-    } else if (bootStep >= bootMessages.length) {
-      const timer = setTimeout(() => {
-        setShowBootSequence(false);
-      }, 800);
-      return () => clearTimeout(timer);
-    }
-  }, [bootStep, showBootSequence, bootMessages.length]);
-
   // 로딩 중
   if (isLoading) {
     return <div className="min-h-screen bg-black" />;
-  }
-
-  // Boot sequence overlay
-  if (showBootSequence) {
-    return (
-      <div className="min-h-screen bg-black text-green-400 font-mono p-6 flex flex-col justify-center">
-        <div className="max-w-lg mx-auto w-full space-y-2">
-          <div className="flex items-center gap-2 mb-6">
-            <Terminal className="w-6 h-6" />
-            <span className="text-lg">PHANTOM v3.7.2</span>
-          </div>
-
-          {bootMessages.slice(0, bootStep).map((msg, idx) => (
-            <motion.div
-              key={idx}
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              className={`text-sm ${
-                msg.includes('[OK]') ? 'text-green-400' :
-                msg.includes('ACCESS GRANTED') ? 'text-red-400 text-lg font-bold' :
-                'text-green-400/70'
-              }`}
-            >
-              {msg}
-            </motion.div>
-          ))}
-
-          {bootStep < bootMessages.length && (
-            <div className="flex items-center gap-2 text-green-400/50">
-              <span className="animate-pulse">█</span>
-            </div>
-          )}
-
-          {bootStep >= bootMessages.length && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="mt-8 text-center"
-            >
-              <div className="text-red-400 text-2xl font-bold mb-2">
-                [SYSTEM COMPROMISED]
-              </div>
-              <div className="text-green-400/50 text-xs">
-                Entering stealth mode...
-              </div>
-            </motion.div>
-          )}
-        </div>
-      </div>
-    );
   }
 
   return (
@@ -249,14 +162,8 @@ export default function MainPage() {
         <div className="flex items-center justify-between px-4 py-2">
           <div className="flex items-center gap-2">
             <div className="flex items-center gap-1.5">
-              {connectionStatus === 'intercepted' ? (
-                <ShieldAlert className="w-4 h-4 text-red-400" />
-              ) : (
-                <Shield className="w-4 h-4 text-green-400" />
-              )}
-              <span className="text-[10px] font-mono text-red-400">
-                {connectionStatus === 'intercepted' ? 'INTERCEPTED' : 'SECURE'}
-              </span>
+              <Shield className="w-4 h-4 text-emerald-400" />
+              <span className="text-[10px] font-mono text-emerald-400">LUMIN</span>
             </div>
           </div>
 

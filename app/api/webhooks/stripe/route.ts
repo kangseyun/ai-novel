@@ -4,6 +4,7 @@ import { stripe } from '@/lib/stripe';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { trackPurchaseServer, trackSubscribeServer } from '@/lib/analytics-server';
 import { tierFromPlanId } from '@/lib/pricing';
+import { recordExperimentEvent } from '@/lib/experiments';
 
 // Supabase admin client (bypasses RLS) - lazy initialization
 let supabaseAdmin: SupabaseClient | null = null;
@@ -268,20 +269,46 @@ async function handleSubscriptionUpdate(subscription: Stripe.Subscription) {
     throw userError;
   }
 
-  // 신규 구독인 경우 서버사이드 애널리틱스 전송
+  // 신규 구독인 경우 서버사이드 애널리틱스 + 실험 컨버전 기록
   if (isActive && status === 'active') {
     const price = subscriptionItem?.price;
     const amount = price?.unit_amount ? price.unit_amount / 100 : 9900;
+    const planLabel = plan.includes('yearly') ? 'Yearly' : 'Monthly';
+    const planName = tier === 'lumin_pass' ? `LUMIN PASS ${planLabel}` : `${tier} ${planLabel}`;
 
     await trackSubscribeServer({
       userId,
       email: (customer as Stripe.Customer).email || undefined,
       planId: plan,
-      planName: `Pro ${plan.includes('yearly') ? 'Yearly' : 'Monthly'}`,
+      planName,
       value: amount,
-      currency: (price?.currency || 'krw').toUpperCase(),
+      currency: (price?.currency || 'usd').toUpperCase(),
       transactionId: subscription.id,
     });
+
+    // 실험 컨버전: 어떤 활성 실험에 속한 유저든 conversion_event 매칭 시 자동 기록.
+    // 실험에 미배정된 유저는 recordExperimentEvent 내부에서 no-op.
+    const conversionEvents = tier === 'lumin_pass'
+      ? ['pass_purchased', 'subscription_started']
+      : ['standard_purchased', 'subscription_started'];
+
+    // 활성 실험들을 일괄 조회해 fan-out (서비스 키 기준).
+    try {
+      const { data: experiments } = await getSupabaseAdmin()
+        .from('experiments')
+        .select('key, conversion_events')
+        .eq('status', 'running');
+
+      for (const exp of (experiments ?? []) as Array<{ key: string; conversion_events: string[] }>) {
+        for (const ev of conversionEvents) {
+          if ((exp.conversion_events ?? []).includes(ev)) {
+            await recordExperimentEvent(userId, exp.key, ev, amount, { plan_id: plan });
+          }
+        }
+      }
+    } catch (err) {
+      console.error('[Stripe Webhook] Experiment event fan-out failed:', err);
+    }
   }
 }
 

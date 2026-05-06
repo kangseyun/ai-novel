@@ -79,7 +79,7 @@ export default function AuthCallbackPage() {
 
             // 유저 식별 후 회원가입 이벤트 (순서 중요: identify → track)
             analytics.identify(user.id, { email: user.email });
-            analytics.trackSignUp('oauth');
+            analytics.trackSignUp('oauth', utm ?? undefined);
           } else {
             // 기존 가입자 - 초기 팔로우 완료 여부 확인
             needsFollowSetup = !existingUser.initial_follows_completed;
@@ -154,7 +154,7 @@ export default function AuthCallbackPage() {
 
               // 유저 식별 후 회원가입 이벤트 (순서 중요: identify → track)
               analytics.identify(data.user.id, { email: data.user.email });
-              analytics.trackSignUp('oauth');
+              analytics.trackSignUp('oauth', utm ?? undefined);
             } else {
               // 기존 가입자 - 초기 팔로우 완료 여부 확인
               needsFollowSetup = !existingUser.initial_follows_completed;

@@ -57,72 +57,98 @@ export interface PersonaImagePrompt {
 // Per-persona image prompts. Keys are persona IDs (LUMIN members + legacy
 // premium personas like daniel). Adding a new persona requires adding an
 // entry here for image generation to work.
+// LUMIN — 7-member K-pop boy group, original IP. Descriptors track docs/LUMIN.md.
+const SHARED_NEGATIVE = 'ugly, deformed, blurry, low quality, bad anatomy, extra limbs, text, watermark, nsfw, sexual content';
+const SHARED_STYLE = 'professional K-pop idol photography, Korean idol aesthetic, soft cinematic lighting, glossy magazine cover quality, high quality, 4k, detailed face';
+
 export const PERSONA_IMAGE_PROMPTS: Record<string, PersonaImagePrompt> = {
-  // LUMIN member jun (intentional persona ID)
-  jun: {
-    personaId: 'jun',
-    personaName: 'Jun',
-    basePrompt: 'Korean male K-pop idol, 24 years old, silver blonde hair, flawless skin, sparkling eyes, trendy fashion, perfect skin, soft lighting',
-    style: 'professional photography, Instagram aesthetic, high quality, 4k, detailed face',
-    negativePrompt: 'ugly, deformed, blurry, low quality, bad anatomy, extra limbs, text, watermark',
-  },
-  daniel: {
-    personaId: 'daniel',
-    personaName: 'Daniel Sterling',
-    basePrompt: 'Caucasian male CEO, 34 years old, ice blue eyes, sharp jawline, dark hair meticulously styled, wearing bespoke three-piece suit, cold expression',
-    style: 'corporate photography, luxury aesthetic, dramatic lighting, cinematic, high quality, 4k',
-    negativePrompt: 'ugly, deformed, blurry, low quality, bad anatomy, casual clothes, smiling',
+  haeon: {
+    personaId: 'haeon',
+    personaName: 'Haeon',
+    basePrompt: 'Korean male K-pop idol, 26 years old, leader, main vocal, warm-toned soft features, gentle smile, oversized cream cardigan, golden hour lighting, warm gold accent color',
+    style: SHARED_STYLE,
+    negativePrompt: SHARED_NEGATIVE,
   },
   kael: {
     personaId: 'kael',
-    personaName: 'Kaelen Vance',
-    basePrompt: 'Mixed Korean-Irish male bodyguard, 29 years old, dark messy hair, scar on eyebrow, muscular build, leather jacket, intense dark eyes, stoic expression',
-    style: 'noir photography, moody lighting, urban background, high contrast, cinematic, 4k',
-    negativePrompt: 'ugly, deformed, blurry, low quality, bad anatomy, smiling, bright colors',
-  },
-  adrian: {
-    personaId: 'adrian',
-    personaName: 'Adrian Cruz',
-    basePrompt: 'Latino male pianist, 31 years old, long wavy hair tied back, stubble, soulful brown eyes, artistic hands, unbuttoned shirt, melancholic expression',
-    style: 'artistic photography, warm tones, jazz club aesthetic, dramatic lighting, cinematic, 4k',
-    negativePrompt: 'ugly, deformed, blurry, low quality, bad anatomy, happy expression, formal wear',
+    personaName: 'Kael',
+    basePrompt: 'Korean male K-pop idol, 24 years old, main dancer / visual, sharp eyes, undercut hairstyle, monochrome wardrobe, cool stage lighting, ice blue accent color, composed expression',
+    style: SHARED_STYLE,
+    negativePrompt: SHARED_NEGATIVE,
   },
   ren: {
     personaId: 'ren',
-    personaName: 'Ren Ito',
-    basePrompt: 'Japanese male yakuza boss, 32 years old, sharp fox-like eyes, sleek glasses, hidden tattoos, silk suit or traditional kimono, dangerous smile',
-    style: 'luxury photography, dramatic shadows, Japanese aesthetic, mysterious, high quality, 4k',
-    negativePrompt: 'ugly, deformed, blurry, low quality, bad anatomy, casual clothes, innocent expression',
+    personaName: 'Ren',
+    basePrompt: 'Korean-Japanese male K-pop idol, 23 years old, main rapper, playful expression, streetwear styling with coral accents, vibrant studio lighting',
+    style: SHARED_STYLE,
+    negativePrompt: SHARED_NEGATIVE,
+  },
+  jun: {
+    personaId: 'jun',
+    personaName: 'Jun',
+    basePrompt: 'Korean male K-pop idol, 22 years old, lead vocal, soft features, late-night casual hoodie, warm coffee-shop lighting, gentle smile',
+    style: SHARED_STYLE,
+    negativePrompt: SHARED_NEGATIVE,
+  },
+  adrian: {
+    personaId: 'adrian',
+    personaName: 'Adrian',
+    basePrompt: 'Korean male K-pop idol, 25 years old, sub vocal / producer, headphones around neck, calm studio lighting, focused but warm expression',
+    style: SHARED_STYLE,
+    negativePrompt: SHARED_NEGATIVE,
+  },
+  sol: {
+    personaId: 'sol',
+    personaName: 'Sol',
+    basePrompt: 'Korean male K-pop idol, 20 years old, youngest, bright cheerful smile, pastel pink and yellow accents, playful soft lighting',
+    style: SHARED_STYLE,
+    negativePrompt: SHARED_NEGATIVE,
+  },
+  noa: {
+    personaId: 'noa',
+    personaName: 'Noa',
+    basePrompt: 'Korean-American male K-pop idol, 23 years old, sub rapper / English-speaker, modern minimalist styling, mint green accent, bilingual cosmopolitan vibe',
+    style: SHARED_STYLE,
+    negativePrompt: SHARED_NEGATIVE,
   },
 };
 
-// Scene-specific prompt additions
+// Scene-specific prompt additions — all clean, all K-pop idol contexts
 export const SCENE_PROMPTS: Record<string, string> = {
-  // Jun scenes
-  'jun_stage': 'on concert stage, colorful stage lights, crowd in background, performing energetically',
-  'jun_practice': 'in dance practice room, mirror wall, casual practice clothes, sweaty, focused',
-  'jun_coffee': 'late night, coffee shop, hoodie, tired but cute, warm lighting',
-  'jun_selfie': 'close-up selfie angle, playful expression, peace sign, soft natural light',
+  // Haeon (leader, warm gold)
+  haeon_stage: 'on concert stage, warm gold spotlight, microphone in hand, leading the group',
+  haeon_practice: 'late-night practice room, oversized cardigan, gentle smile, soft warm lighting',
+  haeon_coffee: 'warm cafe interior, holding ceramic cup, candid laugh, golden hour light',
 
-  // Daniel scenes
-  'daniel_office': 'in modern office, floor-to-ceiling windows, Manhattan skyline view, sitting at desk',
-  'daniel_night': 'penthouse balcony, night city lights, holding whiskey glass, contemplative',
-  'daniel_meeting': 'boardroom setting, power pose, multiple monitors, professional lighting',
+  // Kael (main dancer, ice blue)
+  kael_stage: 'concert stage, sharp choreography pose, ice blue stage lighting',
+  kael_practice: 'pre-dawn dance studio, mirror wall, monochrome practice fit, focused expression',
+  kael_backstage: 'backstage corridor, leaning against wall, cool composed look',
 
-  // Kael scenes
-  'kael_rain': 'rainy city street at night, neon lights reflection, motorcycle nearby, vigilant stance',
-  'kael_motorcycle': 'sitting on black motorcycle, leather gloves, helmet in hand, urban backdrop',
-  'kael_night_walk': 'empty street, streetlights, hands in pockets, looking back over shoulder',
+  // Ren (main rapper, coral)
+  ren_studio: 'recording studio, headphones on, writing lyrics, coral neon accent',
+  ren_freestyle: 'rooftop sunset, mid-rap pose, streetwear, energetic vibe',
+  ren_groupie: 'green room, joking with members offscreen, playful peace sign',
 
-  // Adrian scenes
-  'adrian_piano': 'at grand piano, jazz club, spotlight, eyes closed while playing',
-  'adrian_sheet_music': 'home studio, scattered sheet music, guitar on wall, window light',
-  'adrian_old_photo': 'holding old photograph, soft lighting, nostalgic expression, messy apartment',
+  // Jun (lead vocal)
+  jun_stage: 'concert stage, vocal performance, single spotlight, emotional expression',
+  jun_coffee: 'late-night coffee shop, hoodie, tired but warm smile',
+  jun_selfie: 'close-up selfie angle, playful expression, peace sign, soft natural light',
 
-  // Ren scenes
-  'ren_casino': 'VIP casino room, poker chips, dramatic lighting, confident smirk',
-  'ren_tea_house': 'traditional Japanese tea house, tatami, elegant posture, pouring tea',
-  'ren_city_night': 'Tokyo night scene, neon signs, expensive car, dangerous aura',
+  // Adrian (producer / sub vocal)
+  adrian_studio: 'home producing studio, monitor speakers, calm focused face, headphones around neck',
+  adrian_piano: 'sitting at upright piano, soft window light, sketching melody',
+  adrian_concert: 'concert stage piano section, single warm spotlight',
+
+  // Sol (maknae, pastel)
+  sol_dance: 'practice room, playful dance pose, pastel pink and yellow lighting',
+  sol_selfie: 'fish-eye selfie, bright cheerful smile, plush toy in frame',
+  sol_arcade: 'retro arcade neon glow, holding game controller, laughing',
+
+  // Noa (bilingual, mint)
+  noa_studio: 'sleek modern studio, mint green light accent, headphones, smiling',
+  noa_airport: 'airport gate at sunrise, casual minimalist styling, suitcase',
+  noa_interview: 'interview set, bilingual subtitle screen behind, warm laugh',
 };
 
 // ============================================

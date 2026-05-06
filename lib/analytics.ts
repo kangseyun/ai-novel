@@ -333,17 +333,43 @@ export const trackPageView = (pageName?: string): void => {
 
 // ============ 표준 이벤트 헬퍼 ============
 
-// 회원가입
-export const trackSignUp = (method: string): void => {
+// 회원가입 — 채널 어트리뷰션을 위해 utm 옵션 동봉
+export const trackSignUp = (
+  method: string,
+  attribution?: {
+    utm_source?: string | null;
+    utm_medium?: string | null;
+    utm_campaign?: string | null;
+    utm_content?: string | null;
+    utm_term?: string | null;
+    landing_path?: string | null;
+    first_referrer?: string | null;
+  }
+): void => {
   trackStandard('SignUp', {
     method,
     status: 'success',
+    ...(attribution
+      ? Object.fromEntries(Object.entries(attribution).filter(([, v]) => v != null))
+      : {}),
   });
 };
 
 // 로그인
-export const trackLogin = (method: string): void => {
-  trackStandard('Login', { method });
+export const trackLogin = (
+  method: string,
+  attribution?: {
+    utm_source?: string | null;
+    utm_medium?: string | null;
+    utm_campaign?: string | null;
+  }
+): void => {
+  trackStandard('Login', {
+    method,
+    ...(attribution
+      ? Object.fromEntries(Object.entries(attribution).filter(([, v]) => v != null))
+      : {}),
+  });
 };
 
 // 콘텐츠 조회
