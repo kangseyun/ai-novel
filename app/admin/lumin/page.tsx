@@ -5,8 +5,9 @@ import Link from 'next/link';
 import { adminFetch } from '@/lib/admin-fetch';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { format } from 'date-fns';
-import { Loader2, MessageSquare, Users as UsersIcon, Heart, BookOpen } from 'lucide-react';
+import { Loader2, MessageSquare, Users as UsersIcon, Heart, BookOpen, Pencil, ImagePlus, Sparkles } from 'lucide-react';
 
 interface Member {
   persona: {
@@ -202,9 +203,30 @@ export default function AdminLuminPage() {
                   </div>
                 )}
 
-                <Link href={`/admin/personas/${m.persona.id}`}>
-                  <span className="text-xs text-primary hover:underline">페르소나 편집 →</span>
-                </Link>
+                {/* 작업 진입 버튼: 한 멤버 작업 시 페이지 점프 최소화 */}
+                <div className="flex gap-1.5 pt-1 border-t mt-2">
+                  <Link href={`/admin/personas/${m.persona.id}`} className="flex-1">
+                    <Button size="sm" variant="outline" className="w-full text-xs gap-1 h-8">
+                      <Pencil className="w-3 h-3" />
+                      편집
+                    </Button>
+                  </Link>
+                  <Link href={`/admin/personas/${m.persona.id}#image`} className="flex-1">
+                    <Button size="sm" variant="outline" className="w-full text-xs gap-1 h-8">
+                      <ImagePlus className="w-3 h-3" />
+                      이미지
+                    </Button>
+                  </Link>
+                  <Link
+                    href={`/admin/scenarios/generate?personaId=${m.persona.id}`}
+                    className="flex-1"
+                  >
+                    <Button size="sm" variant="outline" className="w-full text-xs gap-1 h-8">
+                      <Sparkles className="w-3 h-3" />
+                      시나리오
+                    </Button>
+                  </Link>
+                </div>
               </CardContent>
             </Card>
           );

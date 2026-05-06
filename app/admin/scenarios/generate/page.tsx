@@ -2,7 +2,7 @@
 import { adminFetch } from '@/lib/admin-fetch';
 
 import { useState, useEffect, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -118,6 +118,8 @@ const EMOTION_OPTIONS = [
 
 export default function ScenarioGeneratePage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const initialPersonaId = searchParams.get('personaId') ?? '';
   const [personas, setPersonas] = useState<PersonaCore[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -152,7 +154,9 @@ export default function ScenarioGeneratePage() {
       setPersonas(data || []);
 
       if (data && data.length > 0) {
-        setSelectedPersonaId(data[0].id);
+        // ?personaId=xxx 가 있으면 그 멤버를 우선 선택, 없으면 목록 첫 번째
+        const matchesParam = initialPersonaId && data.find((p) => p.id === initialPersonaId);
+        setSelectedPersonaId(matchesParam ? initialPersonaId : data[0].id);
       }
     } catch (error) {
       console.error('Error fetching personas:', error);
@@ -160,7 +164,7 @@ export default function ScenarioGeneratePage() {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [initialPersonaId]);
 
   useEffect(() => {
     fetchPersonas();
