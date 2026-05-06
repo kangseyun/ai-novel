@@ -24,31 +24,32 @@ const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://luminovel.ai';
 export const metadata: Metadata = {
   // Basic metadata
   title: {
-    default: "Luminovel.ai - AI Interactive Chat Novel Platform",
-    template: "%s | Luminovel.ai",
+    default: "Luminovel — LUMIN: 7명의 K-pop 아이돌과 함께하는 인터랙티브 스토리",
+    template: "%s | Luminovel",
   },
-  description: "Experience immersive AI-powered interactive stories. Chat with unique AI characters, make meaningful choices, and shape your own narrative adventure. Start your story today!",
+  description:
+    "K-pop 가상 그룹 LUMIN 7명과 매일 DM·시나리오·컴백 이벤트를 함께. 클린 PG-13, 단일 PASS 구독으로 모든 멤버 풀 액세스.",
 
-  // Keywords for SEO
+  // Keywords for SEO — LUMIN clean K-pop IP
   keywords: [
-    "AI chat novel",
-    "interactive fiction",
-    "AI characters",
-    "chat story",
-    "visual novel",
-    "AI storytelling",
-    "interactive narrative",
-    "choice-based games",
-    "AI roleplay",
-    "text adventure",
-    "AI companion",
-    "story game",
+    "LUMIN",
+    "K-pop interactive story",
+    "K-pop chat novel",
+    "AI K-pop boy group",
+    "K-pop fan experience",
+    "LUMIN PASS",
+    "interactive fan fiction",
+    "K-pop DM simulator",
+    "K-pop visual novel",
+    "Luminovel",
+    "AI interactive story",
+    "boy group chat",
   ],
 
   // Author and creator
-  authors: [{ name: "Luminovel.ai" }],
-  creator: "Luminovel.ai",
-  publisher: "Luminovel.ai",
+  authors: [{ name: "Luminovel" }],
+  creator: "Luminovel",
+  publisher: "Luminovel",
 
   // Robots and indexing
   robots: {
@@ -72,17 +73,19 @@ export const metadata: Metadata = {
   // Open Graph (Facebook, LinkedIn, Discord, etc.)
   openGraph: {
     type: 'website',
-    locale: 'en_US',
+    locale: 'ko_KR',
+    alternateLocale: ['en_US'],
     url: siteUrl,
-    siteName: 'Luminovel.ai',
-    title: 'Luminovel.ai - AI Interactive Chat Novel Platform',
-    description: 'Experience immersive AI-powered interactive stories. Chat with unique AI characters, make meaningful choices, and shape your own narrative adventure.',
+    siteName: 'Luminovel',
+    title: 'Luminovel — LUMIN 7명과 함께하는 K-pop 인터랙티브 스토리',
+    description:
+      'K-pop 가상 그룹 LUMIN 7명과 DM·시나리오·컴백 이벤트. 클린 PG-13, 단일 PASS 구독.',
     images: [
       {
         url: '/opengraph-image',
         width: 1200,
         height: 630,
-        alt: 'Luminovel.ai - AI Interactive Chat Novel Platform',
+        alt: 'Luminovel — LUMIN K-pop interactive story',
         type: 'image/png',
       },
     ],
@@ -91,8 +94,9 @@ export const metadata: Metadata = {
   // Twitter Card
   twitter: {
     card: 'summary_large_image',
-    title: 'Luminovel.ai - AI Interactive Chat Novel Platform',
-    description: 'Experience immersive AI-powered interactive stories. Chat with unique AI characters and shape your own narrative adventure.',
+    title: 'Luminovel — LUMIN 7명과 함께하는 K-pop 인터랙티브 스토리',
+    description:
+      'K-pop 가상 그룹 LUMIN 7명과 DM·시나리오·컴백 이벤트. 클린 PG-13.',
     images: ['/twitter-image'],
     creator: '@luminovel',
     site: '@luminovel',
