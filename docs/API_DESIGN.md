@@ -1,1124 +1,534 @@
-# Luminovel - Backend API 설계 문서
+# Luminovel — Backend API 설계 문서
 
-> ⚠️ **현재 상태 (2026-05-06 갱신)**
->
-> **본 문서의 §3.3 / §10 / §11은 폐기됐습니다 (gem_packages, gem_cost, spend-gems, gems 화폐 등).**
-> 결제·티어 SoT는 코드에서 `lib/pricing.ts`, 스키마에서 `users.subscription_tier`(`free|standard|lumin_pass`)
-> + `subscriptions` 테이블입니다. webhook은 `app/api/webhooks/stripe/route.ts`,
-> 사용자 결제는 `app/api/subscriptions/checkout` / `subscriptions/welcome-offer`만 사용합니다.
-> 이 문서의 gem 섹션은 다크 로맨스 시대 잔재이며, 신규 기능에서 인용 금지.
->
-> **유효한 부분:**
-> - 인증 / 페르소나 / 시나리오 / DM / 메모리 / 어드민 API 전반의 계약·필드 명세
-> - 캐릭터 = LUMIN 7인 (`docs/LUMIN.md`)
-> - OAuth = Google + Discord (Apple 미사용)
-> - 화폐 = `tokens` (월간 메시지 한도용 단일 단위, IAP 없음)
+> **2026-05-06 갱신.** 이 문서는 현재 코드(`app/api/**`)와 1:1 정합 상태.
+> 옛 모델(코인/IAP, 다크 로맨스, ECLIPSE, hack/XP)은 모두 코드에서 제거됨.
+> 결제 SoT는 [`lib/pricing.ts`](../lib/pricing.ts), DB 스키마는 [`supabase/migrations/`](../supabase/migrations/) 001~030.
 
 ## 기술 스택
-- **Database**: Supabase (PostgreSQL + pgvector)
-- **Auth**: Supabase Auth (OAuth: **Google + Discord**)
-- **LLM**: OpenRouter (멀티모델 — ModelSelector로 동적 선택)
-- **TTS**: ElevenLabs (멤버별 음성 클로닝)
-- **Image**: Kling AI (멤버별 외모 시드)
-- **Payment**: Stripe (+ Paddle 백업)
+
+- **Database**: Supabase (PostgreSQL + pgvector for semantic memory)
+- **Auth**: Supabase Auth (OAuth: **Google + Discord**, Apple ❌)
+- **LLM**: OpenRouter (멀티모델 — `lib/ai-agent/core/model-selector.ts`)
+- **TTS**: ElevenLabs (멤버별 음성 클로닝 — 자산 단계, runtime API 미구현)
+- **Image**: Kling AI (멤버별 외모 시드 — `lib/kling-ai.ts`)
+- **Payment**: Stripe (LUMIN PASS / Standard 단일 구독)
 - **Analytics**: Mixpanel + Firebase + GA4 + Meta Pixel + Airbridge
 
 ---
 
 ## 1. 인증 (Authentication)
 
-### 1.1 회원가입
-```
-POST /api/auth/register
-```
-**Request:**
-```json
-{
-  "email": "user@example.com",
-  "password": "securepassword",
-  "nickname": "사용자닉네임"
-}
-```
-**Response:**
-```json
-{
-  "user": {
-    "id": "uuid",
-    "email": "user@example.com",
-    "nickname": "사용자닉네임"
-  },
-  "session": {
-    "access_token": "jwt_token",
-    "refresh_token": "refresh_token"
-  }
-}
-```
+OAuth-only. 이메일/비번 회원가입은 미사용 — Supabase Auth가 전담.
 
-### 1.2 로그인
-```
-POST /api/auth/login
-```
-**Request:**
-```json
-{
-  "email": "user@example.com",
-  "password": "securepassword"
-}
-```
-
-### 1.3 OAuth 로그인
+### 1.1 OAuth 로그인 시작
 ```
 POST /api/auth/oauth
-```
-**Request:**
-```json
-{
-  "provider": "google" | "discord",
-  "token": "oauth_token"
-}
-```
-> Apple OAuth는 미구현 — Google과 Discord만 지원.
+Content-Type: application/json
+{ "provider": "google" | "discord" }
 
-### 1.4 로그아웃
+Response 200:
+{ "url": "https://<project>.supabase.co/auth/v1/authorize?provider=..." }
+```
+클라이언트는 받은 `url`로 redirect. 콜백은 `app/auth/callback/page.tsx`가 처리
+(localStorage 세션 저장 + `users` insert + UTM 캡처).
+
+### 1.2 로그아웃
 ```
 POST /api/auth/logout
-```
+Authorization: Bearer <access_token>
 
-### 1.5 토큰 갱신
+Response 200: { "success": true }
+```
+세션 삭제 + localStorage 토큰 제거.
+
+### 1.3 토큰 갱신
 ```
 POST /api/auth/refresh
+Content-Type: application/json
+{ "refresh_token": "..." }
+
+Response 200:
+{ "session": { "access_token": "...", "refresh_token": "..." } }
 ```
+`apiClient.tryRefreshToken()`이 401 시 자동 호출.
 
 ---
 
 ## 2. 사용자 (User)
 
-### 2.1 사용자 프로필 조회
+### 2.1 프로필 조회
 ```
 GET /api/user/profile
-```
-**Response:**
-```json
+Authorization: Bearer <token>
+
+Response 200:
 {
-  "id": "uuid",
-  "email": "user@example.com",
-  "nickname": "사용자닉네임",
-  "profile_image": "url",
-  "bio": "자기소개",
-  "tokens": 100,
-  "subscription": {
-    "plan": "free" | "standard" | "lumin_pass",
-    "billing_period": "monthly" | "annual" | null,
-    "expires_at": "2026-12-31"
+  "user": {
+    "id": "uuid",
+    "email": "...",
+    "nickname": "...",
+    "tokens": 100,
+    "subscription_tier": "free" | "standard" | "lumin_pass",
+    "is_premium": boolean,
+    "premium_expires_at": "ISO8601" | null,
+    "onboarding_completed": boolean,
+    "initial_follows_completed": boolean,
+    "is_banned": boolean
   },
-  "created_at": "timestamp",
-  "onboarding_completed": true
+  "subscription": {
+    "plan_id": "lumin_pass_monthly" | ...,
+    "status": "active" | "trialing" | "past_due" | "canceled",
+    "current_period_end": "ISO8601",
+    "cancel_at_period_end": boolean
+  } | null
 }
 ```
 
-### 2.2 사용자 프로필 수정
+### 2.2 프로필 수정
 ```
 PUT /api/user/profile
-```
-**Request:**
-```json
-{
-  "nickname": "새닉네임",
-  "profile_image": "url",
-  "bio": "새 자기소개"
-}
+Authorization: Bearer <token>
+{ "nickname"?: string, "bio"?: string, "profile_image"?: string }
 ```
 
-### 2.3 사용자 페르소나 설정 저장
-```
-POST /api/user/persona
-```
-**Request:**
-```json
-{
-  "personality_type": "extroverted" | "introverted" | "ambivert",
-  "communication_style": "direct" | "indirect" | "playful" | "serious",
-  "emotional_tendency": "expressive" | "reserved" | "empathetic",
-  "interests": ["음악", "영화", "게임"],
-  "love_language": "words" | "time" | "gifts" | "service" | "touch",
-  "attachment_style": "secure" | "anxious" | "avoidant" | "fearful"
-}
-```
-
-### 2.4 온보딩 완료 처리
+### 2.3 온보딩 완료 처리
 ```
 POST /api/user/onboarding/complete
-```
-**Request:**
-```json
+Authorization: Bearer <token>
 {
-  "variant": "a" | "b" | "c",
-  "persona_id": "jun",
-  "affection_gained": 25,
-  "choices_made": [
-    { "scene_id": "scene1", "choice_id": "choice1" }
-  ]
+  "variant": "a" | "b",
+  "persona_id": "haeon" | ...,
+  "affection_gained": number,
+  "choices_made": [{ "scene_id": string, "choice_id": string }]
 }
 ```
+`users.onboarding_completed=true`, `users.onboarding_variant`에 variant 기록.
 
 ---
 
-## 3. 페르소나 & 시나리오 (Persona & Scenario)
+## 3. 페르소나 (Persona)
 
-### 3.1 페르소나 목록 조회
+### 3.1 페르소나 목록
 ```
 GET /api/personas
-```
-**Response:**
-```json
+Authorization: Bearer <token>
+
+Response 200:
 {
   "personas": [
     {
-      "id": "jun",
-      "name": "JUN",
-      "full_name": "서준",
-      "age": 22,
-      "group_id": "lumin",
-      "member_role": "sub_vocal",
-      "occupation": "아이돌 그룹 LUMIN 서브보컬/작곡",
-      "image": "url",
-      "color": "#FFB6C1",
-      "teaser_line": "...있잖아, 곡 하나 만들었는데. 너한테 제일 먼저 들려주고 싶어.",
-      "available": true,
-      "episode_count": 5
+      "id": "haeon",
+      "name": "해온",
+      "display_name": "HAEON",
+      "username": "haeon",
+      "profile_image_url": "...",
+      "bio": "...",
+      "is_premium": boolean,
+      "tags": [...],
+      "category": "...",
+      "followers_count": number
     }
   ]
 }
 ```
+SoT view: `personas` (security_invoker, base table `persona_core`).
 
-### 3.2 페르소나 상세 조회
+### 3.2 페르소나 상세
 ```
-GET /api/personas/:personaId
-```
-**Response:**
-```json
-{
-  "id": "jun",
-  "name": "JUN",
-  "full_name": "서준",
-  "age": 22,
-  "group_id": "lumin",
-  "member_role": "sub_vocal",
-  "occupation": "아이돌 그룹 LUMIN 서브보컬/작곡",
-  "public_personality": "강아지상의 다정한 동생 멤버",
-  "private_personality": "자기 곡에 진심, 너에게만 솔직한 멤버",
-  "speech_patterns": {
-    "formal": "~요, ~네요",
-    "casual": "~야, ~어",
-    "emotional_cues": ["...", "ㅎㅎ", "🌸", "🥺"]
-  },
-  "sns_profile": {
-    "username": "@jun.lumin",
-    "followers": "2.4M",
-    "bio": "LUMIN | Sub Vocal & Composer"
-  }
-}
+GET /api/personas/[personaId]
+Authorization: Bearer <token>
+
+Response 200:
+{ "persona": { ...full record... } }
 ```
 
-### 3.3 에피소드 목록 조회
+### 3.3 추천 친구 / 잠금 해제
 ```
-GET /api/personas/:personaId/episodes
-```
-**Response:**
-```json
-{
-  "episodes": [
-    {
-      "id": "ep1",
-      "title": "새벽 3시, 편의점",
-      "premise": "우연한 첫 만남",
-      "duration_minutes": 15,
-      "is_premium": false,
-      "is_locked": false,
-      "unlock_requirements": null,
-      "thumbnail": "url"
-    },
-    {
-      "id": "ep2",
-      "title": "비밀 연락처",
-      "premise": "그의 개인 번호",
-      "duration_minutes": 20,
-      "is_premium": true,
-      "is_locked": true,
-      "unlock_requirements": {
-        "min_affection": 30,
-        "gem_cost": 100
-      }
-    }
-  ]
-}
-```
-
-### 3.4 에피소드 시작
-```
-POST /api/game/episode/start
-```
-**Request:**
-```json
-{
-  "persona_id": "jun",
-  "episode_id": "ep1"
-}
-```
-**Response:**
-```json
-{
-  "session_id": "game_session_uuid",
-  "episode": {
-    "id": "ep1",
-    "title": "새벽 3시, 편의점"
-  },
-  "initial_scene": {
-    "id": "scene1",
-    "setting": {
-      "location": "편의점",
-      "time": "새벽 3시",
-      "mood": "고요한"
-    },
-    "beats": [...]
-  }
-}
+GET  /api/personas/suggested      → 추천 페르소나 N명
+POST /api/personas/unlock         → 토큰 차감 + persona 해제
 ```
 
 ---
 
-## 4. 게임 진행 (Game Progress)
+## 4. 시나리오 (Scenario)
 
-### 4.1 게임 상태 조회
+옛 `/api/game/*` 라우트는 모두 폐기. 시나리오 진행은 `/api/scenario`로 통일.
+
+### 4.1 시나리오 시작 / 조회
 ```
-GET /api/game/state/:personaId
-```
-**Response:**
-```json
+GET /api/scenario?scenarioId=...&personaId=...
+Authorization: Bearer <token>
+
+Response 200:
 {
-  "persona_id": "jun",
-  "affection": 45,
-  "relationship_stage": "friend",
-  "completed_episodes": ["ep1", "ep2"],
-  "unlocked_episodes": ["ep1", "ep2", "ep3"],
-  "current_episode": {
-    "id": "ep3",
-    "scene_id": "scene2",
-    "beat_index": 5
-  },
-  "story_flags": {
-    "shared_secret": true,
-    "first_hug": false
-  },
-  "last_interaction": "timestamp"
+  "scenario": { id, title, ... },
+  "currentScene": { id, content, choices? },
+  "progress": { ... }
 }
 ```
+Runtime은 `review_status='approved'` + `is_active=true`만 노출 (`lib/ai-agent/modules/scenario-service.ts`).
 
-### 4.2 선택지 선택
+### 4.2 시나리오 진행
 ```
-POST /api/game/choice
-```
-**Request:**
-```json
+POST /api/scenario/advance
 {
-  "session_id": "game_session_uuid",
-  "scene_id": "scene1",
-  "beat_id": "beat3",
-  "choice_id": "choice2",
-  "is_premium": false
-}
-```
-**Response:**
-```json
-{
-  "success": true,
-  "affection_change": +10,
-  "new_affection": 55,
-  "flags_updated": {
-    "showed_concern": true
-  },
-  "next_beat": {
-    "id": "beat4",
-    "type": "dialogue",
-    "speaker": "jun",
-    "emotion": "touched",
-    "text": "...고마워. 진심으로.",
-    "tts_url": "https://..."
-  },
-  "stage_changed": null
+  "scenarioId": "...",
+  "sceneId": "...",
+  "choiceId"?: "..."
 }
 ```
 
-### 4.3 다음 비트 요청 (자동 진행)
+### 4.3 시나리오 상세 조회 (단일)
 ```
-POST /api/game/next-beat
+GET /api/scenarios/[id]
 ```
-**Request:**
-```json
-{
-  "session_id": "game_session_uuid"
-}
-```
-
-### 4.4 에피소드 완료
-```
-POST /api/game/episode/complete
-```
-**Request:**
-```json
-{
-  "session_id": "game_session_uuid",
-  "episode_id": "ep1"
-}
-```
-**Response:**
-```json
-{
-  "completed": true,
-  "total_affection_gained": 35,
-  "new_affection": 80,
-  "unlocked_items": [
-    { "type": "gallery", "id": "cg_jun_smile" }
-  ],
-  "unlocked_episodes": ["ep2"],
-  "stage_changed": {
-    "from": "friend",
-    "to": "close"
-  }
-}
-```
-
-### 4.5 게임 저장
-```
-POST /api/game/save
-```
-**Request:**
-```json
-{
-  "persona_id": "jun",
-  "slot": 1
-}
-```
-
-### 4.6 게임 불러오기
-```
-GET /api/game/load/:personaId/:slot
-```
+`is_active && review_status='approved'` 조건. 조건 미충족 시 404.
 
 ---
 
-## 5. LLM 연동 (OpenRouter)
+## 5. AI 채팅 (LLM)
 
-### 5.1 대화 생성
+OpenRouter 경유. 모든 LLM 호출이 이 라우트를 거침.
+
+### 5.1 채팅
 ```
-POST /api/llm/generate-dialogue
-```
-**Request:**
-```json
+POST /api/ai/chat
+Authorization: Bearer <token>
 {
-  "persona_id": "jun",
-  "session_id": "game_session_uuid",
-  "context": {
-    "scene_id": "scene1",
-    "beat_id": "beat5",
-    "user_choice": "걱정되서 그래. 괜찮아?",
-    "affection": 45,
-    "relationship_stage": "friend",
-    "active_flags": ["shared_secret"],
-    "recent_dialogue": [
-      { "speaker": "jun", "text": "..." },
-      { "speaker": "user", "text": "..." }
-    ]
-  }
+  "personaId": "haeon",
+  "message": "...",
+  "sessionId"?: "uuid",
+  "choiceData"?: { ... }
+}
+
+Response 200:
+{
+  "sessionId": "uuid",
+  "response": { "content": "...", "emotion": "...", "innerThought": "..." | null },
+  "choices"?: [...],
+  "affectionChange": number,
+  "tokenBalance": number,
+  "scenarioTrigger"?: { ... },
+  "moderated"?: true
+}
+
+Response 422 (Hard Rules 위반):
+{
+  "error": "content_policy",
+  "message": "해당 주제는 다룰 수 없어요. ...",
+  "categories": ["sexual" | "real_idol" | "drugs" | "violence" | "politics"]
 }
 ```
-**Response:**
-```json
-{
-  "dialogue": {
-    "text": "...진짜 괜찮아. 그냥... 오늘따라 좀 그래.",
-    "emotion": "vulnerable",
-    "inner_thought": "이 사람은 진심으로 걱정해주는 것 같다"
-  },
-  "affection_modifier": +5,
-  "suggested_choices": [
-    {
-      "id": "gen_choice_1",
-      "text": "무슨 일 있어? 말해줘",
-      "tone": "caring"
-    },
-    {
-      "id": "gen_choice_2",
-      "text": "그럴 때 있지. 나도 그래",
-      "tone": "empathetic"
-    },
-    {
-      "id": "gen_choice_3",
-      "text": "라면이라도 먹을래?",
-      "tone": "playful"
-    }
-  ],
-  "tts_priority": "medium"
-}
-```
+**사전 차단**: user_message에 critical/high 매치 시 LLM 호출 전 422.
+**사후 교체**: AI 응답에 critical/high 매치 시 generic fallback으로 자동 대체 + flag 기록.
+**Hard Rules**: `lib/moderation.ts`의 5 카테고리 + `lib/ai-agent/core/prompt-engine.ts`가 시스템 프롬프트에 강제 주입.
 
 ### 5.2 동적 선택지 생성
 ```
 POST /api/llm/generate-choices
-```
-**Request:**
-```json
-{
-  "persona_id": "jun",
-  "context": {
-    "situation": "Jun이 갑자기 연습실에서 쓰러졌다",
-    "mood": "urgent",
-    "affection": 60
-  },
-  "choice_count": 3
-}
+{ "messages": [...], "personaId": "...", "context"?: {...} }
 ```
 
-### 5.3 캐릭터 반응 생성 (포스트 반응)
+### 5.3 세션 / 히스토리
 ```
-POST /api/llm/generate-reaction
-```
-**Request:**
-```json
-{
-  "persona_id": "jun",
-  "trigger": {
-    "type": "user_post",
-    "content": {
-      "mood": "lonely",
-      "caption": "오늘 하루도 끝...",
-      "time": "02:30"
-    }
-  },
-  "affection": 50
-}
-```
-**Response:**
-```json
-{
-  "should_react": true,
-  "reaction_type": "dm",
-  "message": "야, 아직 안 자? 나도 방금 연습 끝났는데",
-  "delay_seconds": 180
-}
+GET /api/ai/session?personaId=...     → 활성 세션 조회
+GET /api/ai/history?sessionId=...     → 메시지 히스토리
+GET /api/ai/relationship?personaId=... → 호감도 / 단계 조회
 ```
 
 ---
 
-## 6. TTS (ElevenLabs)
+## 6. DM (다이렉트 메시지)
 
-### 6.1 음성 생성
-```
-POST /api/tts/generate
-```
-**Request:**
-```json
-{
-  "persona_id": "jun",
-  "text": "...고마워. 진심으로.",
-  "emotion": "touched",
-  "hook_type": "emotional_peak"
-}
-```
-**Response:**
-```json
-{
-  "audio_url": "https://...",
-  "duration_ms": 2500,
-  "cached": false
-}
-```
-
-### 6.2 캐시된 음성 조회
-```
-GET /api/tts/cache/:hash
-```
-
----
-
-## 7. SNS 피드 (Feed)
-
-### 7.1 피드 조회
-```
-GET /api/feed?page=1&limit=20
-```
-**Response:**
-```json
-{
-  "posts": [
-    {
-      "id": "post_uuid",
-      "type": "persona_post",
-      "persona_id": "jun",
-      "content": {
-        "images": ["url1", "url2"],
-        "caption": "오늘 무대 끝! 고마워요 팬 여러분",
-        "location": "서울 올림픽홀"
-      },
-      "likes": 24532,
-      "user_liked": false,
-      "created_at": "timestamp",
-      "hack_level_required": 1
-    },
-    {
-      "id": "user_post_uuid",
-      "type": "user_post",
-      "content": {
-        "mood": "happy",
-        "caption": "오늘 기분 좋아~"
-      },
-      "triggered_events": ["jun_dm_1"],
-      "created_at": "timestamp"
-    }
-  ],
-  "next_page": 2
-}
-```
-
-### 7.2 유저 포스트 작성
-```
-POST /api/feed/post
-```
-**Request:**
-```json
-{
-  "type": "mood",
-  "mood": "lonely",
-  "caption": "새벽에 잠이 안 와...",
-  "image": "base64_or_url"
-}
-```
-**Response:**
-```json
-{
-  "post": { ... },
-  "triggered_events": [
-    {
-      "id": "event_uuid",
-      "type": "dm_notification",
-      "persona_id": "jun",
-      "preview": "야, 아직 안 자?",
-      "delay_seconds": 120
-    }
-  ]
-}
-```
-
-### 7.3 포스트 좋아요
-```
-POST /api/feed/post/:postId/like
-```
-
-### 7.4 포스트 삭제
-```
-DELETE /api/feed/post/:postId
-```
-
-### 7.5 이벤트/알림 조회
-```
-GET /api/feed/events
-```
-**Response:**
-```json
-{
-  "events": [
-    {
-      "id": "event_uuid",
-      "type": "dm_notification",
-      "persona_id": "jun",
-      "title": "Jun님이 DM을 보냈습니다",
-      "preview": "야, 아직 안 자?",
-      "scenario_id": "dm_late_night",
-      "read": false,
-      "created_at": "timestamp"
-    }
-  ],
-  "unread_count": 3
-}
-```
-
-### 7.6 이벤트 읽음 처리
-```
-PUT /api/feed/events/:eventId/read
-```
-
----
-
-## 8. DM 시나리오
-
-### 8.1 DM 목록 조회
+### 6.1 DM 목록
 ```
 GET /api/dm/list
-```
-**Response:**
-```json
+Authorization: Bearer <token>
+
+Response 200:
 {
-  "threads": [
-    {
-      "persona_id": "jun",
-      "persona_name": "Jun",
-      "persona_image": "url",
-      "last_message": "내일 봐",
-      "last_message_time": "timestamp",
-      "unread_count": 2,
-      "pinned": true
-    }
+  "conversations": [
+    { "personaId", "lastMessage", "lastMessageAt", "unreadCount", "stage", "affection" }
   ]
 }
 ```
 
-### 8.2 DM 시나리오 시작
+### 6.2 읽음 처리
 ```
-POST /api/dm/scenario/start
-```
-**Request:**
-```json
-{
-  "persona_id": "jun",
-  "scenario_id": "dm_late_night"
-}
+POST /api/dm/read
+{ "personaId": "..." }
 ```
 
-### 8.3 DM 메시지 전송 (선택)
+DM 채팅 자체는 `/api/ai/chat`이 담당 — 별도 `/api/dm/message` 라우트 없음.
+
+---
+
+## 7. 메모리 (Memory / RAG)
+
+### 7.1 메모리 조회
 ```
-POST /api/dm/message
+GET /api/memories                          → 전체
+GET /api/memories/[personaId]              → 페르소나별
+GET /api/memories/[personaId]/[memoryId]   → 단일
 ```
-**Request:**
-```json
-{
-  "session_id": "dm_session_uuid",
-  "choice_id": "choice1"
-}
+저장은 `lib/ai-agent` 내부에서 자동 수행 (서비스 레이어).
+
+---
+
+## 8. 피드 (Feed)
+
+### 8.1 피드 조회
+```
+GET /api/feed?page=1&limit=20
+Authorization: Bearer <token>
+```
+
+### 8.2 포스트 작성
+```
+POST /api/feed/post
+{ "content": "...", "personaId"?: "..." }
+```
+
+### 8.3 이벤트
+```
+GET /api/feed/events                  → 알림/이벤트 목록
+PUT /api/feed/events/[eventId]/read   → 읽음 처리
 ```
 
 ---
 
-## 9. 해킹 레벨 시스템
+## 9. 결제 / 구독 (Stripe)
 
-### 9.1 해킹 상태 조회
-```
-GET /api/hack/status
-```
-**Response:**
-```json
-{
-  "global_level": 3,
-  "global_xp": 2500,
-  "next_level_xp": 3000,
-  "profiles": {
-    "jun": {
-      "level": 3,
-      "xp": 1200,
-      "unlocked_content": ["hidden_story_1", "secret_photo_1"]
-    }
-  }
-}
-```
+옛 `/api/checkout`, `/api/payments/checkout` (토큰 IAP) 모두 폐기.
+SoT는 [`lib/pricing.ts`](../lib/pricing.ts) — LUMIN PASS $99/$990, Standard $19, Welcome Offer $49.50 (50% off PASS).
 
-### 9.2 XP 획득
+### 9.1 구독 플랜 목록
 ```
-POST /api/hack/gain-xp
-```
-**Request:**
-```json
-{
-  "persona_id": "jun",
-  "amount": 100,
-  "source": "story_viewed"
-}
-```
+GET /api/subscriptions/checkout
+Authorization: Bearer <token>
 
-### 9.3 숨겨진 콘텐츠 조회
-```
-GET /api/hack/hidden/:personaId
-```
-**Response:**
-```json
-{
-  "hidden_files": [
-    {
-      "id": "secret_1",
-      "type": "photo",
-      "thumbnail": "blurred_url",
-      "title": "???",
-      "unlock_level": 3,
-      "is_unlocked": true,
-      "content_url": "url"
-    }
-  ],
-  "hidden_stories": [...],
-  "hidden_posts": [...]
-}
-```
-
----
-
-## 10. 결제 (Payment)
-
-### 10.1 젬 패키지 목록
-```
-GET /api/payment/gem-packages
-```
-**Response:**
-```json
-{
-  "packages": [
-    {
-      "id": "starter",
-      "name": "스타터 팩",
-      "gems": 500,
-      "price": 4.99,
-      "currency": "USD",
-      "bonus": 0
-    },
-    {
-      "id": "popular",
-      "name": "인기 팩",
-      "gems": 1200,
-      "price": 9.99,
-      "currency": "USD",
-      "bonus": 200
-    }
-  ]
-}
-```
-
-### 10.2 구독 플랜 목록
-```
-GET /api/payment/subscriptions
-```
-**Response:**
-```json
+Response 200:
 {
   "plans": [
-    {
-      "id": "premium_monthly",
-      "name": "프리미엄",
-      "price": 9.99,
-      "interval": "month",
-      "features": [
-        "프리미엄 에피소드 무제한",
-        "매달 500 젬 지급",
-        "광고 제거"
-      ]
-    }
+    { "id": "lumin_pass_monthly", "name": "LUMIN PASS", "tier": "lumin_pass",
+      "interval": "month", "monthly_usd": 99, "unit_amount_cents": 9900,
+      "features": [...], "lookup_key": "lumin_pass_monthly" },
+    { "id": "lumin_pass_yearly", ... },
+    { "id": "standard_monthly", ... }
   ]
 }
 ```
 
-### 10.3 결제 세션 생성
+### 9.2 구독 결제 세션 생성
 ```
-POST /api/payment/checkout
-```
-**Request:**
-```json
-{
-  "type": "gem_package" | "subscription",
-  "item_id": "starter"
-}
-```
-**Response:**
-```json
-{
-  "checkout_url": "https://checkout.stripe.com/...",
-  "session_id": "cs_xxx"
-}
+POST /api/subscriptions/checkout
+{ "plan_id": "lumin_pass_monthly" | "lumin_pass_yearly" | "standard_monthly" }
+
+Response 200: { "url": "https://checkout.stripe.com/..." }
 ```
 
-### 10.4 결제 확인
+### 9.3 Welcome Offer
 ```
-GET /api/payment/verify/:sessionId
+GET  /api/subscriptions/welcome-offer
+  → { "eligible": boolean, "expiresAt": "ISO", "remainingSeconds": number,
+      "alreadyPurchased": boolean, "offer"?: PlanPricing }
+
+POST /api/subscriptions/welcome-offer
+  body: { "plan_id"?: "welcome_lumin_pass_monthly" }  // 기본값 사용 가능
+  → { "url": "https://checkout.stripe.com/..." }
+```
+가입 후 24시간 한정. PASS 50% off ($49.50). STRATEGY.md 7일 환불 정책.
+
+### 9.4 구독 관리
+```
+GET    /api/subscriptions/manage    → 현재 구독 상태
+POST   /api/subscriptions/manage    → cancel_at_period_end 토글
 ```
 
-### 10.5 Stripe Webhook
+### 9.5 Stripe Webhook
 ```
-POST /api/payment/webhook
-```
+POST /api/webhooks/stripe
+Stripe-Signature: ...
 
-### 10.6 젬 사용
-```
-POST /api/payment/spend-gems
-```
-**Request:**
-```json
-{
-  "amount": 100,
-  "purpose": "unlock_episode",
-  "target_id": "ep2"
-}
-```
+처리 이벤트:
+- checkout.session.completed       (Welcome Offer 보너스 크레딧 지급)
+- customer.subscription.created    → users.subscription_tier + is_premium 동기화
+- customer.subscription.updated    → 동일
+- customer.subscription.deleted    → tier='free', is_premium=false
+- invoice.payment_succeeded        → 구독 토큰 부여 (PASS 5000, Standard 1500)
+- invoice.payment_failed           → notifications insert
 
----
-
-## 11. 갤러리 & 언락 콘텐츠
-
-### 11.1 갤러리 조회
-```
-GET /api/gallery/:personaId
-```
-**Response:**
-```json
-{
-  "items": [
-    {
-      "id": "cg_jun_smile",
-      "type": "cg",
-      "title": "미소",
-      "thumbnail": "url",
-      "full_image": "url",
-      "is_unlocked": true,
-      "unlock_source": "ep1_complete"
-    },
-    {
-      "id": "voice_confession",
-      "type": "voice",
-      "title": "???",
-      "is_unlocked": false,
-      "unlock_requirement": {
-        "type": "affection",
-        "value": 100
-      }
-    }
-  ]
-}
-```
-
-### 11.2 아이템 언락
-```
-POST /api/gallery/unlock
-```
-**Request:**
-```json
-{
-  "item_id": "cg_jun_smile",
-  "method": "gems" | "achievement"
-}
+활성 구독 시 모든 active 실험에 conversion_event 자동 fan-out
+(pass_purchased / standard_purchased / subscription_started).
 ```
 
 ---
 
-## 12. 분석 (Analytics)
+## 10. 어드민 (Admin) — 30+ endpoints
 
-### 12.1 이벤트 추적
+모든 admin 라우트는 `lib/auth.ts` `requireAdmin()` 게이트.
+모든 write는 `admin_audit_log`에 자동 기록.
+
+### 10.1 운영
 ```
-POST /api/analytics/event
-```
-**Request:**
-```json
-{
-  "event": "scenario_completed",
-  "properties": {
-    "persona_id": "jun",
-    "episode_id": "ep1",
-    "duration_seconds": 900,
-    "affection_gained": 35
-  }
-}
-```
-
----
-
-## Database Schema (Supabase)
-
-### users
-```sql
-CREATE TABLE users (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  email TEXT UNIQUE NOT NULL,
-  nickname TEXT,
-  profile_image TEXT,
-  bio TEXT,
-  gems INTEGER DEFAULT 0,
-  created_at TIMESTAMP DEFAULT NOW(),
-  onboarding_completed BOOLEAN DEFAULT FALSE,
-  onboarding_variant TEXT
-);
+GET  /api/admin/metrics/mrr                     → MRR + 티어 분포 + PASS 마일스톤
+GET  /api/admin/subscriptions                   → 활성 구독 리스트 (필터: status / tier / expiring)
+GET  /api/admin/subscriptions/[id]              → 상세 + 최근 결제/환불 + Welcome Offer
+POST /api/admin/subscriptions/[id]/refund       → Stripe API 환불 + cancel/at-period-end + audit
+GET  /api/admin/llm-usage                       → 30일 비용/모델/유저/task 분석
+GET  /api/admin/moderation                      → Hard Rules 위반 큐
+PATCH /api/admin/moderation/[id]                → acknowledged / dismissed / escalated
+GET  /api/admin/logs/errors                     → error_logs 검색 + 요약
+PATCH /api/admin/logs/errors                    → resolved 토글 + audit
+GET  /api/admin/logs/activity                   → user_activity_log
 ```
 
-### user_personas
-```sql
-CREATE TABLE user_personas (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID REFERENCES users(id),
-  personality_type TEXT,
-  communication_style TEXT,
-  emotional_tendency TEXT,
-  interests TEXT[],
-  love_language TEXT,
-  attachment_style TEXT,
-  created_at TIMESTAMP DEFAULT NOW()
-);
+### 10.2 콘텐츠
+```
+GET  /api/admin/lumin/stats                     → 7명 멤버 KPI / 인기 시나리오 / 단계 분포
+GET  /api/admin/scenarios/review-queue          → 발행 큐 (필터: status)
+POST /api/admin/scenarios/[id]/review           → action=submit|approve|reject + Hard Rules lint 게이트
+POST /api/admin/scenarios/save                  → 시나리오 저장 (default review_status='draft')
+POST /api/admin/scenarios/generate              → AI 시나리오 생성 (LLM)
 ```
 
-### game_state
-```sql
-CREATE TABLE game_state (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID REFERENCES users(id),
-  persona_id TEXT NOT NULL,
-  affection INTEGER DEFAULT 0,
-  relationship_stage TEXT DEFAULT 'stranger',
-  completed_episodes TEXT[],
-  unlocked_episodes TEXT[],
-  story_flags JSONB DEFAULT '{}',
-  current_episode TEXT,
-  current_scene TEXT,
-  current_beat INTEGER,
-  last_interaction TIMESTAMP,
-  UNIQUE(user_id, persona_id)
-);
+### 10.3 페르소나
+```
+POST /api/admin/persona/generate                       → AI 메타 자동 생성
+POST /api/admin/persona/generate-image                 → Kling AI 이미지 생성
+GET  /api/admin/persona/generate-image/status          → 진행 상태 폴링
+POST /api/admin/persona/generate-auto-prompts          → 자동 prompt 작성
+POST /api/admin/generate-images                        → 일괄 이미지 생성 (배치)
 ```
 
-### conversation_history
-```sql
-CREATE TABLE conversation_history (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID REFERENCES users(id),
-  persona_id TEXT NOT NULL,
-  episode_id TEXT,
-  scene_id TEXT,
-  beat_id TEXT,
-  speaker TEXT, -- 'user' | 'persona'
-  content TEXT,
-  emotion TEXT,
-  choice_made TEXT,
-  affection_change INTEGER,
-  created_at TIMESTAMP DEFAULT NOW()
-);
+### 10.4 유저 관리
+```
+GET  /api/admin/users/[userId]/persona-progress     → 7-멤버 진행 카드
+POST /api/admin/users/[userId]/tokens               → 토큰 ± + reason + audit
+POST /api/admin/users/[userId]/ban                  → ban/unban + reason + audit (admin self-protection)
+POST /api/admin/users/[userId]/memory-search        → pgvector RAG 시뮬
 ```
 
-### user_posts
-```sql
-CREATE TABLE user_posts (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID REFERENCES users(id),
-  type TEXT, -- 'mood' | 'photo' | 'text'
-  mood TEXT,
-  caption TEXT,
-  image_url TEXT,
-  created_at TIMESTAMP DEFAULT NOW()
-);
+### 10.5 자동화
+```
+GET    /api/admin/events                  → LUMIN 캘린더 + 예정된 scheduled_events
+POST   /api/admin/events                  → 이벤트 생성 (member_birthday / debut_anniversary / comeback / ...)
+PATCH  /api/admin/events/[id]
+DELETE /api/admin/events/[id]
+GET    /api/admin/playground/models       → OpenRouter 모델 카탈로그
+POST   /api/admin/playground/chat         → 페르소나 응답 시뮬 (LLM)
 ```
 
-### feed_events
-```sql
-CREATE TABLE feed_events (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID REFERENCES users(id),
-  type TEXT, -- 'dm_notification' | 'like' | 'comment' | 'follow'
-  persona_id TEXT,
-  title TEXT,
-  preview TEXT,
-  scenario_id TEXT,
-  post_id UUID REFERENCES user_posts(id),
-  read BOOLEAN DEFAULT FALSE,
-  created_at TIMESTAMP DEFAULT NOW()
-);
+### 10.6 그로스 / 측정
+```
+GET    /api/admin/marketing-insights              → 채널별 PASS 전환 + CAC
+GET    /api/admin/onboarding/analytics            → 온보딩 funnel + 코호트
+GET    /api/admin/retention                       → D1/D7/D30 코호트 히트맵
+
+GET    /api/admin/influencers
+POST   /api/admin/influencers                     → 인플루언서 등록 + utm_campaign 연결
+PATCH  /api/admin/influencers/[id]                → 상태 / payout 갱신
+DELETE /api/admin/influencers/[id]
+
+GET    /api/admin/experiments
+POST   /api/admin/experiments                     → 실험 정의 (variants + conversion_events)
+PATCH  /api/admin/experiments/[id]                → status 전환 (draft → running → paused → complete)
+DELETE /api/admin/experiments/[id]
+GET    /api/admin/experiments/[id]/results        → variant 별 conversion rate
 ```
 
-### hack_progress
-```sql
-CREATE TABLE hack_progress (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID REFERENCES users(id),
-  persona_id TEXT NOT NULL,
-  level INTEGER DEFAULT 1,
-  xp INTEGER DEFAULT 0,
-  unlocked_content TEXT[],
-  viewed_stories TEXT[],
-  UNIQUE(user_id, persona_id)
-);
+### 10.7 마케팅 콘텐츠
 ```
-
-### unlocked_items
-```sql
-CREATE TABLE unlocked_items (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID REFERENCES users(id),
-  persona_id TEXT NOT NULL,
-  item_id TEXT NOT NULL,
-  item_type TEXT, -- 'cg' | 'voice' | 'document'
-  unlocked_at TIMESTAMP DEFAULT NOW(),
-  UNIQUE(user_id, persona_id, item_id)
-);
-```
-
-### payments
-```sql
-CREATE TABLE payments (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID REFERENCES users(id),
-  stripe_session_id TEXT,
-  type TEXT, -- 'gem_package' | 'subscription'
-  item_id TEXT,
-  amount DECIMAL,
-  currency TEXT,
-  status TEXT, -- 'pending' | 'completed' | 'failed'
-  created_at TIMESTAMP DEFAULT NOW()
-);
-```
-
-### subscriptions
-```sql
-CREATE TABLE subscriptions (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID REFERENCES users(id),
-  stripe_subscription_id TEXT,
-  plan_id TEXT,
-  status TEXT, -- 'active' | 'cancelled' | 'expired'
-  current_period_start TIMESTAMP,
-  current_period_end TIMESTAMP,
-  created_at TIMESTAMP DEFAULT NOW()
-);
+GET/POST   /api/admin/marketing/projects
+GET/POST   /api/admin/marketing/copies
+GET/POST   /api/admin/marketing/images
+GET/POST   /api/admin/marketing/tasks
+POST       /api/admin/marketing/generate-copy            → AI 카피 생성 (LLM)
+POST       /api/admin/marketing/generate-ad              → AI 광고 (LLM + 이미지)
+POST       /api/admin/marketing/upload/meta              → Meta Ad API 업로드
+POST       /api/admin/marketing/insights                 → Meta/Google 광고 성과 조회 (platform+adId 필요)
 ```
 
 ---
 
-## 환경 변수
+## 11. 분석 (Analytics)
 
-```env
+서버사이드 이벤트는 `lib/analytics-server.ts` (Meta CAPI + Mixpanel server-side).
+클라이언트는 `lib/analytics.ts`로 GA4 + Mixpanel + Meta Pixel + Firebase + Airbridge.
+
+자동 수집 이벤트:
+- `SignUp` (UTM 동봉) — `auth/callback` 신규 가입
+- `Login` — 기존 유저
+- `Purchase` / `Subscribe` — Stripe webhook
+- `OnboardingStart` / `OnboardingComplete` — 온보딩 페이지
+- `InitiateCheckout` — `/shop`에서 PASS 클릭
+
+명시적 호출 가능: `analytics.trackXxx()` (lib/analytics.ts).
+
+---
+
+## 12. 핵심 DB 테이블 (요약)
+
+자세한 스키마는 `supabase/migrations/` 참조.
+
+| 테이블 | 마이그 | 핵심 컬럼 |
+|---|---|---|
+| `users` | 001 + 026 + 030 | id / email / role / tokens / subscription_tier / is_premium / utm_* / onboarding_variant / is_banned |
+| `persona_core` | 002 + 013 | id / name / group_id / member_role / mbti / birthday / signature_color / project_id |
+| `persona_projects` | 024 | 페르소나 폴더 분류 |
+| `user_persona_relationships` | 003 | affection / relationship_stage / trust / intimacy / total_messages |
+| `persona_memories` | 005 | semantic + structured 메모리 (pgvector) |
+| `scenario_templates` | 006 + 028 | review_status / lint_findings / generation_mode (static/guided/dynamic) |
+| `guided_scenario_*` / `dynamic_scenario_*` | 007 + 017 | v2 시나리오 세션 |
+| `event_trigger_rules` | 008 | 호감도/시간/행동 기반 자동 메시지 |
+| `marketing_*` (6 tables) | 009 | 광고 콘텐츠 파이프라인 |
+| `onboarding_*` | 010 | A/B variant + 빌더 |
+| `subscriptions` / `purchases` / `welcome_offer_purchases` | 011 | Stripe 구독 주기 + 결제 이력 |
+| `llm_usage_records` / `user_llm_budgets` | 011 | OpenRouter 비용 추적 |
+| `lumin_events` | 025 | 그룹 캘린더 (생일/데뷔/컴백) |
+| `admin_audit_log` | 022 | 모든 admin write 기록 |
+| `moderation_flags` | 023 | Hard Rules 위반 큐 |
+| `influencers` | 027 | 시딩 CRM |
+| `experiments` / `experiment_assignments` / `experiment_events` | 029 | A/B 실험 |
+
+화이트리스트 view: `personas` (사용자 노출용).
+신규 마이그레이션은 031부터 시작.
+
+---
+
+## 13. 환경 변수 (`.env.local`)
+
+```
 # Supabase
-NEXT_PUBLIC_SUPABASE_URL=
-NEXT_PUBLIC_SUPABASE_ANON_KEY=
-SUPABASE_SERVICE_ROLE_KEY=
+NEXT_PUBLIC_SUPABASE_URL=https://olpnuagrhidopfjjliih.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=...
+SUPABASE_SERVICE_ROLE_KEY=...
 
 # OpenRouter
-OPENROUTER_API_KEY=
-
-# ElevenLabs
-ELEVENLABS_API_KEY=
+OPENROUTER_API_KEY=...
 
 # Stripe
-STRIPE_SECRET_KEY=
-STRIPE_WEBHOOK_SECRET=
-NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=
+STRIPE_SECRET_KEY=sk_...
+NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_...
+STRIPE_WEBHOOK_SECRET=whsec_...
 
-# Mixpanel
-NEXT_PUBLIC_MIXPANEL_TOKEN=
+# Kling AI
+KLING_ACCESS_KEY=...
+KLING_SECRET_KEY=...
+
+# Analytics
+NEXT_PUBLIC_MIXPANEL_TOKEN=...
+NEXT_PUBLIC_FIREBASE_*=...
+
+# App
+NEXT_PUBLIC_APP_URL=https://luminovel.ai
 ```
+
+`.env.example` 항상 동기화 (CLAUDE.md Hard Rule).
 
 ---
 
-## API 우선순위
+## 14. 우선순위 / 배포 상태
 
-### Phase 1 - MVP (필수)
-1. 인증 (register, login, OAuth)
-2. 게임 상태 저장/불러오기
-3. LLM 대화 생성
-4. 기본 결제
-
-### Phase 2 - Core Features
-5. SNS 피드
-6. DM 시나리오
-7. 해킹 레벨 시스템
-8. TTS 생성
-
-### Phase 3 - Enhancement
-9. 갤러리 시스템
-10. 분석/트래킹
-11. 고급 결제 (구독)
+코드 기반 인프라는 모두 완성. 운영 자산 + Stripe Live + 베타 모집이 남은 단계.
+`docs/DEPLOY_PREFLIGHT.md`의 🔴 4건 처리 후 배포 가능.

@@ -93,7 +93,7 @@ export const PERSONA_IMAGE_PROMPTS: Record<string, PersonaImagePrompt> = {
   adrian: {
     personaId: 'adrian',
     personaName: 'Adrian',
-    basePrompt: 'Korean male K-pop idol, 25 years old, sub vocal / producer, headphones around neck, calm studio lighting, focused but warm expression',
+    basePrompt: 'Korean male K-pop idol, 22 years old, sub vocal / producer, headphones around neck, calm studio lighting, focused but warm expression',
     style: SHARED_STYLE,
     negativePrompt: SHARED_NEGATIVE,
   },

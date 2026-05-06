@@ -194,52 +194,43 @@ CREATE TABLE user_memories (
 );
 ```
 
-### 4.3 LUMIN 그룹 메타 (신규 마이그레이션 필요)
-```sql
--- 062_lumin_group_metadata.sql (제안)
-ALTER TABLE persona_core ADD COLUMN group_id TEXT;
-ALTER TABLE persona_core ADD COLUMN member_role TEXT;
-  -- 'leader' | 'main_vocal' | 'main_dancer' | 'main_rapper' |
-  -- 'sub_vocal' | 'visual' | 'sub_rapper' | 'maknae' | 'global'
-ALTER TABLE persona_core ADD COLUMN mbti TEXT;
-ALTER TABLE persona_core ADD COLUMN birthday DATE;
-ALTER TABLE persona_core ADD COLUMN signature_color TEXT;
-```
+### 4.3 LUMIN 그룹 메타 ✅ 구현됨 (마이그 013_lumin_group.sql)
+`persona_core`에 추가된 컬럼: `group_id` / `member_role` / `member_position` /
+`mbti` / `birthday` / `signature_color` / `trainee_years` / `opening_message`.
+LUMIN 7명 seed는 014_lumin_seed.sql.
 
-### 4.4 Subscription Tier (신규 마이그레이션 필요)
-```sql
--- 063_subscription_tiers.sql (제안)
-ALTER TABLE users ADD COLUMN subscription_tier TEXT DEFAULT 'free';
-  -- 'free' | 'standard' | 'lumin_pass'
-ALTER TABLE users ADD COLUMN subscription_billing_period TEXT;
-  -- 'monthly' | 'annual' | NULL
-ALTER TABLE users ADD COLUMN subscription_expires_at TIMESTAMPTZ;
-```
+### 4.4 Subscription Tier ✅ 구현됨 (마이그 001 + 011)
+`users`: `subscription_tier TEXT CHECK ('free'|'standard'|'lumin_pass') DEFAULT 'free'`,
+`is_premium BOOLEAN`, `premium_expires_at TIMESTAMPTZ`.
+주기 추적은 별도 `subscriptions` 테이블 (011): `current_period_start/end`,
+`stripe_subscription_id`, `plan_id`. webhook(`/api/webhooks/stripe`)이
+양쪽 모두 동기화.
 
-### 4.5 그룹 단톡방 (신규 마이그레이션 필요)
-```sql
--- 064_group_chat_rooms.sql (제안)
-CREATE TABLE group_chat_rooms (
-  id UUID PRIMARY KEY,
-  user_id UUID REFERENCES users(id),
-  group_id TEXT NOT NULL,
-  room_type TEXT DEFAULT 'main',  -- 'main' | 'event' | 'comeback'
-  member_persona_ids TEXT[] NOT NULL,
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  UNIQUE(user_id, group_id, room_type)
-);
+### 4.5 그룹 단톡방 ✅ 구현됨 (마이그 013_lumin_group.sql)
+`group_chat_rooms` (user_id, group_id, room_type, member_persona_ids[])
++ `group_chat_messages` (room_id, sender_type, sender_persona_id,
+content, sequence_number) 모두 존재.
 
-CREATE TABLE group_chat_messages (
-  id UUID PRIMARY KEY,
-  room_id UUID REFERENCES group_chat_rooms(id),
-  sender_type TEXT NOT NULL,  -- 'user' | 'persona' | 'system'
-  sender_persona_id TEXT,     -- persona인 경우
-  content TEXT NOT NULL,
-  message_type TEXT DEFAULT 'text',
-  sequence_number BIGSERIAL,
-  created_at TIMESTAMPTZ DEFAULT NOW()
-);
-```
+### 4.6 운영/측정 인프라 (마이그 022~030)
+
+P0/P1/P2 + Sync 작업으로 추가됨:
+
+- **022 admin_audit_log + ban**: `admin_audit_log` (action / target / before/after JSONB),
+  `users.is_banned + banned_at + banned_reason`. 모든 admin write 자동 기록.
+- **023 moderation_flags**: 5 카테고리 (sexual / real_idol / drugs / violence /
+  politics) Hard Rules 위반 큐. `lib/moderation.ts`가 chat 사전/사후 차단 + flag 적재.
+- **024 persona_projects**: admin/personas의 폴더 분류 + `persona_core.project_id` FK.
+- **025 lumin_events**: 그룹 캘린더(member_birthday / debut_anniversary / comeback / release / fan_day).
+  데뷔 4/7 seed 포함.
+- **026 user_attribution**: `users.utm_source/medium/campaign/content/term/landing_path/first_referrer`.
+  signup callback이 localStorage UTM을 자동 저장.
+- **027 influencer_crm**: 시딩 명단 + payout + UTM 연결로 ROAS 자동 계산.
+- **028 scenario_review**: scenario_templates에 `review_status` (draft/in_review/approved/
+  rejected) + 검토 메타 + lint_findings JSONB. runtime은 `review_status='approved'`만 노출.
+- **029 experiments**: `experiments` + `experiment_assignments` (sticky variant) +
+  `experiment_events`. SDK는 `lib/experiments.ts`. webhook이 PASS 결제 시
+  active 실험에 자동 fan-out.
+- **030 onboarding_variant**: `users.onboarding_variant` (A/B 코호트 추적).
 
 ---
 
@@ -300,7 +291,7 @@ INITIAL_TUTORIAL (~15초)
 ```
 
 ### 알려진 이슈
-- **🟠 웰컴 모달 타이밍** (`components/providers/WelcomeOfferProvider.tsx`): 현재 1.5초 후 즉시 열림 → 튜토리얼 완료 후로 지연 필요
+- **🟢 웰컴 모달 타이밍**: `components/providers/WelcomeOfferProvider.tsx:117`이 이미 `isTutorialCompleted && !isTutorialActive` 게이트로 튜토리얼 완료 후에만 열림. 해결됨.
 - **🟢 호감도 페르소나 하드코딩** (`OnboardingSignup.tsx:54`): `persona_id: 'jun'` → 선택된 페르소나로 변경
 
 ---
@@ -309,13 +300,13 @@ INITIAL_TUTORIAL (~15초)
 
 | 튜토리얼 | 상태 | 트리거 |
 |---|---|---|
-| **Initial** | ✅ 작동 | 메인 페이지 첫 진입 |
-| **Suggested Friends** | ❌ 미구현 | DM 목록 첫 방문 |
-| **DM** | ❌ 미구현 (정의만) | 첫 DM 채팅방 진입 |
-| **Scenario** | ❌ 미구현 (정의만) | 첫 시나리오 플레이 |
-| **Profile** | ❌ 미구현 | 첫 프로필 방문 |
+| **Initial** | ✅ 작동 | 메인 페이지 첫 진입 (`app/(marketing)/page.tsx`) |
+| **Suggested Friends** | ✅ 작동 | DM 목록 첫 방문 (`components/dm/DMList.tsx`) |
+| **DM** | ✅ 작동 | 첫 DM 채팅방 진입 (`app/dm/[personaId]/page.tsx`) |
+| **Scenario** | ✅ 작동 | 첫 시나리오 플레이 (`components/scenario/ScenarioPlayer.tsx`) |
+| **Profile** | ✅ 작동 | 첫 프로필 방문 (`app/profile/[personaId]/page.tsx`) |
 
-전체 완성도 ~20% (1/5 작동).
+전체 완성도 100% (5/5 작동). 정의는 `lib/tutorial-data.ts`, `data-tutorial=` selector는 모든 대상 DOM 요소에 존재.
 
 ### 시스템 구조
 - **`lib/stores/tutorial-store.ts`** — Zustand + localStorage 영속성
@@ -323,9 +314,10 @@ INITIAL_TUTORIAL (~15초)
 - **`components/tutorial/useTutorial.ts`** — 훅 (`startInitialTutorial`, `startDMTutorial` 등)
 - **`lib/tutorial-data.ts`** — 튜토리얼 정의
 
-### 추가 구현 필요한 4개 튜토리얼
-- 정의 추가: `lib/tutorial-data.ts` (SUGGESTED_FRIENDS_TUTORIAL, PROFILE_TUTORIAL)
-- 속성 추가: `components/dm/SuggestedFriends.tsx`, `app/profile/[personaId]/page.tsx`, `components/sns/DMChat.tsx`, `components/scenario/ScenarioPlayer.tsx`
+### 향후 개선 (선택)
+- **분기별 튜토리얼**: 컴백 시즌 / 멤버 생일 / 새 시나리오 출시 시 단계별 가이드
+- **개인화**: 유저의 첫 멤버 선택을 기반으로 멘트 변형
+- **A/B 실험**: `lib/experiments.ts`와 결합해 튜토리얼 variant 효과 측정 (`onboarding_variant` 컬럼 활용)
 - 트리거 로직: 각 트리거 위치 페이지에서 `startXxxTutorial()` 호출
 
 ---

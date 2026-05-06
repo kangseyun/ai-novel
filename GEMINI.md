@@ -1,9 +1,8 @@
 # Luminovel Project Context
 
-> ⚠️ **2026-04-29 피벗 반영**
-> 이 문서는 옛 다크 로맨스 컨셉(Sophie 페르소나, Asset Lock 코인 모델) 기준으로 작성됨.
-> 현재 프로젝트는 **K-pop 가상 아이돌 그룹 LUMIN의 클린 연애 시뮬레이터** + **$99 LUMIN PASS 구독 모델**로 피벗됨.
-> 자세한 내용은 [`CLAUDE.md`](./CLAUDE.md) 및 [`docs/pivot/PIVOT_OVERVIEW.md`](./docs/pivot/PIVOT_OVERVIEW.md) 참조.
+> **2026-05-06 갱신** — 피벗 완료 + P0/P1/P2 + Sync 종료 상태.
+> K-pop 가상 아이돌 그룹 LUMIN(7인조)의 클린 연애 시뮬레이터 + $99 LUMIN PASS 단일 구독.
+> Source of Truth: [`CLAUDE.md`](./CLAUDE.md), [`docs/STRATEGY.md`](./docs/STRATEGY.md), [`lib/pricing.ts`](./lib/pricing.ts).
 
 ## Project Overview (신규)
 **Goal:** Build a clean (all-ages) **K-pop virtual idol dating simulator** featuring **LUMIN** — an original 7-member virtual K-pop boy group. Target **$990 MRR via 10 LUMIN PASS subscribers ($99/mo)** in 12 weeks.
@@ -42,18 +41,24 @@ The `docs/` directory is the **Source of Truth** for the project's direction.
 3. **🔴 약물·음주 미화 금지**
 4. **🔴 극단적 폭력·정치·종교 발언 금지**
 
-## Development Status
-- **Current Phase:** Pivot consolidation (문서 정리 + LUMIN 멤버 데이터 마이그레이션)
+## Development Status (2026-05-06 갱신)
+- **Current Phase:** Pre-launch — code is feature-complete and E2E-tested. `docs/DEPLOY_PREFLIGHT.md`의 🔴 4건만 처리하면 배포 가능.
 - **Implemented:**
-    - 전체 코드베이스 (인증, 채팅, 메모리, 시나리오 v2, 결제, 어드민) 약 95% 완성
-    - 마이그레이션 009 → 061 적용 완료
-    - 옛 페르소나 5명 데이터 (DB) — LUMIN 멤버로 마이그레이션 필요
-- **Immediate Next Steps:**
-    - DB 마이그레이션 `062_lumin_group_metadata.sql` (group_id, member_role, mbti, birthday, signature_color)
-    - 마이그레이션 `063_subscription_tiers.sql` (free/standard/lumin_pass)
-    - 마이그레이션 `064_group_chat_rooms.sql` (그룹 단톡방)
-    - 멤버별 ElevenLabs 음성 클로닝
-    - 멤버별 Kling AI 외모 시드 + 셀카 사전 생성
+    - 코드베이스 100% (인증·채팅·메모리·시나리오 v2·결제·어드민)
+    - 마이그레이션 001–030 적용 완료. 다음 신규 번호는 031.
+    - LUMIN 7명 메타 + 그룹 단톡방 스키마: 마이그 013 (lumin_group)
+    - 구독 티어 (free/standard/lumin_pass): 마이그 001 + 011
+    - 어드민 P0/P1/P2: 22~030 (admin_audit_log / moderation_flags / persona_projects /
+      lumin_events / utm_attribution / influencers / scenario review_status / experiments /
+      onboarding_variant)
+    - 모든 admin write가 `admin_audit_log`에 기록 + `requireAdmin()` 강제
+    - Hard Rules: 시스템 프롬프트 주입 + chat 사전/사후 차단 + scenario lint CI
+    - PASS 결제 모델 통일 (lib/pricing.ts SoT, Stripe lookup_keys: lumin_pass_*, standard_*)
+- **Pending:**
+    - 멤버별 ElevenLabs 음성 클로닝 (자산)
+    - 멤버별 Kling AI 셀카 사전 생성 (자산 — prompts는 lib/kling-ai.ts에 7명 전부 있음)
+    - 마케팅 정적 랜딩 분리 (P2-Sync, 후순위)
+    - Mixpanel/Airbridge 외부 분석툴 채널 어트리뷰션 (admin은 utm_* 추적, 외부 동봉만 남음)
 
 ## Directory Structure
 - `/app`: Next.js App Router pages
@@ -65,8 +70,8 @@ The `docs/` directory is the **Source of Truth** for the project's direction.
 - `/lib`:
     - `/ai-agent`: AI Agent system (core, memory, modules)
     - `/stores`: Zustand stores
-    - `/i18n`: 다국어 (KR/EN/JA/ES 우선)
-- `/supabase/migrations`: SQL migrations (009 → 061+)
+    - `/i18n`: 다국어 (현재 KR/EN. JA/ES는 1.0 PMF 후)
+- `/supabase/migrations`: SQL migrations (001 → 030, 신규는 031부터)
 - `/docs`: Strategic planning and requirement documents
 - `/types`: TypeScript interfaces
 

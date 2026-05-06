@@ -41,7 +41,7 @@ DB:
 
 **DB 변경 시:**
 1. `mcp__supabase__list_tables` 로 현재 스키마 확인
-2. 마이그레이션 작성 (`supabase/migrations/NNN_name.sql`, NNN ≥ 062)
+2. 마이그레이션 작성 (`supabase/migrations/NNN_name.sql`, NNN ≥ 031 — 현재 030까지 적용됨)
 3. `mcp__supabase__apply_migration` 으로 적용
 4. RLS 정책 추가 필수 (`auth.uid() = user_id` 패턴)
 

@@ -15,7 +15,11 @@
 >   title/description/content를 정규식 룰셋과 대조. PR 게이트로 사용 가능.
 >
 > **모델 매핑:**
-> - `isPremium` / `premium_option` (코인 잠금) → **`requires_tier: 'lumin_pass'`** (구독 권한 게이트)
+> - `isPremium` (choice 단위 boolean) — 현재 코드에 그대로 남아있음.
+>   의미: "PASS 구독 사용자만 접근 가능" (옛 코인/IAP 잠금이 아님 — PASS 단일 구독).
+>   향후 `requires_tier: 'lumin_pass'`로 rename 가능하나 schema 마이그 + 호출부 일괄 수정 필요해 미진행.
+> - `quality_gates.blocked_topics`는 **runtime 대화 시점**에만 적용 (dynamic-scenario-engine).
+>   발행 큐(`/admin/publish-queue`)의 review-time lint는 5 카테고리 Hard Rules만 검사.
 > - `forbidden_topics` = 5 카테고리 SoT는 `lib/moderation.ts` (룰셋 추가는 코드에서)
 > - 시나리오 IP = K-pop 그룹 LUMIN 멤버 7인 (`docs/LUMIN.md`)
 > - 시나리오 카테고리 추가: `comeback_season`, `birthday_event`, `group_interaction`, `concert_aftermath`
@@ -459,7 +463,16 @@ interface ScenarioGenerationRequest {
 13. [x] DynamicScenarioEngine 구현 → `lib/ai-agent/modules/dynamic-scenario-engine.ts`
 14. [x] 실시간 시나리오 생성 및 품질 모니터링 → 가드레일 체크, 폴백 응답
 15. [x] 통합 세션 매니저 → `lib/ai-agent/modules/scenario-session-manager.ts`
-16. [x] Guided/Dynamic 세션 테이블 마이그레이션 → `055_guided_dynamic_sessions.sql`
+16. [x] Guided/Dynamic 세션 테이블 → `007_scenarios_v2.sql` + `017_scenario_unification.sql`
+
+### Phase 6: 발행 워크플로 + Hard Rules 게이트 (P2-Sync) ✅ 완료
+17. [x] `scenario_templates.review_status` (draft / in_review / approved / rejected) → `028_scenario_review.sql`
+18. [x] runtime 게이트 — `lib/ai-agent/modules/scenario-service.ts:209,263` + `app/api/scenarios/[id]/route.ts:201`이 `review_status='approved'` 강제
+19. [x] 발행 큐 admin UI → `app/admin/publish-queue/page.tsx`
+20. [x] 검토 API (submit/approve/reject + Hard Rules lint 422 차단) → `app/api/admin/scenarios/[id]/review/route.ts`
+21. [x] CI 리그레션 스크립트 → `scripts/lint-scenarios.ts`, `npm run lint:scenarios`
+22. [x] chat 사전 차단 + 사후 fallback → `app/api/ai/chat/route.ts` + `lib/moderation.ts`
+23. [x] 시스템 프롬프트에 Hard Rules 섹션 강제 주입 → `lib/ai-agent/core/prompt-engine.ts`
 
 ---
 
