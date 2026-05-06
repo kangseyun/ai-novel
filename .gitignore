@@ -41,3 +41,9 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 .env*.local
+
+# Claude Code runtime state (per-machine, never commit)
+.claude/scheduled_tasks.lock
+.claude/projects/
+.claude/memory/
+.claude/cache/
