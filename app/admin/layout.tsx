@@ -145,7 +145,7 @@ export default function AdminLayout({
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="light min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
           <Loader2 className="w-8 h-8 animate-spin text-foreground mx-auto mb-4" />
           <p className="text-muted-foreground text-sm">권한 확인 중...</p>
@@ -157,7 +157,7 @@ export default function AdminLayout({
 
   return (
     <TooltipProvider delayDuration={0}>
-      <SidebarProvider className="bg-background text-foreground">
+      <SidebarProvider className="light bg-background text-foreground">
         <Sidebar collapsible="icon" className="border-r">
           <SidebarHeader>
             <div className="flex items-center gap-3 px-2 py-1.5 group-data-[collapsible=icon]:justify-center">
