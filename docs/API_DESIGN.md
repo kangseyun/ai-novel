@@ -1,14 +1,18 @@
 # Luminovel - Backend API 설계 문서
 
-> ⚠️ **2026-04-29 피벗 안내**
-> 이 문서는 다크 로맨스 시대(코인/IAP, ECLIPSE 그룹 등)에 작성됨.
-> 다음 항목은 **deprecated** 또는 **수정 필요** 상태:
-> - "ECLIPSE" 그룹명 → **LUMIN**으로 변경 (전 문서 통일)
-> - `gems` / 단순 premium/free 구독 모델 → **Free / $19 Standard / $99 LUMIN PASS** 3티어로 변경
-> - `provider: apple` OAuth → 실제 코드는 **Google + Discord** (Apple 미사용)
-> - 캐릭터 = K-pop 그룹 LUMIN의 멤버 7인 ([`group/LUMIN_GROUP.md`](./group/LUMIN_GROUP.md))
+> ⚠️ **현재 상태 (2026-05-06 갱신)**
 >
-> API 구조·엔드포인트 설계 자체는 유효하나, **상품·캐릭터·결제 모델 관련 필드**는 신규 모델로 갱신 필요.
+> **본 문서의 §3.3 / §10 / §11은 폐기됐습니다 (gem_packages, gem_cost, spend-gems, gems 화폐 등).**
+> 결제·티어 SoT는 코드에서 `lib/pricing.ts`, 스키마에서 `users.subscription_tier`(`free|standard|lumin_pass`)
+> + `subscriptions` 테이블입니다. webhook은 `app/api/webhooks/stripe/route.ts`,
+> 사용자 결제는 `app/api/subscriptions/checkout` / `subscriptions/welcome-offer`만 사용합니다.
+> 이 문서의 gem 섹션은 다크 로맨스 시대 잔재이며, 신규 기능에서 인용 금지.
+>
+> **유효한 부분:**
+> - 인증 / 페르소나 / 시나리오 / DM / 메모리 / 어드민 API 전반의 계약·필드 명세
+> - 캐릭터 = LUMIN 7인 (`docs/LUMIN.md`)
+> - OAuth = Google + Discord (Apple 미사용)
+> - 화폐 = `tokens` (월간 메시지 한도용 단일 단위, IAP 없음)
 
 ## 기술 스택
 - **Database**: Supabase (PostgreSQL + pgvector)

@@ -16,12 +16,12 @@ K-pop 가상 아이돌 그룹 **LUMIN** (7인조, 자체 IP)과의 클린(전연
 - `console.log` 프로덕션 커밋 금지
 - `any` 타입 / implicit any 금지 (strict TypeScript)
 - 새 환경변수 추가 시 `.env.example` 동시 갱신
-- 옛 표기 사용 금지: ECLIPSE / Sophie / coins / gems / hearts / acquaintance / close_friend / romantic / intimate / lover
+- 옛 표기 사용 금지: ECLIPSE / Sophie / coins / gems / hearts / acquaintance / close_friend / romantic / intimate / lover / Pro Membership / VIP 멤버십 / gem_packages / gem_cost / Daniel Sterling / Kaelen Vance / Adrian Cruz / Ren Ito / PHANTOM / "Target acquired" / "[SYSTEM COMPROMISED]"
 
 DB:
 - `npx supabase db push` 금지 → MCP Supabase 도구 사용
 - `personas` (view) 사용. `persona_core` 직접 조회 금지 (사용자 노출 화면)
-- 마이그레이션은 `supabase/migrations/` 의 마지막 번호 다음 순번을 사용 (현재 017 → 다음은 018)
+- 마이그레이션은 `supabase/migrations/` 의 마지막 번호 다음 순번을 사용 (현재 030 → 다음은 031)
 
 ---
 
@@ -89,5 +89,5 @@ DB:
 - **관계 단계:** `stranger` → `fan` → `friend` → `close` → `heart` (💗)
 - **화폐 단위:** `tokens` (초기 100)
 - **LUMIN 멤버 ID:** `haeon` / `kael` / `ren` / `jun` / `adrian` / `sol` / `noa`
-- **모바일 폭:** max-w-430px / Dark theme / Korean default + i18n (KR/EN/JA/ES)
+- **모바일 폭:** max-w-430px / Dark theme / Korean default + i18n (KR/EN — JA/ES는 미구현, docs/STRATEGY.md §1.5 참조)
 - **경로 별칭:** `@/` (예: `@/lib/stores/auth-store`)

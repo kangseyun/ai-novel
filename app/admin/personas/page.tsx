@@ -1936,12 +1936,12 @@ export default function PersonasListPage() {
                 <SelectContent className="bg-white">
                   <SelectItem value="general">일반</SelectItem>
                   <SelectItem value="idol">아이돌</SelectItem>
-                  <SelectItem value="ceo">CEO</SelectItem>
-                  <SelectItem value="protector">보디가드</SelectItem>
-                  <SelectItem value="ex">전 연인</SelectItem>
-                  <SelectItem value="dangerous">위험한 남자</SelectItem>
-                  <SelectItem value="junior">후배</SelectItem>
-                  <SelectItem value="senior">선배</SelectItem>
+                  <SelectItem value="leader">리더</SelectItem>
+                  <SelectItem value="main_dancer">메인댄서</SelectItem>
+                  <SelectItem value="main_rapper">메인래퍼</SelectItem>
+                  <SelectItem value="main_vocal">메인보컬</SelectItem>
+                  <SelectItem value="producer">프로듀서</SelectItem>
+                  <SelectItem value="maknae">막내</SelectItem>
                 </SelectContent>
               </Select>
             </div>

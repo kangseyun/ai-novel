@@ -1,10 +1,23 @@
 # 시나리오 시스템 V2 개발 계획
 
-> ⚠️ **2026-04-29 피벗 반영 메모**
-> 이 문서는 코인/IAP 시대(다크 로맨스 시나리오)에 작성됨. 시스템 설계 자체는 유효하나 다음 항목은 신규 모델로 매핑 필요:
+> ⚠️ **2026-05-06 갱신 메모 (P0/P1-Sync 후)**
+>
+> **런타임 게이트 현재 상태:**
+> - ✅ `review_status='approved'` 필터 — `lib/ai-agent/modules/scenario-service.ts`의
+>   `getFirstMeetingScenario`/`getAvailableScenarios` + `app/api/scenarios/[id]`에서 강제됨.
+>   draft / rejected 시나리오는 사용자 화면에 절대 노출되지 않음. 발행 전 admin
+>   `/admin/publish-queue`에서 lint 통과 + 승인 필요.
+> - ✅ Hard Rules — `lib/moderation.ts:detectFlags`가 5개 카테고리(성적/실명 아이돌/
+>   약물/폭력/정치) 패턴 매칭. `app/api/ai/chat`이 user_message critical 시 422로
+>   LLM 호출 전 차단, AI response critical 시 fallback으로 자동 교체.
+>   `lib/ai-agent/core/prompt-engine.ts`가 시스템 프롬프트에 Hard Rules 섹션 강제 주입.
+> - ✅ Regression CI — `npm run lint:scenarios`가 모든 scenario_templates row의
+>   title/description/content를 정규식 룰셋과 대조. PR 게이트로 사용 가능.
+>
+> **모델 매핑:**
 > - `isPremium` / `premium_option` (코인 잠금) → **`requires_tier: 'lumin_pass'`** (구독 권한 게이트)
-> - `forbidden_topics` 기존 ("과도한 신체 접촉", "폭력") → 클린 K-pop 톤 ("성적 묘사", "약물·음주 미화", "실명 아이돌 언급") 추가
-> - 시나리오 IP = K-pop 그룹 LUMIN 멤버 7인 ([`group/members/`](./group/members/))
+> - `forbidden_topics` = 5 카테고리 SoT는 `lib/moderation.ts` (룰셋 추가는 코드에서)
+> - 시나리오 IP = K-pop 그룹 LUMIN 멤버 7인 (`docs/LUMIN.md`)
 > - 시나리오 카테고리 추가: `comeback_season`, `birthday_event`, `group_interaction`, `concert_aftermath`
 
 ## 1. 개요

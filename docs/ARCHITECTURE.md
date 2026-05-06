@@ -354,13 +354,43 @@ INITIAL_TUTORIAL (~15초)
 ### 메모리
 - `GET /api/memories` / `GET /api/memories/:personaId` / `GET /api/memories/:personaId/:memoryId`
 
-### 결제 (Stripe)
-- `POST /api/checkout` — Stripe Checkout 세션 생성
-- `POST /api/webhooks/stripe` — Webhook 처리
+### 결제 (Stripe — LUMIN PASS / Standard 단일 구독 모델)
+- `GET / POST /api/subscriptions/checkout` — `lib/pricing.ts` SoT 사용 (PASS $99 / Standard $19)
+- `GET / POST /api/subscriptions/welcome-offer` — PASS 50% off ($49.50), 가입 후 24h 한정
+- `POST /api/webhooks/stripe` — `subscription_tier` + `is_premium` 동기화 + 활성 실험에 conversion fan-out
+- 토큰 IAP 엔드포인트(`/api/checkout`, `/api/payments/checkout`)는 폐기·삭제됨
 
-### 어드민
+### 어드민 (P0 + P1 + P2 + 동기화 작업 후)
+콘텐츠
 - `/api/admin/scenarios/generate` / `/api/admin/scenarios/save`
-- `/api/admin/triggers/*`
+- `/api/admin/scenarios/[id]/review` — submit / approve / reject + Hard Rules lint 게이트
+- `/api/admin/scenarios/review-queue` — 발행 큐
+- `/api/admin/triggers/*` / `/api/admin/events*` (LUMIN 캘린더, 마이그 025)
+
+운영
+- `/api/admin/users/[userId]/tokens` — 토큰 조정 + audit log
+- `/api/admin/users/[userId]/ban` — 정지 (마이그 022)
+- `/api/admin/users/[userId]/persona-progress` — 7-멤버 진행 카드
+- `/api/admin/subscriptions` — 구독 콘솔 + Stripe 환불 발사
+- `/api/admin/metrics/mrr` — MRR / 티어 분포
+- `/api/admin/llm-usage` — LLM 비용 추적
+- `/api/admin/logs/{errors,activity}` — 로그 뷰어
+- `/api/admin/moderation` — 모더레이션 큐 (마이그 023)
+
+GTM / 측정
+- `/api/admin/marketing-insights` — 채널별 PASS 전환 (`users.utm_*` 마이그 026)
+- `/api/admin/influencers*` — 인플루언서 시딩 CRM (마이그 027)
+- `/api/admin/retention` — 코호트 D1/D7/D30
+- `/api/admin/experiments*` — A/B 실험 (마이그 029, runtime SDK는 `lib/experiments.ts`)
+- `/api/admin/onboarding/analytics` — 온보딩 퍼널
+
+신규 인프라 (사용자 코드와 통합 상태)
+- ✅ `users.subscription_tier` ⇔ `is_premium` webhook 동기화 (P0-Sync)
+- ✅ `review_status='approved'` 필터 — `lib/ai-agent/modules/scenario-service.ts` 적용 (P0-Sync)
+- ✅ Hard Rules lint — `app/api/ai/chat` 사전/사후 차단 (P0-Sync)
+- ✅ UTM 캡처 → 가입 row + analytics 이벤트 (P1-Sync)
+- ✅ 실험 conversion 자동 fan-out — webhook (P1-Sync)
+- ⏳ 추가 튜토리얼 4개 (DM/Profile/Scenario/SuggestedFriends) — 미구현 (§7 참조)
 
 ---
 
